@@ -8,6 +8,6 @@ use winit::dpi::PhysicalSize;
 
 fn main() {
     let window_size = PhysicalSize::new(1000, 800);
-    let mut simulation = DebugSimulation::new(&window_size);
-    pollster::block_on(run(&mut simulation, window_size));
+    let simulation = DebugSimulation::new(&window_size);
+    pollster::block_on(run(simulation, window_size));
 }

@@ -12,16 +12,18 @@ enum CustomEvent {
     Timer,
 }
 
-pub async fn run<T: Simulation>(simulation: &mut T, window_size: PhysicalSize<u32>) {
+pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSize<u32>) {
     let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
         .build()
         .unwrap();
     let event_loop_proxy = event_loop.create_proxy();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let window =  WindowBuilder::new().build(&event_loop).unwrap();
     let _ = window.request_inner_size(window_size);
 
-    let mut game_engine = game_engine::GameEngine::new(&window, simulation).await;
-
+    let mut game_engine = game_engine::GameEngineBuilder::new()
+        .physics_engine(Box::new(simulation))
+        .build(window).await;
+    
     std::thread::spawn(move || loop {
         thread::sleep(std::time::Duration::from_millis(20));
         event_loop_proxy.send_event(CustomEvent::Timer).ok();
@@ -30,13 +32,13 @@ pub async fn run<T: Simulation>(simulation: &mut T, window_size: PhysicalSize<u3
     event_loop.run(
         move | event, elwt | match event {
             Event::UserEvent(..) => {
-                game_engine.update(simulation);
-                game_engine.render(simulation).unwrap();
+                game_engine.update();
+                game_engine.render().unwrap();
             }
             Event::WindowEvent {
                 window_id,
                 ref event,
-            } if window_id == game_engine.window.id() => match event {
+            } if window_id == game_engine.ctx.window_id => match event {
                 WindowEvent::Resized(physical_size) => game_engine.resize(*physical_size),
 
                 WindowEvent::CloseRequested
@@ -55,7 +57,7 @@ pub async fn run<T: Simulation>(simulation: &mut T, window_size: PhysicalSize<u3
                 }
 
                 WindowEvent::RedrawRequested => {
-                    game_engine.render(simulation).unwrap();
+                    game_engine.render().unwrap();
                 } 
 
                 WindowEvent::KeyboardInput { event: 

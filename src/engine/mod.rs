@@ -17,7 +17,7 @@ pub trait State {
 }
 
 pub trait Simulation {
-    fn new(window_size: &PhysicalSize<u32>) -> Self;
+    //fn new(window_size: &PhysicalSize<u32>) -> Self;
     fn update(&mut self);
     fn get_bodies(&self) -> &Vec<CollisionBody>;
     fn get_vertices(&self) -> &Vec<Vertex>;

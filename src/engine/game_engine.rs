@@ -1,7 +1,8 @@
 use cgmath::{ElementWise, Vector3};
-use winit::event::WindowEvent;
-use winit::keyboard::KeyCode;
-use winit::window::Window;
+use winit::event::{ElementState, Event, KeyEvent, WindowEvent};
+use winit::event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy};
+use winit::keyboard::{KeyCode, PhysicalKey};
+use winit::window::{Window, WindowBuilder};
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::Pass;
 use crate::engine::renderer_engine::render_pass::RenderPass;
@@ -9,14 +10,18 @@ use crate::engine::renderer_engine::instance::Instance;
 use crate::engine::renderer_engine::gray::gray::Gray;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
 
-use super::Interaction;
+#[derive(Debug, Clone, Copy)]
+enum CustomEvent {
+    Timer,
+}
 
 pub struct GameEngine<'a> {
-    pub window: &'a Window,
-    ctx: GraphicsContext<'a>,
+    pub ctx: GraphicsContext<'a>,
     pass: RenderPass,
     size: winit::dpi::PhysicalSize<u32>,
 
+    physics_engine: Box<dyn Simulation + 'static>,
+    
     // Post processing
     pp_gray: Gray,
 
@@ -26,54 +31,6 @@ pub struct GameEngine<'a> {
 }
 
 impl <'a> GameEngine <'a> {
-    
-    // TODO: Rename simulation to PhysicsEngine
-    //pub fn set_simulation(&mut self, _sim: &impl Simulation) {}
-    // TODO: Implement
-    //pub fn set_interaction(&mut self, _int: &impl Interaction) {}
-    // TODO: Implement
-    //pub fn set_render_engine(&mut self, ren: &impl RenderEngine) {}
-
-    pub async fn new(window: &'a Window, simulation: &impl Simulation) -> Self {
-        let size = window.inner_size();
-
-        let mut ctx = GraphicsContext::new(&window).await;
-
-        let pass = RenderPass::new(&ctx.device, &size);
-
-        let vertex_buffer = ctx.create_buffer(
-            "Circle vertex buffer", bytemuck::cast_slice(&simulation.get_vertices()),
-            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
-
-        let index_buffer = ctx.create_buffer(
-                "Circle index buffer", bytemuck::cast_slice(&simulation.get_indices()),
-                wgpu::BufferUsages::INDEX);
-        
-        let bodies = simulation.get_bodies();
-        let colors = simulation.get_colors();
-        let instances = (0..simulation.get_target_num_instances() as usize).map(
-            |i| Instance {
-                position: bodies[i].position.div_element_wise(
-                              Vector3::new(size.width as f32, size.height as f32 ,1.0)).into(),
-                //position: bodies[i].position.into(),
-                color: colors[i].into(),
-                radius: bodies[i].radius / size.width as f32, // FIXME: Support for different
-                                                              // aspect ratio 
-            }).collect::<Vec<_>>();
-
-        let instance_buffer = ctx.create_buffer(
-            "Circle instance buffer",
-            bytemuck::cast_slice(
-                &instances.iter().map(Instance::to_raw).collect::<Vec<_>>()),
-                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
-
-        let pp_gray = Gray::new(&ctx.device, &size);
-
-        Self { window, ctx, pass, size, instance_buffer,
-                vertex_buffer, index_buffer, pp_gray
-                }
-    }
-
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = new_size;
         self.ctx.config.width = new_size.width;
@@ -81,7 +38,8 @@ impl <'a> GameEngine <'a> {
         self.ctx.surface.configure(&self.ctx.device, &self.ctx.config);
     }
 
-    pub fn update(&mut self, simulation: &mut impl Simulation) {
+    pub fn update(&mut self) {
+        let simulation = &mut self.physics_engine;
         simulation.update();
 
         let bodies = simulation.get_bodies();
@@ -100,8 +58,8 @@ impl <'a> GameEngine <'a> {
         
     }
 
-    pub fn render(&mut self, simulation: &impl Simulation) -> Result<(), wgpu::SurfaceError> {
-
+    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let simulation = &mut self.physics_engine;
         let target_texture = &self.pp_gray.texture;
         self.pass.draw(&target_texture, &self.ctx.device, &self.ctx.queue,
             &self.vertex_buffer, &self.index_buffer, &self.instance_buffer,
@@ -125,3 +83,63 @@ impl <'a> GameEngine <'a> {
         }
     }
 }
+
+
+pub struct GameEngineBuilder {
+    physics_engine: Option<Box<dyn Simulation>>,
+}
+
+impl GameEngineBuilder {
+    pub fn new() -> Self {
+        Self { physics_engine: None }
+    }
+
+    pub fn physics_engine(mut self, sim: Box<dyn Simulation>) -> Self {
+        self.physics_engine = Some(sim);
+        self
+    }
+
+
+    pub async fn build(self, window: Window) -> GameEngine<'static>{
+        let simulation = self.physics_engine.unwrap();
+        let size = window.inner_size();
+
+        let mut ctx = GraphicsContext::new(window).await;
+
+        let pass = RenderPass::new(&ctx.device, &size);
+
+        let vertex_buffer = ctx.create_buffer(
+            "Circle vertex buffer", bytemuck::cast_slice(&simulation.get_vertices()),
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
+
+        let index_buffer = ctx.create_buffer(
+                "Circle index buffer", bytemuck::cast_slice(&simulation.get_indices()),
+                wgpu::BufferUsages::INDEX);
+        
+        let bodies = simulation.get_bodies();
+        let colors = simulation.get_colors();
+        let instances = (0..simulation.get_target_num_instances() as usize).map(
+            |i| Instance {
+                position: bodies[i].position.div_element_wise(
+                              Vector3::new(size.width as f32, size.height as f32 ,1.0)).into(),
+                color: colors[i].into(),
+                radius: bodies[i].radius / size.width as f32, 
+            }).collect::<Vec<_>>();
+
+        let instance_buffer = ctx.create_buffer(
+            "Circle instance buffer",
+            bytemuck::cast_slice(
+                &instances.iter().map(Instance::to_raw).collect::<Vec<_>>()),
+                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
+
+        let pp_gray = Gray::new(&ctx.device, &size);
+
+        GameEngine {
+            ctx, pass, size, instance_buffer,
+            vertex_buffer, index_buffer, pp_gray,
+            physics_engine: simulation 
+        }
+    }
+}
+
+

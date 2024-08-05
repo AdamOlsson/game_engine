@@ -28,9 +28,8 @@ pub struct DebugSimulation {
     colors: Vec<Vector3<f32>>,
 }
 
-impl DebugSimulation {}
-impl Simulation for DebugSimulation {
-    fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
+impl DebugSimulation {
+    pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
         let dt = 0.001;
         
         let velocities = vec![Vector3::new(-5., 0.5, 0.0),
@@ -69,7 +68,9 @@ impl Simulation for DebugSimulation {
             dt, integrator, constraint, broadphase, narrowphase,
             num_instances, indices, vertices, num_indices, colors}
     }
+}
 
+impl Simulation for DebugSimulation {
     fn update(&mut self) {
         self.integrator.update(self.dt);
         let bodies = self.integrator.get_bodies_mut();

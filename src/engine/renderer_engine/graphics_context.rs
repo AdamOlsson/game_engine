@@ -1,16 +1,19 @@
 use wgpu::util::DeviceExt;
+use winit::window::{Window, WindowId};
 
 pub struct GraphicsContext<'a> {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub surface: wgpu::Surface<'a>,
     pub config: wgpu::SurfaceConfiguration,
+    pub window_id: WindowId,
+    //pub window: &'a winit::window::Window 
 }
 
 impl<'a> GraphicsContext<'a> {
-    pub async fn new(window: &'a winit::window::Window) -> Self {
+    pub async fn new(window: Window) -> Self {
         let size = window.inner_size();
-
+        let window_id = window.id();
         let gpu_instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -50,7 +53,7 @@ impl<'a> GraphicsContext<'a> {
         };
         surface.configure(&device, &config);
 
-        Self { device, queue, surface, config }
+        Self { device, queue, surface, config, window_id }
     }
 
     pub fn create_buffer(&mut self, label: &str, contents: &[u8], usage: wgpu::BufferUsages) -> wgpu::Buffer {

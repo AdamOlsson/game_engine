@@ -99,6 +99,39 @@ pub struct FireSimulation {
 }
 
 impl FireSimulation {
+    pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
+        let state = FireState::new(NUM_ROWS, NUM_COLS, INITIAL_SPACING);
+        let dt = 0.001;
+        let color_spectrum = ColorSpectrum::new(
+            vec![BLACK, RED, ORANGE, YELLOW, WHITE], COLOR_SPECTRUM_BUCKET_SIZE);
+
+        let mut colors = vec![color_spectrum.get(0); state.num_instances as usize];
+        let color_spectrum_len = color_spectrum.len();
+        for i in 0..state.num_instances as usize {
+            let index = (state.temperatures[i] as usize).min(color_spectrum_len - 1);
+            colors[i] = color_spectrum.get(index);
+        }
+
+        let indices = Circle::compute_indices();
+        let vertices = Circle::compute_vertices([0.0,0.0,0.0], 1.0);
+        let num_indices = Circle::get_num_indices();
+
+        let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
+        constraint.set_top_left(Vector3::new(-(window_size.width as f32), window_size.height as f32, 0.0));
+        constraint.set_bottom_right(Vector3::new(window_size.width as f32, -(window_size.height as f32), 0.0));
+
+        let broadphase = Box::new(BlockMap::new(window_size.width as f32));
+        let collision_solver = SimpleCollisionSolver::new();
+        let narrowphase = Box::new(Naive::new(collision_solver));
+
+        let performance = LogPerformance::new();
+
+        Self {
+            performance,
+            state, constraint, broadphase, narrowphase, dt, color_spectrum, 
+            colors, indices, vertices, num_indices
+        }
+    }
 
     #[allow(non_snake_case)]
     fn heat_conduction(temp1: f32, temp2: f32, distance: f32) -> (f32, f32) {
@@ -195,40 +228,6 @@ impl FireSimulation {
 }
 
 impl Simulation for FireSimulation {
-
-    fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
-        let state = FireState::new(NUM_ROWS, NUM_COLS, INITIAL_SPACING);
-        let dt = 0.001;
-        let color_spectrum = ColorSpectrum::new(
-            vec![BLACK, RED, ORANGE, YELLOW, WHITE], COLOR_SPECTRUM_BUCKET_SIZE);
-
-        let mut colors = vec![color_spectrum.get(0); state.num_instances as usize];
-        let color_spectrum_len = color_spectrum.len();
-        for i in 0..state.num_instances as usize {
-            let index = (state.temperatures[i] as usize).min(color_spectrum_len - 1);
-            colors[i] = color_spectrum.get(index);
-        }
-
-        let indices = Circle::compute_indices();
-        let vertices = Circle::compute_vertices([0.0,0.0,0.0], 1.0);
-        let num_indices = Circle::get_num_indices();
-
-        let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
-        constraint.set_top_left(Vector3::new(-(window_size.width as f32), window_size.height as f32, 0.0));
-        constraint.set_bottom_right(Vector3::new(window_size.width as f32, -(window_size.height as f32), 0.0));
-
-        let broadphase = Box::new(BlockMap::new(window_size.width as f32));
-        let collision_solver = SimpleCollisionSolver::new();
-        let narrowphase = Box::new(Naive::new(collision_solver));
-
-        let performance = LogPerformance::new();
-
-        Self {
-            performance,
-            state, constraint, broadphase, narrowphase, dt, color_spectrum, 
-            colors, indices, vertices, num_indices
-        }
-    }
 
     fn update(&mut self) {
         self.performance.log();

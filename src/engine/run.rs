@@ -5,6 +5,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::event_loop::EventLoopBuilder;
 use winit::event::*;
 use winit::dpi::PhysicalSize;
+use std::thread;
 
 #[derive(Debug, Clone, Copy)]
 enum CustomEvent {
@@ -22,7 +23,7 @@ pub async fn run<T: Simulation>(simulation: &mut T, window_size: PhysicalSize<u3
     let mut game_engine = game_engine::GameEngine::new(&window, simulation).await;
 
     std::thread::spawn(move || loop {
-        // thread::sleep(std::time::Duration::from_millis(13));
+        thread::sleep(std::time::Duration::from_millis(20));
         event_loop_proxy.send_event(CustomEvent::Timer).ok();
     });
 
@@ -65,7 +66,7 @@ pub async fn run<T: Simulation>(simulation: &mut T, window_size: PhysicalSize<u3
                         ..
                     },
                     ..
-                } => (),
+                } => (),//game_engine.send_keyboard_input(simulation, KeyCode::Space),
                 _ => (),
             },
             _ => ()

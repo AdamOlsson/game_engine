@@ -1,4 +1,6 @@
 use cgmath::{ElementWise, Vector3};
+use winit::event::WindowEvent;
+use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::Pass;
@@ -6,6 +8,8 @@ use crate::engine::renderer_engine::render_pass::RenderPass;
 use crate::engine::renderer_engine::instance::Instance;
 use crate::engine::renderer_engine::gray::gray::Gray;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
+
+use super::Interaction;
 
 pub struct GameEngine<'a> {
     pub window: &'a Window,
@@ -22,6 +26,14 @@ pub struct GameEngine<'a> {
 }
 
 impl <'a> GameEngine <'a> {
+    
+    // TODO: Rename simulation to PhysicsEngine
+    //pub fn set_simulation(&mut self, _sim: &impl Simulation) {}
+    // TODO: Implement
+    //pub fn set_interaction(&mut self, _int: &impl Interaction) {}
+    // TODO: Implement
+    //pub fn set_render_engine(&mut self, ren: &impl RenderEngine) {}
+
     pub async fn new(window: &'a Window, simulation: &impl Simulation) -> Self {
         let size = window.inner_size();
 
@@ -50,7 +62,8 @@ impl <'a> GameEngine <'a> {
             }).collect::<Vec<_>>();
 
         let instance_buffer = ctx.create_buffer(
-            "Circle instance buffer", bytemuck::cast_slice(
+            "Circle instance buffer",
+            bytemuck::cast_slice(
                 &instances.iter().map(Instance::to_raw).collect::<Vec<_>>()),
                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
 
@@ -103,5 +116,12 @@ impl <'a> GameEngine <'a> {
         output_frame.present();
 
         return Ok(());
+    }
+
+    pub fn send_keyboard_input(&self, sim: &mut impl Simulation, input: KeyCode) {
+        match input {
+            KeyCode::Space => sim.jump(),
+            _ => ()
+        }
     }
 }

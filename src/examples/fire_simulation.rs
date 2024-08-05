@@ -1,6 +1,6 @@
 use crate::engine::{physics_engine::{constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::circle::Circle, util::log_performance::LogPerformance};
 
-use std::{iter::zip, time::Instant};
+use std::{iter::zip};
 use cgmath::{MetricSpace, Vector3, Zero};
 use crate::engine::{Simulation, State};
 use crate::engine::renderer_engine::vertex::Vertex;

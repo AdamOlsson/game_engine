@@ -1,7 +1,6 @@
 
 extern crate game_engine;
 
-use game_engine::engine::Simulation;
 use game_engine::examples::debug_simulation::DebugSimulation;
 use game_engine::engine::run::run;
 use winit::dpi::PhysicalSize;

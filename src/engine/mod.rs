@@ -8,7 +8,6 @@ pub mod util;
 use cgmath::Vector3;
 use physics_engine::collision::CollisionBody;
 use renderer_engine::vertex::Vertex;
-use winit::dpi::PhysicalSize;
 
 #[allow(dead_code)]
 pub trait State {

@@ -69,9 +69,9 @@ impl <'a> GameEngine <'a> {
         return Ok(());
     }
 
-    pub fn send_keyboard_input(&self, sim: &mut impl Simulation, input: KeyCode) {
+    pub fn send_keyboard_input(&mut self, input: KeyCode) {
         match input {
-            KeyCode::Space => sim.jump(),
+            KeyCode::Space => self.physics_engine.jump(),
             _ => ()
         }
     }

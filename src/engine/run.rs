@@ -72,7 +72,7 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
                         ..
                     },
                     ..
-                } => println!("jump!"),//game_engine.send_keyboard_input(simulation, KeyCode::Space),
+                } => game_engine.send_keyboard_input(KeyCode::Space),
                 _ => (),
             },
             _ => ()

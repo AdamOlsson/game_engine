@@ -114,7 +114,4 @@ impl Simulation for DebugSimulation {
     fn get_num_indices(&self) -> u32 {
         self.num_indices
     }
-
-    fn log_performance(&mut self) {
-    }
 }

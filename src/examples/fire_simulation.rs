@@ -1,4 +1,4 @@
-use crate::engine::{physics_engine::{constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::circle::Circle};
+use crate::engine::{physics_engine::{constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::circle::Circle, util::log_performance::LogPerformance};
 
 use std::{iter::zip, time::Instant};
 use cgmath::{MetricSpace, Vector3, Zero};
@@ -88,8 +88,7 @@ pub struct FireSimulation {
     narrowphase: Box<dyn NarrowPhase>,
 
     // Performance information
-    timer: Instant,
-    update_count: u32,
+    performance: LogPerformance,
 
     // Render information 
     color_spectrum: ColorSpectrum,
@@ -222,17 +221,17 @@ impl Simulation for FireSimulation {
         let collision_solver = SimpleCollisionSolver::new();
         let narrowphase = Box::new(Naive::new(collision_solver));
 
-        let timer = Instant::now();
-        let update_count = 0;
+        let performance = LogPerformance::new();
 
         Self {
-            state, constraint, broadphase, narrowphase, dt, color_spectrum, timer, update_count,
+            performance,
+            state, constraint, broadphase, narrowphase, dt, color_spectrum, 
             colors, indices, vertices, num_indices
         }
     }
 
     fn update(&mut self) {
-        self.log_performance();
+        self.performance.log();
         let num_instances = self.state.num_instances;
         
         // Update positions
@@ -263,18 +262,6 @@ impl Simulation for FireSimulation {
             let index = (self.state.temperatures[i] as usize).min(color_spectrum_len - 1);
             self.colors[i] = self.color_spectrum.get(index);
             self.state.integrator.set_acceleration_y(i, -BASE_GRAVITY + (self.state.temperatures[i].powi(2)));
-        }
-    }
-
-    fn log_performance(&mut self) {
-        self.update_count += 1;
-        let now = Instant::now();
-        let diff = now.duration_since(self.timer);
-        if diff.as_millis() > 1000 {
-            let fps = self.update_count / diff.as_secs() as u32; 
-            println!("fps: {}", fps);
-            self.update_count = 0;
-            self.timer = now;
         }
     }
 

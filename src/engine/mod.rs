@@ -3,6 +3,7 @@ pub mod physics_engine;
 pub mod renderer_engine;
 pub mod game_engine;
 pub mod run;
+pub mod util;
 
 use cgmath::Vector3;
 use physics_engine::collision::CollisionBody;
@@ -27,7 +28,5 @@ pub trait Simulation {
     fn get_num_active_instances(&self) -> u32;
     fn get_target_num_instances(&self) -> u32;
     fn get_num_indices(&self) -> u32;
-
-    fn log_performance(&mut self);
 }
 

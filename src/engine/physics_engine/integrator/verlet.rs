@@ -33,11 +33,13 @@ impl VerletIntegrator {
 
 
     pub fn set_velocity_x(&mut self, idx: usize, new: f32) {
-        self.bodies[idx].position.x -= new;
+        let p = self.bodies[idx].position.x;
+        self.bodies[idx].prev_position.x = p - new;  
     }
 
     pub fn set_velocity_y(&mut self, idx: usize, new: f32) {
-        self.bodies[idx].position.y -= new;
+        let p = self.bodies[idx].position.y;
+        self.bodies[idx].prev_position.y = p - new;  
     }
 
     pub fn set_acceleration_y(&mut self, idx: usize, new: f32) {

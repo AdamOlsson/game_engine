@@ -8,5 +8,5 @@ fn main() {
     println!("Fire simulation is not working as intended.");
     let window_size = PhysicalSize::new(800, 800);
     let simulation = FireSimulation::new(&window_size);
-    pollster::block_on(run(simulation, window_size));
+    pollster::block_on(run(simulation, window_size, 0));
 }

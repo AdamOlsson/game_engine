@@ -1,19 +1,12 @@
 use cgmath::{ElementWise, Vector3};
-use winit::event::{ElementState, Event, KeyEvent, WindowEvent};
-use winit::event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy};
-use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::window::{Window, WindowBuilder};
+use winit::keyboard::KeyCode;
+use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::Pass;
 use crate::engine::renderer_engine::render_pass::RenderPass;
 use crate::engine::renderer_engine::instance::Instance;
 use crate::engine::renderer_engine::gray::gray::Gray;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
-
-#[derive(Debug, Clone, Copy)]
-enum CustomEvent {
-    Timer,
-}
 
 pub struct GameEngine<'a> {
     pub ctx: GraphicsContext<'a>,

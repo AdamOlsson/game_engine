@@ -1,25 +1,20 @@
-use cgmath::{InnerSpace, Vector3};
-
+use cgmath::InnerSpace;
 use crate::engine::physics_engine::collision::collision_body::CollisionBody;
-
-
 
 pub struct VerletIntegrator {
     velocity_cap: f32,
-    acceleration: Vec<Vector3<f32>>,
     bodies: Vec<CollisionBody>,
 }
 
 impl VerletIntegrator {
     pub fn new(
-        velocity_cap: f32,
-        acceleration: Vec<Vector3<f32>>, bodies: Vec<CollisionBody>
+        velocity_cap: f32, bodies: Vec<CollisionBody>
     ) -> Self {
-        Self { velocity_cap, acceleration, bodies}
+        Self { velocity_cap, bodies}
     }
 
     pub fn update(&mut self, dt: f32) {
-        for (i, b) in self.bodies.iter_mut().enumerate() {
+        for b in self.bodies.iter_mut() {
             let mut velocity = b.position - b.prev_position;
             let vel_magn = velocity.magnitude();
             if vel_magn > self.velocity_cap {
@@ -27,7 +22,7 @@ impl VerletIntegrator {
             }
             //self.prev_positions[i] = b.position;
             b.prev_position = b.position;
-            b.position = b.position + velocity + self.acceleration[i] * dt*dt;   
+            b.position = b.position + velocity + b.acceleration * dt*dt;   
             b.velocity = velocity; // Used in constraint handling
         }
     }
@@ -42,9 +37,13 @@ impl VerletIntegrator {
         let p = self.bodies[idx].position.y;
         self.bodies[idx].prev_position.y = p - new;  
     }
-
+    
+    pub fn set_acceleration_x(&mut self, idx: usize, new: f32) {
+        self.bodies[idx].acceleration.x = new;
+    }
+    
     pub fn set_acceleration_y(&mut self, idx: usize, new: f32) {
-        self.acceleration[idx].y = new;
+        self.bodies[idx].acceleration.y = new;
     }
 
     pub fn get_bodies(&self) -> &Vec<CollisionBody> {

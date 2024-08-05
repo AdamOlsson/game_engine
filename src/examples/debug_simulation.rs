@@ -40,15 +40,13 @@ impl DebugSimulation {
         let position = vec![prev_positions[0] + velocities[0],
                             prev_positions[1] + velocities[1],
                             prev_positions[2] + velocities[2]];
-        let acceleration = vec![Vector3::zero(), Vector3::zero(), Vector3::zero()];
         let radius = vec![100.0, 100.0, 120.0];
         let bodies = vec![
-            CollisionBody::new(0, Vector3::zero(), prev_positions[0], position[0], radius[0]),
-            CollisionBody::new(1, Vector3::zero(), prev_positions[1], position[1], radius[1]),
-            CollisionBody::new(2, Vector3::zero(), prev_positions[2], position[2], radius[2])];
+            CollisionBody::new(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0]),
+            CollisionBody::new(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1]),
+            CollisionBody::new(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2])];
         let num_instances = bodies.len() as u32;
-        let integrator = VerletIntegrator::new(
-            f32::MAX, acceleration, bodies);
+        let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
         constraint.set_top_left(Vector3::new(-(window_size.width as f32), window_size.height as f32, 0.0));

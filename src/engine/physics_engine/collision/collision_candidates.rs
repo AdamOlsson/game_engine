@@ -1,8 +1,5 @@
 
-use core::fmt;
-use std::fmt::Display;
 
-use cgmath::{InnerSpace, Vector3};
 
 #[derive(Debug)]
 pub struct CollisionCandidates {

@@ -52,15 +52,14 @@ impl FireState {
         let positions = prev_positions.clone();
         let acceleration = vec![Vector3::new(0.0, -150.0, 0.0); target_num_instances as usize];
 
-        let bodies: Vec<CollisionBody> = zip(prev_positions, zip(positions, radii))
+        let bodies: Vec<CollisionBody> = zip(zip(prev_positions, acceleration), zip(positions, radii))
             .enumerate()
-            .map(|(i, (pp, (p, r)))| CollisionBody::new(i, Vector3::zero(), pp, p, r))
+            .map(|(i, ((pp,a), (p, r)))| CollisionBody::new(i, Vector3::zero(), a, pp, p, r))
             .collect();
 
         let temperatures = vec![0.0; target_num_instances as usize];
         
-        let integrator = VerletIntegrator::new(
-            VELOCITY_CAP, acceleration, bodies);
+        let integrator = VerletIntegrator::new(VELOCITY_CAP, bodies);
         
         Self {
             integrator,

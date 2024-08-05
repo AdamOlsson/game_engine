@@ -1,5 +1,6 @@
 use cgmath::MetricSpace;
-use crate::engine::physics_engine::collision::{CollisionBody, CollisionCandidates, CollisionHandler};
+use crate::engine::physics_engine::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates, collision_handler::CollisionHandler};
+
 use super::NarrowPhase;
 
 pub struct Naive {

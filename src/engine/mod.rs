@@ -6,7 +6,7 @@ pub mod run;
 pub mod util;
 
 use cgmath::Vector3;
-use physics_engine::collision::CollisionBody;
+use physics_engine::collision::collision_body::CollisionBody;
 use renderer_engine::vertex::Vertex;
 
 #[allow(dead_code)]

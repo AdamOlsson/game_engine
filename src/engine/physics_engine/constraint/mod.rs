@@ -1,4 +1,4 @@
-use super::collision::CollisionBody;
+use super::collision::collision_body::CollisionBody;
 
 pub mod circle_constraint;
 pub mod box_constraint;

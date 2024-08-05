@@ -1,4 +1,6 @@
 use cgmath::{ Vector3, Zero};
+use crate::engine::physics_engine::collision::collision_body::CollisionBody;
+use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use crate::engine::physics_engine::narrowphase::naive::Naive;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::vertex::Vertex;
@@ -8,7 +10,6 @@ use crate::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use crate::engine::physics_engine::constraint::Constraint;
 use crate::engine::physics_engine::constraint::resolver::elastic::ElasticConstraintResolver;
 use crate::engine::physics_engine::constraint::box_constraint::BoxConstraint;
-use crate::engine::physics_engine::collision::{CollisionBody, SimpleCollisionSolver};
 use crate::engine::physics_engine::broadphase::BroadPhase;
 use crate::engine::physics_engine::broadphase::blockmap::BlockMap;
 use crate::engine::init_utils::create_grid_positions;
@@ -88,7 +89,7 @@ impl Simulation for DebugSimulation {
         }
     }
 
-    fn get_bodies(&self) -> &Vec<crate::engine::physics_engine::collision::CollisionBody> {
+    fn get_bodies(&self) -> &Vec<crate::engine::physics_engine::collision::collision_body::CollisionBody> {
         &self.integrator.get_bodies()
     }
 

@@ -1,4 +1,4 @@
-use crate::engine::physics_engine::collision::CollisionBody;
+use crate::engine::physics_engine::collision::collision_body::CollisionBody;
 
 use super::ConstraintResolver;
 

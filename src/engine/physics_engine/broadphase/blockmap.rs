@@ -1,9 +1,7 @@
 use log::warn;
-
-use crate::engine::physics_engine::collision::{CollisionBody, CollisionCandidates};
+use crate::engine::physics_engine::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates};
 
 use super::BroadPhase;
-
 
 pub struct BlockMap {
     width: f32
@@ -48,7 +46,7 @@ impl BlockMap {
 
 impl BroadPhase for BlockMap {
 
-    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates>  {
+    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates> {
         
         if bodies.len() == 0 {
             return vec![]; 

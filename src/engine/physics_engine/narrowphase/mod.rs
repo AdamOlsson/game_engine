@@ -1,4 +1,5 @@
-use super::collision::{CollisionBody, CollisionCandidates};
+use super::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates};
+
 
 
 pub mod naive;

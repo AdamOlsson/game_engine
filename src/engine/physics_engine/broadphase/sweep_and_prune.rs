@@ -1,8 +1,7 @@
-
 use std::{collections::HashSet, hash::Hasher, hash::Hash};
-use crate::engine::physics_engine::collision::{CollisionBody, CollisionCandidates};
-use cgmath::MetricSpace;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use crate::engine::physics_engine::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates};
+use cgmath::MetricSpace;
 use super::BroadPhase;
 
 

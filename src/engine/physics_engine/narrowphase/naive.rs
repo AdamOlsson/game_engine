@@ -1,5 +1,5 @@
 use cgmath::MetricSpace;
-use crate::engine::physics_engine::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates, collision_handler::CollisionHandler};
+use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates, collision_handler::CollisionHandler};
 
 use super::NarrowPhase;
 
@@ -43,8 +43,13 @@ impl NarrowPhase for Naive {
                 if dist == 0.0 {
                     panic!("Collision axis has zero length.");
                 }
-                if dist < (body_i.radius + body_j.radius) {
-                    self.solver.handle_collision(bodies, idx_i, idx_j);
+                let (type_i, type_j) = (&body_i.body_type, &body_j.body_type);
+                match (type_i, type_j) {
+                    (CollisionBodyType::Circle { radius: ri }, CollisionBodyType::Circle { radius: rj}) =>
+                        if dist < (ri + rj) {
+                            self.solver.handle_collision(bodies, idx_i, idx_j);
+                        },
+                    (_, _) => panic!(),
                 }
             }
         } 

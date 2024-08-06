@@ -55,39 +55,38 @@ impl BroadPhase for SweepAndPrune {
     fn collision_detection(
         &self, bodies: &Vec<CollisionBody>
     ) -> Vec<CollisionCandidates> {
-        
         // Project edges onto x-axis
-        let mut x_axis: Vec<Edge> = bodies.par_iter()
-            .map( 
-                | body | -> Vec<Edge> {
-                    vec![Edge::new(body, body.position.x-body.radius, true), Edge::new(body, body.position.x+body.radius, false)]
-                })
-            .flatten()
-            .collect();
-
-        Self::sort_ascending(&mut x_axis);
+//        let mut x_axis: Vec<Edge> = bodies.par_iter()
+//            .map( 
+//                | body | -> Vec<Edge> {
+//                    vec![Edge::new(body, body.position.x-body.radius, true), Edge::new(body, body.position.x+body.radius, false)]
+//                })
+//            .flatten()
+//            .collect();
+//
+//        Self::sort_ascending(&mut x_axis);
 
         
         let mut collision_candidates = vec![];
-        let mut active_sweep: HashSet<&Edge> = HashSet::new();
-        x_axis.iter().for_each(| e |
-            if e.is_left {
-                let candidates: Vec<usize> = active_sweep.par_iter().filter_map(| active_edge: &&Edge | {
-                    let min_dist_sq = e.object.radius + active_edge.object.radius;
-                    let dist_sq =  e.object.position.distance(active_edge.object.position);
-                    if dist_sq < min_dist_sq {
-                        return Some(e.object.id);
-                    } else {
-                        return None;
-                    }
-                }).collect();
-                collision_candidates.push(CollisionCandidates::new(candidates));
-
-                active_sweep.insert(e);
-            } else {
-                active_sweep.remove(e);
-            });
-
+//        let mut active_sweep: HashSet<&Edge> = HashSet::new();
+//        x_axis.iter().for_each(| e |
+//            if e.is_left {
+//                let candidates: Vec<usize> = active_sweep.par_iter().filter_map(| active_edge: &&Edge | {
+//                    let min_dist_sq = e.object.radius + active_edge.object.radius;
+//                    let dist_sq =  e.object.position.distance(active_edge.object.position);
+//                    if dist_sq < min_dist_sq {
+//                        return Some(e.object.id);
+//                    } else {
+//                        return None;
+//                    }
+//                }).collect();
+//                collision_candidates.push(CollisionCandidates::new(candidates));
+//
+//                active_sweep.insert(e);
+//            } else {
+//                active_sweep.remove(e);
+//            });
+//
         
         return collision_candidates;
     }

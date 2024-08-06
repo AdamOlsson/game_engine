@@ -42,9 +42,9 @@ impl DebugSimulation {
                             prev_positions[2] + velocities[2]];
         let radius = vec![100.0, 100.0, 120.0];
         let bodies = vec![
-            CollisionBody::new(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0]),
-            CollisionBody::new(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1]),
-            CollisionBody::new(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2])];
+            CollisionBody::circle(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0]),
+            CollisionBody::circle(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1]),
+            CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2])];
         let num_instances = bodies.len() as u32;
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
@@ -78,13 +78,12 @@ impl Simulation for DebugSimulation {
             self.constraint.apply_constraint(b);
         }
 
-        //bodies.iter().for_each(|b| println!("{}", b));
-        //println!("");
-
         let candidates = self.broadphase.collision_detection(bodies);
         for c in candidates.iter() {
             self.narrowphase.collision_detection(bodies, c);
         }
+
+        //bodies.iter().for_each(|b| println!("{}", b));
     }
 
     fn get_bodies(&self) -> &Vec<crate::engine::physics_engine::collision::collision_body::CollisionBody> {

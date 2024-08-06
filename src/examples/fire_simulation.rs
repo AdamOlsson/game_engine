@@ -1,4 +1,4 @@
-use crate::engine::{physics_engine::{constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::circle::Circle, util::log_performance::LogPerformance};
+use crate::engine::{physics_engine::{collision::collision_body::CollisionBodyType, constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::circle::Circle, util::log_performance::LogPerformance};
 
 use std::{iter::zip};
 use cgmath::{MetricSpace, Vector3, Zero};
@@ -54,7 +54,7 @@ impl FireState {
 
         let bodies: Vec<CollisionBody> = zip(zip(prev_positions, acceleration), zip(positions, radii))
             .enumerate()
-            .map(|(i, ((pp,a), (p, r)))| CollisionBody::new(i, Vector3::zero(), a, pp, p, r))
+            .map(|(i, ((pp,a), (p, r)))| CollisionBody::circle(i, Vector3::zero(), a, pp, p, r))
             .collect();
 
         let temperatures = vec![0.0; target_num_instances as usize];
@@ -202,26 +202,36 @@ impl FireSimulation {
         let mut thermal_delta = vec![0.0; num_instances ];
 
         for i in 0..num_instances {
-            
+            let radius = match bodies[i].body_type {
+                CollisionBodyType::Circle { radius } => radius,
+                _ => panic!(),
+            };
             // Bottom of the screen heats the objects
             if bodies[i].position.y <= BOTTOM_HEAT_BOUNDARY {
-                let (temp_delta_i, _) = Self::heat_conduction(temperatures[i], BOTTOM_HEAT_SOURCE_TEMPERATURE, bodies[i].radius);
+                let (temp_delta_i, _) = Self::heat_conduction(temperatures[i], BOTTOM_HEAT_SOURCE_TEMPERATURE, radius);
                 thermal_delta[i] += temp_delta_i; 
             } else {
                 // Loose heat due to convection with air
-                thermal_delta[i] += Self::heat_convection(temperatures[i], 0.0, bodies[i].radius);
+                thermal_delta[i] += Self::heat_convection(temperatures[i], 0.0, radius);
             }
 
             for j in (i+1)..num_instances {
                 // Heat conduction only happens between touching objects
                 let dist_sq = bodies[i].position.distance2(bodies[j].position);
-                if dist_sq -0.01 <= (bodies[i].radius + bodies[j].radius).powi(2) {
-                    let (temp_delta_i, temp_delta_j) = Self::heat_conduction(temperatures[i], temperatures[j], bodies[i].radius + bodies[j].radius);
-                    thermal_delta[i] += temp_delta_i;
-                    thermal_delta[j] += temp_delta_j;
+                
+                let (type_i, type_j) = (&bodies[i].body_type, &bodies[j].body_type);
+                match (type_i, type_j) {
+               
+                    (CollisionBodyType::Circle { radius: ri }, CollisionBodyType::Circle { radius: rj }) =>
+                        if dist_sq -0.01 <= (ri + rj).powi(2) {
+                            let (temp_delta_i, temp_delta_j) = Self::heat_conduction(temperatures[i], temperatures[j], ri + rj);
+                            thermal_delta[i] += temp_delta_i;
+                            thermal_delta[j] += temp_delta_j;
+                        },
+                    (_, _) => panic!(),
+                    }
                 }
             }
-        }
         return thermal_delta;
     }
 }

@@ -1,4 +1,5 @@
-use cgmath::{ElementWise, Vector3};
+use std::iter::zip;
+
 use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
@@ -7,6 +8,8 @@ use crate::engine::renderer_engine::render_pass::RenderPass;
 use crate::engine::renderer_engine::instance::Instance;
 use crate::engine::renderer_engine::gray::gray::Gray;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
+
+use super::physics_engine::collision::collision_body::CollisionBodyType;
 
 pub struct GameEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -37,12 +40,17 @@ impl <'a> GameEngine <'a> {
 
         let bodies = simulation.get_bodies();
         let colors = simulation.get_colors();
-        let instances = (0..simulation.get_target_num_instances() as usize).map(
-            |i| Instance {
-                position: bodies[i].position.into(),
-                color: colors[i].into(),
-                radius: bodies[i].radius, 
-            }.to_raw()).collect::<Vec<_>>();
+        let instances = zip(bodies, colors).filter_map(
+            |(body, color)| {
+                if let CollisionBodyType::Circle { radius } = body.body_type {
+                    Some(Instance{
+                        position: body.position, color: *color, 
+                        radius 
+                    }.to_raw())
+                } else {
+                    None
+                }
+        }).collect::<Vec<_>>();
 
         // To prevent writing the static colors every run, we probably can use a global buffer and write 
         // the colors to it once (maybe and then copy it to the instance buffer every frame.)
@@ -108,21 +116,24 @@ impl GameEngineBuilder {
         let index_buffer = ctx.create_buffer(
                 "Circle index buffer", bytemuck::cast_slice(&simulation.get_indices()),
                 wgpu::BufferUsages::INDEX);
-        
+
         let bodies = simulation.get_bodies();
         let colors = simulation.get_colors();
-        let instances = (0..simulation.get_target_num_instances() as usize).map(
-            |i| Instance {
-                position: bodies[i].position.div_element_wise(
-                              Vector3::new(size.width as f32, size.height as f32 ,1.0)).into(),
-                color: colors[i].into(),
-                radius: bodies[i].radius / size.width as f32, 
-            }).collect::<Vec<_>>();
+        let instances = zip(bodies, colors).filter_map(
+            |(body, color)| {
+                if let CollisionBodyType::Circle { radius } = body.body_type {
+                    Some(Instance{
+                        position: body.position, 
+                        color: *color, 
+                        radius: radius / size.width as f32
+                    }.to_raw())
+                } else {
+                    None
+                }
+        }).collect::<Vec<_>>();
 
         let instance_buffer = ctx.create_buffer(
-            "Circle instance buffer",
-            bytemuck::cast_slice(
-                &instances.iter().map(Instance::to_raw).collect::<Vec<_>>()),
+            "Circle instance buffer", bytemuck::cast_slice(&instances),
                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
 
         let pp_gray = Gray::new(&ctx.device, &size);

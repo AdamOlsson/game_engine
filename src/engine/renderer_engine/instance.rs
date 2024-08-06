@@ -8,7 +8,7 @@ pub struct Instance {
 impl Instance {
     pub fn to_raw(&self) -> InstanceRaw {
         InstanceRaw {
-            model: self.position.into(),
+            position: self.position.into(),
             color: self.color.into(),
             radius: self.radius,
         }
@@ -18,13 +18,12 @@ impl Instance {
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct InstanceRaw {
-    model: [f32; 3],
+    position: [f32; 3],
     color: [f32; 3],
     radius: f32,
 }
 
 impl InstanceRaw {
-
     pub fn desc() -> wgpu::VertexBufferLayout<'static> {
         use std::mem;
         wgpu::VertexBufferLayout {
@@ -48,5 +47,12 @@ impl InstanceRaw {
                 }
             ],
         }
+    }
+}
+
+impl std::fmt::Display for InstanceRaw {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "position: {:?}, color: {:?}, radius: {}",
+            self.position, self.color, self.radius)
     }
 }

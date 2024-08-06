@@ -1,5 +1,5 @@
 use log::warn;
-use crate::engine::physics_engine::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates};
+use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates};
 
 use super::BroadPhase;
 
@@ -52,7 +52,13 @@ impl BroadPhase for BlockMap {
             return vec![]; 
         }
         // Create grid with largest side equal to the largest diameter of the circles
-        let cell_size = bodies.iter().fold(0.0, |acc, b| f32::max(acc, b.radius))*2.0;
+        let cell_size = bodies.iter().fold(0.0, |acc, b| {
+            if let CollisionBodyType::Circle { radius } = b.body_type {
+                f32::max(acc, radius)
+            } else {
+                panic!()
+            }
+        })*2.0;
         let grid_width = (self.width/cell_size).ceil() as u32;
         
         if grid_width < 3 {

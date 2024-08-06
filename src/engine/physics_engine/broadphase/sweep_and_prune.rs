@@ -1,7 +1,5 @@
-use std::{collections::HashSet, hash::Hasher, hash::Hash};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::{hash::Hasher, hash::Hash};
 use crate::engine::physics_engine::collision::{collision_body::CollisionBody, collision_candidates::CollisionCandidates};
-use cgmath::MetricSpace;
 use super::BroadPhase;
 
 
@@ -31,7 +29,7 @@ impl <'a> Hash for Edge<'a> {
     }
 }
 
-
+#[allow(dead_code)]
 impl<'a> Edge<'a> {
     fn new(object: &'a CollisionBody, value: f32, is_lower: bool) -> Self {
         Self { object, x_value: value, is_left: is_lower }
@@ -53,7 +51,7 @@ impl SweepAndPrune {
 
 impl BroadPhase for SweepAndPrune {
     fn collision_detection(
-        &self, bodies: &Vec<CollisionBody>
+        &self, _bodies: &Vec<CollisionBody>
     ) -> Vec<CollisionCandidates> {
         // Project edges onto x-axis
 //        let mut x_axis: Vec<Edge> = bodies.par_iter()
@@ -67,7 +65,7 @@ impl BroadPhase for SweepAndPrune {
 //        Self::sort_ascending(&mut x_axis);
 
         
-        let mut collision_candidates = vec![];
+        let collision_candidates = vec![];
 //        let mut active_sweep: HashSet<&Edge> = HashSet::new();
 //        x_axis.iter().for_each(| e |
 //            if e.is_left {

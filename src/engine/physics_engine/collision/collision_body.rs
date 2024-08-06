@@ -14,25 +14,11 @@ pub struct CollisionBody {
     pub position: Vector3<f32>,
     pub id: usize,
 
-    //pub radius: f32,
     pub body_type: CollisionBodyType
 }
 
 impl CollisionBody {
-//    pub fn new(
-//        id: usize, velocity: Vector3<f32>, acceleration: Vector3<f32>,
-//        prev_position: Vector3<f32>, position: Vector3<f32>, radius: f32
-//    ) -> Self {
-//        Self {
-//            velocity,
-//            acceleration,
-//            prev_position,
-//            position,
-//            radius,
-//            id
-//        }
-//    }
-//
+
     pub fn circle(
         id: usize, velocity: Vector3<f32>, acceleration: Vector3<f32>,
         prev_position: Vector3<f32>, position: Vector3<f32>, radius: f32
@@ -47,20 +33,19 @@ impl CollisionBody {
         }
     }
 
-    //pub fn rectangle(
-    //    id: usize, velocity: Vector3<f32>, acceleration: Vector3<f32>,
-    //    prev_position: Vector3<f32>, position: Vector3<f32>, width: f32, height: f32
-    //) -> Self {
-    //    Self {
-    //        velocity,
-    //        acceleration,
-    //        prev_position,
-    //        position,
-    //        id,
-    //        radius,
-    //        // body_type: CollisionBodyType::Rectangle { width, height }
-    //    }
-    //}
+    pub fn rectangle(
+        id: usize, velocity: Vector3<f32>, acceleration: Vector3<f32>,
+        prev_position: Vector3<f32>, position: Vector3<f32>, width: f32, height: f32
+    ) -> Self {
+        Self {
+            velocity,
+            acceleration,
+            prev_position,
+            position,
+            id,
+            body_type: CollisionBodyType::Rectangle { width, height }
+        }
+    }
  }
 
 impl std::fmt::Display for CollisionBodyType {

@@ -1,10 +1,11 @@
-use std::iter::zip;
+use std::{collections::HashMap, iter::zip};
 use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::instance::Instance;
 use crate::engine::renderer_engine::render_engine::RenderEngine;
-use super::physics_engine::collision::collision_body::CollisionBodyType;
+use crate::engine::renderer_engine::shapes::Shape;
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::shapes::circle::Circle};
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn Simulation + 'static>,
@@ -75,6 +76,20 @@ impl GameEngineBuilder {
     pub async fn build(self, window: Window) -> GameEngine<'static>{
         let physics_engine = self.physics_engine.unwrap();
         let render_engine = RenderEngine::new(window, &physics_engine).await;
+       
+        //let mut vertices = HashMap::new();
+        //let mut indices = HashMap::new();
+        //physics_engine.get_bodies().iter().for_each(
+        //    |b| match b.body_type {
+        //        CollisionBodyType::Circle { radius: _ } => {
+        //            vertices.insert(Circle::id(), Circle::compute_vertices());
+        //            indices.insert(Circle::id(), Circle::compute_indices());
+        //        }, 
+        //        _ => panic!(),
+        //    });
+
+        //render_engine.set_vertex_buffer();
+
         GameEngine {
             physics_engine, render_engine
         }

@@ -1,12 +1,7 @@
 use std::iter::zip;
-
 use winit::{dpi::PhysicalSize, window::Window};
-
 use crate::engine::{physics_engine::collision::collision_body::CollisionBodyType, Simulation};
-
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, instance::Instance, render_pass::RenderPass};
-
-
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, instance::Instance, render_pass::RenderPass, vertex::Vertex};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -15,8 +10,8 @@ pub struct RenderEngine<'a> {
 
     pub pp_gray: Gray,
 
-    pub instance_buffer: wgpu::Buffer,
     pub vertex_buffer: wgpu::Buffer,
+    pub instance_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
 }
 
@@ -79,6 +74,8 @@ impl <'a> RenderEngine <'a> {
         
         return Ok(());
     } 
+
+    pub fn set_vertex_buffer(&mut self, vertices: &Vec<Vertex>) {}
 
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         self.size = new_size;

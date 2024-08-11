@@ -1,6 +1,6 @@
-use crate::engine::{physics_engine::{collision::collision_body::CollisionBodyType, constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::circle::Circle, util::log_performance::LogPerformance};
+use crate::engine::{physics_engine::{collision::collision_body::CollisionBodyType, constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::{circle::Circle, Shape}, util::log_performance::LogPerformance};
 
-use std::{iter::zip};
+use std::iter::zip;
 use cgmath::{MetricSpace, Vector3, Zero};
 use crate::engine::{Simulation, State};
 use crate::engine::renderer_engine::vertex::Vertex;
@@ -112,8 +112,8 @@ impl FireSimulation {
         }
 
         let indices = Circle::compute_indices();
-        let vertices = Circle::compute_vertices([0.0,0.0,0.0], 1.0);
-        let num_indices = Circle::get_num_indices();
+        let num_indices = indices.len() as u32;
+        let vertices = Circle::compute_vertices();
 
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
         constraint.set_top_left(Vector3::new(-(window_size.width as f32), window_size.height as f32, 0.0));

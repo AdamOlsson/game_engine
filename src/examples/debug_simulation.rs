@@ -2,6 +2,7 @@ use cgmath::{ Vector3, Zero};
 use crate::engine::physics_engine::collision::collision_body::CollisionBody;
 use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use crate::engine::physics_engine::narrowphase::naive::Naive;
+use crate::engine::renderer_engine::shapes::Shape;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::vertex::Vertex;
 use crate::engine::renderer_engine::shapes::circle::Circle;
@@ -56,8 +57,8 @@ impl DebugSimulation {
 
         // Render data
         let indices = Circle::compute_indices();
-        let vertices = Circle::compute_vertices([0.0,0.0,0.0,], 1.0);
-        let num_indices = Circle::get_num_indices();
+        let num_indices = indices.len() as u32;
+        let vertices = Circle::compute_vertices();
         let colors = vec![
             Vector3::new(255.0,0.0,0.0),
             Vector3::new(0.0,255.0,0.0),
@@ -86,12 +87,12 @@ impl Simulation for DebugSimulation {
         //bodies.iter().for_each(|b| println!("{}", b));
     }
 
-    fn get_bodies(&self) -> &Vec<crate::engine::physics_engine::collision::collision_body::CollisionBody> {
+    fn get_bodies(&self) -> &Vec<CollisionBody> {
         &self.integrator.get_bodies()
     }
 
     fn get_vertices(&self) -> &Vec<crate::engine::renderer_engine::vertex::Vertex> {
-       &self.vertices 
+        &self.vertices 
     }
 
     fn get_indices(&self) -> &Vec<u16> {

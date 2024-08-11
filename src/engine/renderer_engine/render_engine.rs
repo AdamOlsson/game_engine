@@ -2,9 +2,9 @@ use std::iter::zip;
 
 use winit::{dpi::PhysicalSize, window::Window};
 
-use crate::engine::{physics_engine::{self, collision::collision_body::CollisionBodyType}, Simulation};
+use crate::engine::{physics_engine::collision::collision_body::CollisionBodyType, Simulation};
 
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, instance::Instance, render_pass::RenderPass, Pass};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, instance::Instance, render_pass::RenderPass};
 
 
 

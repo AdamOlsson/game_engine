@@ -1,6 +1,6 @@
 
 use wgpu::{ util::{BufferInitDescriptor, DeviceExt}, BindGroup, BindGroupLayout, BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, ShaderStages, Texture, TextureViewDescriptor};
-use super::{instance::InstanceRaw, vertex::Vertex, Pass};
+use super::{instance::InstanceRaw, vertex::Vertex};
 
 pub struct RenderPass {
     //buffer: wgpu::Buffer,
@@ -119,10 +119,8 @@ impl RenderPass {
 
         (uniform_buffer, uniform_buffer_bind_group, uniform_buffer_group_layout)
     }
-}
 
-impl Pass for RenderPass {
-    fn draw(
+    pub fn draw(
         &mut self,
         target_texture: &Texture,
         device: &wgpu::Device,

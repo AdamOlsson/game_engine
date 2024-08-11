@@ -1,45 +1,25 @@
 use std::iter::zip;
-
 use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
-use crate::engine::renderer_engine::Pass;
-use crate::engine::renderer_engine::render_pass::RenderPass;
 use crate::engine::renderer_engine::instance::Instance;
-use crate::engine::renderer_engine::gray::gray::Gray;
-use crate::engine::renderer_engine::graphics_context::GraphicsContext;
-
+use crate::engine::renderer_engine::render_engine::RenderEngine;
 use super::physics_engine::collision::collision_body::CollisionBodyType;
 
 pub struct GameEngine<'a> {
-    pub ctx: GraphicsContext<'a>,
-    pass: RenderPass,
-    size: winit::dpi::PhysicalSize<u32>,
-
     physics_engine: Box<dyn Simulation + 'static>,
-    
-    // Post processing
-    pp_gray: Gray,
-
-    instance_buffer: wgpu::Buffer,
-    vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
+    // FIXME: Should not be public
+    pub render_engine: RenderEngine<'a>,
 }
 
 impl <'a> GameEngine <'a> {
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        self.size = new_size;
-        self.ctx.config.width = new_size.width;
-        self.ctx.config.height = new_size.height;
-        self.ctx.surface.configure(&self.ctx.device, &self.ctx.config);
-    }
 
     pub fn update(&mut self) {
-        let simulation = &mut self.physics_engine;
-        simulation.update();
+        let physics_engine = &mut self.physics_engine;
+        physics_engine.update();
 
-        let bodies = simulation.get_bodies();
-        let colors = simulation.get_colors();
+        let bodies = physics_engine.get_bodies();
+        let colors = physics_engine.get_colors();
         let instances = zip(bodies, colors).filter_map(
             |(body, color)| {
                 if let CollisionBodyType::Circle { radius } = body.body_type {
@@ -54,26 +34,15 @@ impl <'a> GameEngine <'a> {
 
         // To prevent writing the static colors every run, we probably can use a global buffer and write 
         // the colors to it once (maybe and then copy it to the instance buffer every frame.)
-        self.ctx.queue.write_buffer(&self.instance_buffer, 
+        self.render_engine.ctx.queue.write_buffer(&self.render_engine.instance_buffer, 
              0, bytemuck::cast_slice(&instances));
-        
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let simulation = &mut self.physics_engine;
-        let target_texture = &self.pp_gray.texture;
-        self.pass.draw(&target_texture, &self.ctx.device, &self.ctx.queue,
-            &self.vertex_buffer, &self.index_buffer, &self.instance_buffer,
-            simulation.get_num_indices(),
-            simulation.get_num_active_instances(),
-        ).unwrap();
-
-        // Post processing
-        let output_frame = self.ctx.surface.get_current_texture()?;
-        self.pp_gray.render(&output_frame.texture, &self.ctx.device, &self.ctx.queue).unwrap();
-
-        output_frame.present();
-
+    // TODO: Rename to something like tick()
+    pub fn tick(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let physics_engine = &mut self.physics_engine;
+        let render_engine = &mut self.render_engine;
+        let _ = render_engine.render(&physics_engine);
         return Ok(());
     }
 
@@ -83,8 +52,11 @@ impl <'a> GameEngine <'a> {
             _ => ()
         }
     }
-}
 
+    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        self.render_engine.resize(new_size);
+    }
+}
 
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
@@ -100,50 +72,11 @@ impl GameEngineBuilder {
         self
     }
 
-
     pub async fn build(self, window: Window) -> GameEngine<'static>{
-        let simulation = self.physics_engine.unwrap();
-        let size = window.inner_size();
-
-        let mut ctx = GraphicsContext::new(window).await;
-
-        let pass = RenderPass::new(&ctx.device, &size);
-
-        let vertex_buffer = ctx.create_buffer(
-            "Circle vertex buffer", bytemuck::cast_slice(&simulation.get_vertices()),
-            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
-
-        let index_buffer = ctx.create_buffer(
-                "Circle index buffer", bytemuck::cast_slice(&simulation.get_indices()),
-                wgpu::BufferUsages::INDEX);
-
-        let bodies = simulation.get_bodies();
-        let colors = simulation.get_colors();
-        let instances = zip(bodies, colors).filter_map(
-            |(body, color)| {
-                if let CollisionBodyType::Circle { radius } = body.body_type {
-                    Some(Instance{
-                        position: body.position, 
-                        color: *color, 
-                        radius: radius / size.width as f32
-                    }.to_raw())
-                } else {
-                    None
-                }
-        }).collect::<Vec<_>>();
-
-        let instance_buffer = ctx.create_buffer(
-            "Circle instance buffer", bytemuck::cast_slice(&instances),
-                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST);
-
-        let pp_gray = Gray::new(&ctx.device, &size);
-
+        let physics_engine = self.physics_engine.unwrap();
+        let render_engine = RenderEngine::new(window, &physics_engine).await;
         GameEngine {
-            ctx, pass, size, instance_buffer,
-            vertex_buffer, index_buffer, pp_gray,
-            physics_engine: simulation 
+            physics_engine, render_engine
         }
     }
 }
-
-

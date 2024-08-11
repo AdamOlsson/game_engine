@@ -1,4 +1,4 @@
-use wgpu::util::DeviceExt;
+use wgpu::{util::DeviceExt, Buffer};
 use winit::window::{Window, WindowId};
 
 pub struct GraphicsContext<'a> {
@@ -56,12 +56,21 @@ impl<'a> GraphicsContext<'a> {
         Self { device, queue, surface, config, window_id }
     }
 
-    pub fn create_buffer(&mut self, label: &str, contents: &[u8], usage: wgpu::BufferUsages) -> wgpu::Buffer {
+    pub fn create_buffer(&self, label: &str, size: u32, usage: wgpu::BufferUsages, 
+        mapped_at_creation: bool
+    ) -> Buffer {
+        self.device.create_buffer(
+            &wgpu::BufferDescriptor{
+                label: Some(label), size: size as u64, usage, mapped_at_creation
+        })
+    }
+
+    pub fn create_buffer_init(&mut self, label: &str, contents: &[u8], usage: wgpu::BufferUsages) -> wgpu::Buffer {
         self.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some(label),
-                contents: contents,
-                usage: usage,
+                contents,
+                usage,
             }
         )
     }

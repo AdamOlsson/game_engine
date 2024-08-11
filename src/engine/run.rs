@@ -35,14 +35,14 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
             Event::UserEvent(..) => {
                 let _before = Instant::now();
                 game_engine.update();
-                game_engine.render().unwrap();
+                game_engine.tick().unwrap();
                 let _after = Instant::now();
                 //println!("{:?}", _after.duration_since(_before));
             }
             Event::WindowEvent {
                 window_id,
                 ref event,
-            } if window_id == game_engine.ctx.window_id => match event {
+            } if window_id == game_engine.render_engine.ctx.window_id => match event {
                 WindowEvent::Resized(physical_size) => game_engine.resize(*physical_size),
 
                 WindowEvent::CloseRequested
@@ -61,7 +61,7 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
                 }
 
                 WindowEvent::RedrawRequested => {
-                    game_engine.render().unwrap();
+                    game_engine.tick().unwrap();
                 } 
 
                 WindowEvent::KeyboardInput { event: 

@@ -37,9 +37,9 @@ impl Triangle {
         let base = base;
         let height = height;
         let mut vertices = Vec::new();
-        vertices.push(Vertex { position: [x, y + height / 2.0, 0.0], color: [1.0, 0.0, 0.0] });
-        vertices.push(Vertex { position: [x - base / 2.0, y - height / 2.0, 0.0], color: [1.0, 0.0, 0.0] });
-        vertices.push(Vertex { position: [x + base / 2.0, y - height / 2.0, 0.0], color: [1.0, 0.0, 0.0] });
+        vertices.push(Vertex { position: [x, y + height / 2.0, 0.0] });
+        vertices.push(Vertex { position: [x - base / 2.0, y - height / 2.0, 0.0] });
+        vertices.push(Vertex { position: [x + base / 2.0, y - height / 2.0, 0.0] });
         return vertices;
     }
 }

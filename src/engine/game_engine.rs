@@ -1,11 +1,9 @@
-use std::{collections::HashMap, iter::zip};
+use std::{iter::zip};
 use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
-use crate::engine::renderer_engine::instance::Instance;
 use crate::engine::renderer_engine::render_engine::RenderEngine;
-use crate::engine::renderer_engine::shapes::Shape;
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::shapes::circle::Circle};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::shapes::circle::{CircleInstance}};
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn Simulation + 'static>,
@@ -20,14 +18,17 @@ impl <'a> GameEngine <'a> {
         physics_engine.update();
 
         let bodies = physics_engine.get_bodies();
+        // TODO: Given the type of body, I need to create the corresponding Instance struct
+
         let colors = physics_engine.get_colors();
         let instances = zip(bodies, colors).filter_map(
             |(body, color)| {
                 if let CollisionBodyType::Circle { radius } = body.body_type {
-                    Some(Instance{
-                        position: body.position, color: *color, 
+                    Some( CircleInstance {
+                        position: body.position.into(),
+                        color: (*color).into(), 
                         radius 
-                    }.to_raw())
+                    })
                 } else {
                     None
                 }

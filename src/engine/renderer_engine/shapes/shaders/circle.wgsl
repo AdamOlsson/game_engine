@@ -1,9 +1,5 @@
-// Vertex shader
-// https://webgpufundamentals.org/webgpu/lessons/webgpu-wgsl-function-reference.html
-
 struct VertexInput {
     @location(0) position: vec3<f32>,
-    @location(1) color: vec3<f32>,
 };
 
 struct InstanceInput {

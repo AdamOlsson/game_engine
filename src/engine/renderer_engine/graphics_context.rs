@@ -7,7 +7,6 @@ pub struct GraphicsContext<'a> {
     pub surface: wgpu::Surface<'a>,
     pub config: wgpu::SurfaceConfiguration,
     pub window_id: WindowId,
-    //pub window: &'a winit::window::Window 
 }
 
 impl<'a> GraphicsContext<'a> {

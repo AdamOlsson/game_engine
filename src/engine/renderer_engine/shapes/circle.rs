@@ -3,12 +3,7 @@ use crate::engine::renderer_engine::vertex::Vertex;
 use std::mem;
 use super::Shape;
 
-#[allow(dead_code)]
-pub struct Circle {
-    pub indices: Vec<u16>,
-    pub num_indices: u32,
-    pub vertices: Vec<Vertex>,
-}
+pub struct Circle {}
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]

@@ -1,14 +1,13 @@
-use std::{iter::zip};
+use std::iter::zip;
 use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::render_engine::RenderEngine;
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::shapes::circle::{CircleInstance}};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::shapes::circle::CircleInstance};
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn Simulation + 'static>,
-    // FIXME: Should not be public
-    pub render_engine: RenderEngine<'a>,
+    render_engine: RenderEngine<'a>,
 }
 
 impl <'a> GameEngine <'a> {
@@ -16,34 +15,13 @@ impl <'a> GameEngine <'a> {
     pub fn update(&mut self) {
         let physics_engine = &mut self.physics_engine;
         physics_engine.update();
-
-        let bodies = physics_engine.get_bodies();
-        // TODO: Given the type of body, I need to create the corresponding Instance struct
-
-        let colors = physics_engine.get_colors();
-        let instances = zip(bodies, colors).filter_map(
-            |(body, color)| {
-                if let CollisionBodyType::Circle { radius } = body.body_type {
-                    Some( CircleInstance {
-                        position: body.position.into(),
-                        color: (*color).into(), 
-                        radius 
-                    })
-                } else {
-                    None
-                }
-        }).collect::<Vec<_>>();
-
-        // To prevent writing the static colors every run, we probably can use a global buffer and write 
-        // the colors to it once (maybe and then copy it to the instance buffer every frame.)
-        self.render_engine.ctx.queue.write_buffer(&self.render_engine.instance_buffer, 
-             0, bytemuck::cast_slice(&instances));
     }
 
-    // TODO: Rename to something like tick()
     pub fn tick(&mut self) -> Result<(), wgpu::SurfaceError> {
         let physics_engine = &mut self.physics_engine;
         let render_engine = &mut self.render_engine;
+        
+        Self::write_to_instance_buffer(&physics_engine, &render_engine);
         let _ = render_engine.render(&physics_engine);
         return Ok(());
     }
@@ -57,6 +35,26 @@ impl <'a> GameEngine <'a> {
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.render_engine.resize(new_size);
+    }
+
+    fn write_to_instance_buffer(physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) {
+        let bodies = physics_engine.get_bodies();
+        let colors = physics_engine.get_colors();
+        let instances = zip(bodies, colors).filter_map(
+            |(body, color)| {
+                if let CollisionBodyType::Circle { radius } = body.body_type {
+                    Some(CircleInstance {
+                        position: body.position.into(), 
+                        color: (*color).into(), 
+                        radius,
+                    })
+                } else {
+                    None
+                }
+        }).collect::<Vec<_>>();
+
+        render_engine.ctx.queue.write_buffer(&render_engine.instance_buffer, 
+             0, bytemuck::cast_slice(&instances));
     }
 }
 
@@ -75,22 +73,27 @@ impl GameEngineBuilder {
     }
 
     pub async fn build(self, window: Window) -> GameEngine<'static>{
+        let size = window.inner_size();
         let physics_engine = self.physics_engine.unwrap();
-        let render_engine = RenderEngine::new(window, &physics_engine).await;
+
+        let bodies = physics_engine.get_bodies();
+        let colors = physics_engine.get_colors();
+        let instances = zip(bodies, colors).filter_map(
+            |(body, color)| {
+                if let CollisionBodyType::Circle { radius } = body.body_type {
+                    Some(CircleInstance {
+                        position: body.position.into(), 
+                        color: (*color).into(), 
+                        radius: radius / size.width as f32
+                    })
+                } else {
+                    None
+                }
+        }).collect::<Vec<_>>();
+ 
+        let raw_instances: &[u8]= bytemuck::cast_slice(&instances);
+        let render_engine = RenderEngine::new(window, raw_instances.len() as u32).await;
        
-        //let mut vertices = HashMap::new();
-        //let mut indices = HashMap::new();
-        //physics_engine.get_bodies().iter().for_each(
-        //    |b| match b.body_type {
-        //        CollisionBodyType::Circle { radius: _ } => {
-        //            vertices.insert(Circle::id(), Circle::compute_vertices());
-        //            indices.insert(Circle::id(), Circle::compute_indices());
-        //        }, 
-        //        _ => panic!(),
-        //    });
-
-        //render_engine.set_vertex_buffer();
-
         GameEngine {
             physics_engine, render_engine
         }

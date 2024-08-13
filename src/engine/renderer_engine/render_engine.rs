@@ -1,7 +1,6 @@
-use std::iter::zip;
 use winit::{dpi::PhysicalSize, window::Window};
-use crate::engine::{physics_engine::collision::collision_body::CollisionBodyType, Simulation};
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, instance::Instance, render_pass};
+use crate::engine::{Simulation};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, render_pass};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -14,32 +13,16 @@ pub struct RenderEngine<'a> {
 }
 
 impl <'a> RenderEngine <'a> {
-    // TODO: Remove the dependency to Simulation trait
-    pub async fn new(window: Window, physics_engine: &Box<dyn Simulation>) -> Self {
+    pub async fn new(window: Window, instance_buffer_len: u32) -> Self {
         let size = window.inner_size();
 
         let ctx = GraphicsContext::new(window).await;
 
         let pass_builder = render_pass::RenderPassBuilder::circle();
         let render_pass = pass_builder.build(&ctx.device, &size);
-
-        let bodies = physics_engine.get_bodies();
-        let colors = physics_engine.get_colors();
-        let instances = zip(bodies, colors).filter_map(
-            |(body, color)| {
-                if let CollisionBodyType::Circle { radius } = body.body_type {
-                    Some(Instance{
-                        position: body.position, 
-                        color: *color, 
-                        radius: radius / size.width as f32
-                    }.to_raw())
-                } else {
-                    None
-                }
-        }).collect::<Vec<_>>();
         
         let instance_buffer = ctx.create_buffer(
-            "Circle instance buffer", (bytemuck::cast_slice(&instances) as &[u8]).len() as u32, 
+            "Circle instance buffer", instance_buffer_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
 
         let pp_gray = Gray::new(&ctx.device, &size);

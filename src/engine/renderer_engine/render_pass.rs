@@ -1,5 +1,5 @@
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use super::{shapes::Shape, vertex::Vertex};
+use super::{shapes::{Shape}, vertex::Vertex};
 
 pub struct RenderPass {
     vertex_buffer: wgpu::Buffer,

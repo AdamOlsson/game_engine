@@ -2,6 +2,7 @@ use super::vertex::Vertex;
 
 pub mod triangle;
 pub mod circle;
+pub mod rectangle;
 
 pub trait Shape {
     fn id() -> String;

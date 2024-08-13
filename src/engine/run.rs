@@ -18,6 +18,7 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
         .build()
         .unwrap();
     let window =  WindowBuilder::new().build(&event_loop).unwrap();
+    let game_window_id = window.id();
     let _ = window.request_inner_size(window_size);
 
     let mut game_engine = game_engine::GameEngineBuilder::new()
@@ -42,7 +43,7 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
             Event::WindowEvent {
                 window_id,
                 ref event,
-            } if window_id == game_engine.render_engine.ctx.window_id => match event {
+            } if window_id == game_window_id => match event {
                 WindowEvent::Resized(physical_size) => game_engine.resize(*physical_size),
 
                 WindowEvent::CloseRequested

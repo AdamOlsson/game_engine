@@ -1,7 +1,8 @@
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use super::{shapes::{Shape}, vertex::Vertex};
+use super::{shapes::Shape, vertex::Vertex};
 
 pub struct RenderPass {
+    id: String,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     render_pipeline: wgpu::RenderPipeline,
@@ -12,33 +13,41 @@ impl RenderPass {
     pub fn render(
         &mut self, device: &wgpu::Device, target_texture: &wgpu::Texture,
         queue: &wgpu::Queue, instance_buffer: &wgpu::Buffer, num_indices: u32,
-        num_instances: u32,
+        num_instances: u32, clear_texture: bool,
     ) -> Result<(), wgpu::SurfaceError> {
+
+        let id = self.id.as_str();
+        let ce_label = format!("{id} Render Encoder");
         let command_encoder_descriptor = wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
+            label: Some(ce_label.as_str()),
         };
 
         let mut command_encoder = 
             device.create_command_encoder(&command_encoder_descriptor);
-
+        
         let color_attachment = wgpu::RenderPassColorAttachment {
             view: &target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
             resolve_target: None,
             ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 1.0,
-                }),
+                load: match clear_texture {
+                    true =>  wgpu::LoadOp::Clear(
+                    wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 1.0,
+                    }),
+                    false => wgpu::LoadOp::Load,
+                },
                 store: wgpu::StoreOp::Store,
             },
         };
 
         {
-            let mut render_pass = command_encoder.begin_render_pass(
+        let rp_label = format!("{id} Render Pass");            
+        let mut render_pass = command_encoder.begin_render_pass(
                 &wgpu::RenderPassDescriptor {
-                    label: Some("Render Pass"),
+                    label: Some(rp_label.as_str()),
                     color_attachments: &[Some(color_attachment)],
                     depth_stencil_attachment: None,
                     occlusion_query_set: None,
@@ -63,6 +72,7 @@ impl RenderPass {
 }
 
 pub struct RenderPassBuilder {
+    id: String,
     shader_path: String,
     shader_label: String,
     vertices: Vec<Vertex>,
@@ -73,17 +83,24 @@ pub struct RenderPassBuilder {
 impl RenderPassBuilder {
     
     pub fn circle() -> Self {
+        let id = super::shapes::circle::Circle::id();
         let shader_path = include_str!("shapes/shaders/circle.wgsl").to_string();
         let shader_label = "Circle Shader".to_string();
         let vertices = super::shapes::circle::Circle::compute_vertices();
         let indices = super::shapes::circle::Circle::compute_indices();
         let instance_buffer_layout = super::shapes::circle::Circle::instance_buffer_desc();
-        Self { shader_path, shader_label, vertices, indices, instance_buffer_layout }
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout }
     }
 
-    //pub fn rectangle() -> Self {
-    //    Self {}
-    //}
+    pub fn rectangle() -> Self {
+        let id = super::shapes::rectangle::Rectangle::id();
+        let shader_path = include_str!("shapes/shaders/rectangle.wgsl").to_string();
+        let shader_label = "Rectangle Shader".to_string();
+        let vertices = super::shapes::rectangle::Rectangle::compute_vertices();
+        let indices = super::shapes::rectangle::Rectangle::compute_indices();
+        let instance_buffer_layout = super::shapes::rectangle::Rectangle::instance_buffer_desc();
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout }    
+    }
 
     fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
         device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -136,9 +153,8 @@ impl RenderPassBuilder {
         (uniform_buffer, uniform_buffer_bind_group, uniform_buffer_group_layout)
     }
 
-
-
     pub fn build(self, device: &wgpu::Device, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
+        let id = self.id;
         let vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor{
                 label: Some(&self.shader_label),
@@ -210,6 +226,6 @@ impl RenderPassBuilder {
             }
         );
 
-        RenderPass { vertex_buffer, index_buffer, render_pipeline, buffer_bind_group } 
+        RenderPass {id, vertex_buffer, index_buffer, render_pipeline, buffer_bind_group } 
     }
 }

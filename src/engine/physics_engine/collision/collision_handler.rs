@@ -44,11 +44,11 @@ impl CollisionHandler for SimpleCollisionSolver {
     }
 
     fn handle_circle_rect_collision(
-        &self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize
+        &self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize
     ) {}
 
     fn handle_rect_rect_collision(
-        &self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize
+        &self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize
     ) {
         //let body_i = &bodies[idx_i];
         //let body_j = &bodies[idx_j];

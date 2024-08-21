@@ -282,10 +282,6 @@ impl Simulation for FireSimulation {
         self.state.get_bodies()
     }
 
-    fn get_colors(&self) -> &Vec<Vector3<f32>> {
-        &self.colors
-    }
-
     fn get_num_indices(&self) -> u32 {
         self.num_indices
     }

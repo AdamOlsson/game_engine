@@ -51,8 +51,6 @@ impl <'a> RenderEngine <'a> {
         let instance_buffer = &self.circle_instance_buffer;
         let target_texture = &self.pp_gray.texture;
        
-        // FIXME: Circle::compute_indices() performs expensive for loop every invoke and
-        // does not need to
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
             instance_buffer, Circle::compute_indices().len() as u32, num_instances, clear)?;
 

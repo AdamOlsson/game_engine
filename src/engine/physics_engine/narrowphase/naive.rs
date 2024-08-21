@@ -58,11 +58,11 @@ impl NarrowPhase for Naive {
                             self.solver.handle_rect_rect_collision(bodies, idx_i, idx_j);
                             collisions.push((idx_i, idx_j));
                         },
-                    (CollisionBodyType::Rectangle { width, height },
-                     CollisionBodyType::Circle { radius }) |
-                    (CollisionBodyType::Circle { radius },
-                     CollisionBodyType::Rectangle { width, height }) => (),
-                    (_, _) => panic!(),
+                    (CollisionBodyType::Rectangle { width: _, height: _ },
+                     CollisionBodyType::Circle { radius: _ }) |
+                    (CollisionBodyType::Circle { radius: _ },
+                     CollisionBodyType::Rectangle { width: _, height: _}) => (),
+                    //(_, _) => panic!(),
                 }
             }
         } 

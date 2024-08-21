@@ -5,7 +5,6 @@ pub mod game_engine;
 pub mod run;
 pub mod util;
 
-use cgmath::Vector3;
 use physics_engine::collision::collision_body::CollisionBody;
 
 #[allow(dead_code)]
@@ -17,7 +16,6 @@ pub trait State {
 pub trait Simulation {
     fn update(&mut self);
     fn get_bodies(&self) -> &Vec<CollisionBody>;
-    fn get_colors(&self) -> &Vec<Vector3<f32>>;
     fn get_num_active_instances(&self) -> u32;
     fn get_target_num_instances(&self) -> u32;
     fn get_num_indices(&self) -> u32;

@@ -91,10 +91,6 @@ impl Simulation for DebugSimulation {
         &self.integrator.get_bodies()
     }
 
-    fn get_colors(&self) -> &Vec<cgmath::Vector3<f32>> {
-        &self.colors
-    }
-
     fn get_num_active_instances(&self) -> u32 {
         self.num_instances
     }

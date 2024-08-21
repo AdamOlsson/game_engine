@@ -102,24 +102,34 @@ impl GameEngineBuilder {
         let physics_engine = self.physics_engine.unwrap();
 
         let bodies = physics_engine.get_bodies();
-        let colors = physics_engine.get_colors();
-        let instances = zip(bodies, colors).filter_map(
-            |(body, color)| {
+        let circle_instances = bodies.iter().filter_map(
+            |body| {
                 if let CollisionBodyType::Circle { radius } = body.body_type {
                     Some(CircleInstance {
                         position: body.position.into(), 
-                        color: (*color).into(), 
+                        color: body.color.into(), 
                         radius: radius / size.width as f32
                     })
                 } else {
                     None
                 }
         }).collect::<Vec<_>>();
- 
-        let raw_circle_instances: &[u8] = bytemuck::cast_slice(&instances);
-        // FIXME: Dummy data for now
-        let raw_rectangle_instances: &[u8] = bytemuck::cast_slice(&[
-            RectangleInstance { color: [255.0,0.0,0.0], position: [0.0,0.0,0.0], width: 1.0, height:1.0 }]);
+        let raw_circle_instances: &[u8] = bytemuck::cast_slice(&circle_instances);
+
+        let rect_instances = bodies.iter().filter_map(
+            |body| {
+                match body.body_type { 
+                    CollisionBodyType::Rectangle{ width, height } => 
+                        Some(RectangleInstance {
+                            color: body.color.into(), 
+                            position: body.position.into(),
+                            width,height
+                        }),
+                    _ => None
+                }
+            }).collect::<Vec<_>>();
+        let raw_rectangle_instances: &[u8] = bytemuck::cast_slice(&rect_instances);
+
         let render_engine = RenderEngine::new(
             window, raw_circle_instances.len() as u32, raw_rectangle_instances.len() as u32).await;
        

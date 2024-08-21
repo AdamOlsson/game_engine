@@ -1,11 +1,12 @@
 use winit::{dpi::PhysicalSize, window::Window};
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, render_pass, shapes::{circle::Circle, rectangle::{Rectangle}, Shape}};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::Circle, rectangle::Rectangle, Shape}};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
     pub size: PhysicalSize<u32>,
 
-    pub pp_gray: Gray,
+    pub pp_gray: Option<Gray>,
+    pp_identity: Identity,
 
     pub circle_render_pass: render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
@@ -34,11 +35,15 @@ impl <'a> RenderEngine <'a> {
        let rectangle_instance_buffer = ctx.create_buffer(
             "Rectangle instance buffer", rectangle_instance_buffer_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
-
-        let pp_gray = Gray::new(&ctx.device, &size);
+        
+        // TODO: Add feature to apply post process in sequence
+        //let pp_gray = Some(Gray::new(&ctx.device, &size));
+        let pp_gray = None; 
+        let pp_identity = Identity::new(&ctx.device, &size);
 
         Self {
-            ctx, size, pp_gray, 
+            ctx, size, 
+            pp_gray, pp_identity,
             circle_render_pass, circle_instance_buffer,
             rectangle_render_pass, rectangle_instance_buffer,
         }
@@ -49,7 +54,8 @@ impl <'a> RenderEngine <'a> {
     ) -> Result<(), wgpu::SurfaceError>{
         let pass = &mut self.circle_render_pass;
         let instance_buffer = &self.circle_instance_buffer;
-        let target_texture = &self.pp_gray.texture;
+        let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
+
        
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
             instance_buffer, Circle::compute_indices().len() as u32, num_instances, clear)?;
@@ -62,7 +68,7 @@ impl <'a> RenderEngine <'a> {
     ) -> Result<(), wgpu::SurfaceError>{
         let pass = &mut self.rectangle_render_pass;
         let instance_buffer = &self.rectangle_instance_buffer;
-        let target_texture = &self.pp_gray.texture;
+        let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
         
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
             instance_buffer, Rectangle::compute_indices().len() as u32, num_instances, clear)?;
@@ -72,7 +78,13 @@ impl <'a> RenderEngine <'a> {
 
     pub fn post_process(&mut self) -> Result<(), wgpu::SurfaceError>{
         let output_frame = self.ctx.surface.get_current_texture()?;
-        self.pp_gray.render(&output_frame.texture, &self.ctx.device, &self.ctx.queue).unwrap();
+        
+        if let Some(gray) = &mut self.pp_gray {
+            gray.render(&output_frame.texture, &self.ctx.device, &self.ctx.queue).unwrap();
+        } else {
+            self.pp_identity.render(&output_frame.texture, &self.ctx.device, &self.ctx.queue).unwrap();
+        }
+        
         output_frame.present();
         Ok(())
     }

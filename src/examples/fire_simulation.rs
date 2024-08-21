@@ -54,7 +54,7 @@ impl FireState {
 
         let bodies: Vec<CollisionBody> = zip(zip(prev_positions, acceleration), zip(positions, radii))
             .enumerate()
-            .map(|(i, ((pp,a), (p, r)))| CollisionBody::circle(i, Vector3::zero(), a, pp, p, r))
+            .map(|(i, ((pp,a), (p, r)))| CollisionBody::circle(i, Vector3::zero(), a, pp, p, r,Vector3::zero()))
             .collect();
 
         let temperatures = vec![0.0; target_num_instances as usize];
@@ -99,7 +99,8 @@ pub struct FireSimulation {
 
 impl FireSimulation {
     pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
-        let state = FireState::new(NUM_ROWS, NUM_COLS, INITIAL_SPACING);
+        panic!("Fire simulation is deprecated and need rework");
+        let mut state = FireState::new(NUM_ROWS, NUM_COLS, INITIAL_SPACING);
         let dt = 0.001;
         let color_spectrum = ColorSpectrum::new(
             vec![BLACK, RED, ORANGE, YELLOW, WHITE], COLOR_SPECTRUM_BUCKET_SIZE);
@@ -110,6 +111,9 @@ impl FireSimulation {
             let index = (state.temperatures[i] as usize).min(color_spectrum_len - 1);
             colors[i] = color_spectrum.get(index);
         }
+
+        let bodies = state.get_bodies_mut();
+        colors.iter().enumerate().for_each(|(i,c)| bodies[i].color = *c);
 
         let indices = Circle::compute_indices();
         let num_indices = indices.len() as u32;
@@ -275,22 +279,6 @@ impl Simulation for FireSimulation {
 
     fn get_bodies(&self) -> &Vec<CollisionBody> {
         self.state.get_bodies()
-    }
-
-    // fn get_positions(&self) -> &Vec<Vector3<f32>> {
-    //     todo!();
-    // }
-
-    // fn get_radii(&self) -> &Vec<f32> {
-    //    todo!();
-    // }
-
-    fn get_vertices(&self) -> &Vec<Vertex> {
-        &self.vertices
-    }
-
-    fn get_indices(&self) -> &Vec<u16> {
-        &self.indices
     }
 
     fn get_colors(&self) -> &Vec<Vector3<f32>> {

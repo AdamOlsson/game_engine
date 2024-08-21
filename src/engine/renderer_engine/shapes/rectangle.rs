@@ -5,10 +5,10 @@ use super::Shape;
 pub struct Rectangle {}
 
 #[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Debug)]
 pub struct RectangleInstance {
     pub color: [f32; 3],
-    pub position: [f32; 3],
+    pub position: [f32; 3], // Top left corner
     pub width: f32,
     pub height: f32,
 }

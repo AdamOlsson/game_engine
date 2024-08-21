@@ -7,7 +7,6 @@ pub mod util;
 
 use cgmath::Vector3;
 use physics_engine::collision::collision_body::CollisionBody;
-use renderer_engine::vertex::Vertex;
 
 #[allow(dead_code)]
 pub trait State {
@@ -16,11 +15,8 @@ pub trait State {
 }
 
 pub trait Simulation {
-    //fn new(window_size: &PhysicalSize<u32>) -> Self;
     fn update(&mut self);
     fn get_bodies(&self) -> &Vec<CollisionBody>;
-    fn get_vertices(&self) -> &Vec<Vertex>;
-    fn get_indices(&self) -> &Vec<u16>;
     fn get_colors(&self) -> &Vec<Vector3<f32>>;
     fn get_num_active_instances(&self) -> u32;
     fn get_target_num_instances(&self) -> u32;

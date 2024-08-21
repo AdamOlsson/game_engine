@@ -24,8 +24,6 @@ pub struct DebugSimulation {
     narrowphase: Box<dyn NarrowPhase>,
     
     // Render data
-    indices: Vec<u16>,
-    vertices: Vec<Vertex>,
     num_indices: u32,
     colors: Vec<Vector3<f32>>,
 }
@@ -41,11 +39,19 @@ impl DebugSimulation {
         let position = vec![prev_positions[0] + velocities[0],
                             prev_positions[1] + velocities[1],
                             prev_positions[2] + velocities[2]];
+        let colors = vec![
+            Vector3::new(255.0,0.0,0.0),
+            Vector3::new(0.0,255.0,0.0),
+            Vector3::new(0.0,0.0,255.0),
+            Vector3::new(0.0,0.0,255.0),
+        ];
         let radius = vec![100.0, 100.0, 120.0];
         let bodies = vec![
-            CollisionBody::circle(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0]),
-            CollisionBody::circle(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1]),
-            CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2])];
+            CollisionBody::circle(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0], colors[0]),
+            CollisionBody::circle(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1], colors[1]),
+            CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2], colors[2]),
+            CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 100., 100., colors[3]),
+        ];
         let num_instances = bodies.len() as u32;
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
@@ -58,15 +64,10 @@ impl DebugSimulation {
         // Render data
         let indices = Circle::compute_indices();
         let num_indices = indices.len() as u32;
-        let vertices = Circle::compute_vertices();
-        let colors = vec![
-            Vector3::new(255.0,0.0,0.0),
-            Vector3::new(0.0,255.0,0.0),
-            Vector3::new(0.0,0.0,255.0),];
-    
+            
         Self { 
             dt, integrator, constraint, broadphase, narrowphase,
-            num_instances, indices, vertices, num_indices, colors}
+            num_instances, num_indices, colors}
     }
 }
 
@@ -89,14 +90,6 @@ impl Simulation for DebugSimulation {
 
     fn get_bodies(&self) -> &Vec<CollisionBody> {
         &self.integrator.get_bodies()
-    }
-
-    fn get_vertices(&self) -> &Vec<crate::engine::renderer_engine::vertex::Vertex> {
-        &self.vertices 
-    }
-
-    fn get_indices(&self) -> &Vec<u16> {
-       &self.indices 
     }
 
     fn get_colors(&self) -> &Vec<cgmath::Vector3<f32>> {

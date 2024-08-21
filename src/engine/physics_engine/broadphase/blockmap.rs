@@ -1,3 +1,4 @@
+use cgmath::Vector3;
 use log::warn;
 use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates};
 
@@ -16,10 +17,15 @@ impl BlockMap {
        // Assign each circle to a cell
         let mut cells: Vec<Vec<usize>> = vec![Vec::new(); (grid_width*grid_width) as usize];
         for (i, b) in bodies.iter().enumerate() {
-            let pos = b.position;
+            let center = match b.body_type {
+                CollisionBodyType::Circle { .. } => b.position,
+                CollisionBodyType::Rectangle { width, height } =>
+                    b.position + Vector3::new(width/2.0, -height/2.0, 0.0),
+                _ => panic!("Unkown object"),
+            };
             // Add 1.0 to offset all coordinates between 0.0 and 2.0
-            let x = ((pos.x + 1.0)/cell_size) as u32;
-            let y = ((pos.y + 1.0)/cell_size) as u32;
+            let x = ((center.x + 1.0)/cell_size) as u32;
+            let y = ((center.y + 1.0)/cell_size) as u32;
             let cell_index = (y*grid_width + x) as usize;
             cells[cell_index].push(i);
         }
@@ -52,11 +58,11 @@ impl BroadPhase for BlockMap {
             return vec![]; 
         }
         // Create grid with largest side equal to the largest diameter of the circles
+        // FIXME: Allow for width and height of cell to unequal
         let cell_size = bodies.iter().fold(0.0, |acc, b| {
-            if let CollisionBodyType::Circle { radius } = b.body_type {
-                f32::max(acc, radius)
-            } else {
-                panic!()
+            match b.body_type {
+                CollisionBodyType::Circle { radius } => f32::max(acc, radius),
+                CollisionBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)),
             }
         })*2.0;
         let grid_width = (self.width/cell_size).ceil() as u32;

@@ -1,6 +1,6 @@
 use winit::{dpi::PhysicalSize, window::Window};
 use crate::engine::Simulation;
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, render_pass, shapes::{rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, render_pass, shapes::{circle::Circle, rectangle::{Rectangle, RectangleInstance}, Shape}};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -46,30 +46,29 @@ impl <'a> RenderEngine <'a> {
     }
 
     pub fn render_circles(
-        &mut self, physics_engine: &Box<dyn Simulation>, clear: bool
+        &mut self, num_instances: u32, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
         let pass = &mut self.circle_render_pass;
         let instance_buffer = &self.circle_instance_buffer;
         let target_texture = &self.pp_gray.texture;
-        
-        // FIXME: num_indices should no longer come from physics_engine
+       
+        // FIXME: Circle::compute_indices() performs expensive for loop every invoke and
+        // does not need to
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
-            instance_buffer, physics_engine.get_num_indices(), 
-            physics_engine.get_num_active_instances(), clear)?;
+            instance_buffer, Circle::compute_indices().len() as u32, num_instances, clear)?;
 
         return Ok(());
     } 
 
     pub fn render_rectangles(
-        &mut self, _physics_engine: &Box<dyn Simulation>, clear: bool
+        &mut self, num_instances: u32, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
         let pass = &mut self.rectangle_render_pass;
         let instance_buffer = &self.rectangle_instance_buffer;
         let target_texture = &self.pp_gray.texture;
         
-        // FIXME: num_indices should no longer come from physics_engine
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
-            instance_buffer, Rectangle::compute_indices().len() as u32, 1, clear)?;
+            instance_buffer, Rectangle::compute_indices().len() as u32, num_instances, clear)?;
 
         return Ok(());
     } 

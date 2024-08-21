@@ -4,7 +4,6 @@ use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::render_engine::RenderEngine;
 use super::{physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
-use cgmath::{Vector3, Zero};
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn Simulation + 'static>,
@@ -22,10 +21,10 @@ impl <'a> GameEngine <'a> {
         let physics_engine = &mut self.physics_engine;
         let render_engine = &mut self.render_engine;
 
-        Self::write_to_rectangle_instance_buffer(&physics_engine, &render_engine);
-        Self::write_to_circle_instance_buffer(&physics_engine, &render_engine);
-        let _ = render_engine.render_rectangles(&physics_engine, true);
-        let _ = render_engine.render_circles(&physics_engine, false);
+        let num_rect_instances = Self::write_to_rectangle_instance_buffer(&physics_engine, &render_engine);
+        let num_circle_instances = Self::write_to_circle_instance_buffer(&physics_engine, &render_engine);
+        let _ = render_engine.render_rectangles(num_rect_instances as u32, true);
+        let _ = render_engine.render_circles(num_circle_instances as u32, false);
 
         let _ = render_engine.post_process();
 
@@ -43,16 +42,15 @@ impl <'a> GameEngine <'a> {
         self.render_engine.resize(new_size);
     }
 
-    fn write_to_circle_instance_buffer(physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) {
+    fn write_to_circle_instance_buffer(physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) -> usize {
         let bodies = physics_engine.get_bodies();
-        let colors = physics_engine.get_colors();
-        let instances = zip(bodies, colors).filter_map(
-            |(body, color)| {
+        let instances = bodies.iter().filter_map(
+            |body| {
                 match body.body_type { 
                     CollisionBodyType::Circle { radius } => 
                         Some(CircleInstance {
                             position: body.position.into(), 
-                            color: (*color).into(), 
+                            color: body.color.into(), 
                             radius,
                         }),
                     _ => None
@@ -61,21 +59,17 @@ impl <'a> GameEngine <'a> {
 
         render_engine.ctx.queue.write_buffer(&render_engine.circle_instance_buffer, 
               0, bytemuck::cast_slice(&instances));
+        return instances.len();
     }
 
-    fn write_to_rectangle_instance_buffer(_physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) {
-        let bodies = vec![
-            CollisionBody::rectangle(
-                99, Vector3::zero(), Vector3::zero(), Vector3::zero(), Vector3::zero(), 
-                100.0, 100.0),
-        ];
-        let colors: Vec<Vector3<f32>> = vec![Vector3::new(255.0, 0.0, 0.0),];
-        let instances = zip(bodies, colors).filter_map(
-            |(body, color)| {
+    fn write_to_rectangle_instance_buffer(physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) -> usize {
+        let bodies = physics_engine.get_bodies();
+        let instances = bodies.iter().filter_map(
+            |body| {
                 match body.body_type { 
                     CollisionBodyType::Rectangle{ width, height } => 
                         Some(RectangleInstance {
-                            color: color.into(), 
+                            color: body.color.into(), 
                             position: body.position.into(),
                             width,height
                         }),
@@ -85,6 +79,7 @@ impl <'a> GameEngine <'a> {
 
         render_engine.ctx.queue.write_buffer(&render_engine.rectangle_instance_buffer, 
             0, bytemuck::cast_slice(&instances));
+        return instances.len();
     }
 }
 

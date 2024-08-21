@@ -29,28 +29,29 @@ impl BoxConstraint {
 
 impl Constraint for BoxConstraint {
     fn apply_constraint(&self, body: &mut CollisionBody) {
-        let radius = match body.body_type {
-            CollisionBodyType::Circle { radius } => radius,
+        let shape = match body.body_type {
+            CollisionBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
+            CollisionBodyType::Rectangle { width, height } => Vector3::new(width, height, 0.0), // FIXME
             _ => panic!(),
         };
         // Left side
-        if body.position.x - radius < self.top_left.x {
-            let diff = body.position.x - radius  - self.top_left.x;
+        if body.position.x - shape.x < self.top_left.x {
+            let diff = body.position.x - shape.x - self.top_left.x;
             self.resolver.resolve_horizontal(diff, body);
         }
         // Right side
-        if body.position.x + radius > self.bottom_right.x {
-            let diff = body.position.x + radius - self.bottom_right.x; 
+        if body.position.x + shape.x > self.bottom_right.x {
+            let diff = body.position.x + shape.x - self.bottom_right.x; 
             self.resolver.resolve_horizontal(diff, body);
         }
         // Bottom side
-        if body.position.y - radius < self.bottom_right.y {
-            let diff = body.position.y - radius - self.bottom_right.y;
+        if body.position.y - shape.y < self.bottom_right.y {
+            let diff = body.position.y - shape.y - self.bottom_right.y;
             self.resolver.resolve_vertical(diff, body);
         }
         // Top side
-        if body.position.y + radius > self.top_left.y {
-            let diff = body.position.y + radius - self.top_left.y;
+        if body.position.y + shape.y > self.top_left.y {
+            let diff = body.position.y + shape.y - self.top_left.y;
             self.resolver.resolve_vertical(diff, body);
         }
     }

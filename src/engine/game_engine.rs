@@ -3,7 +3,7 @@ use winit::keyboard::KeyCode;
 use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::render_engine::RenderEngine;
-use super::{physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
+use super::{physics_engine::collision::collision_body::{CollisionBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn Simulation + 'static>,

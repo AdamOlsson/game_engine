@@ -1,6 +1,5 @@
 use winit::{dpi::PhysicalSize, window::Window};
-use crate::engine::Simulation;
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, render_pass, shapes::{circle::Circle, rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, render_pass, shapes::{circle::Circle, rectangle::{Rectangle}, Shape}};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,

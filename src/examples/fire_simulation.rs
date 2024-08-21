@@ -97,6 +97,7 @@ pub struct FireSimulation {
     pub num_indices: u32,
 }
 
+#[allow(unreachable_code)]
 impl FireSimulation {
     pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
         panic!("Fire simulation is deprecated and need rework");

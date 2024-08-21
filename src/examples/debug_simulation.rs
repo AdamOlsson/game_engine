@@ -4,7 +4,6 @@ use crate::engine::physics_engine::collision::collision_handler::SimpleCollision
 use crate::engine::physics_engine::narrowphase::naive::Naive;
 use crate::engine::renderer_engine::shapes::Shape;
 use crate::engine::Simulation;
-use crate::engine::renderer_engine::vertex::Vertex;
 use crate::engine::renderer_engine::shapes::circle::Circle;
 use crate::engine::physics_engine::narrowphase::NarrowPhase;
 use crate::engine::physics_engine::integrator::verlet::VerletIntegrator;

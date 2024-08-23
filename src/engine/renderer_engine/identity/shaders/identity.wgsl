@@ -19,6 +19,4 @@ fn vs_main(
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     return textureSample(input_texture, gray_sampler, in.tex_coord.xy);
-    //let gray = (texel.r + texel.g + texel.b) / 3.0;
-    //return vec4(gray, gray, gray, 1.0);
 }

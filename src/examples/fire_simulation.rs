@@ -282,10 +282,6 @@ impl Simulation for FireSimulation {
         self.state.get_bodies()
     }
 
-    fn get_num_indices(&self) -> u32 {
-        self.num_indices
-    }
-
     fn get_num_active_instances(&self) -> u32 {
        self.state.num_instances 
     }

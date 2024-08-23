@@ -21,10 +21,6 @@ pub struct DebugSimulation {
     constraint: Box<dyn Constraint>,
     broadphase: Box<dyn BroadPhase>,
     narrowphase: Box<dyn NarrowPhase>,
-    
-    // Render data
-    num_indices: u32,
-    colors: Vec<Vector3<f32>>,
 }
 
 impl DebugSimulation {
@@ -60,13 +56,10 @@ impl DebugSimulation {
         let broadphase = Box::new(BlockMap::new(window_size.width as f32));
         let narrowphase = Box::new(Naive::new(SimpleCollisionSolver::new()));
 
-        // Render data
-        let indices = Circle::compute_indices();
-        let num_indices = indices.len() as u32;
             
         Self { 
             dt, integrator, constraint, broadphase, narrowphase,
-            num_instances, num_indices, colors}
+            num_instances}
     }
 }
 
@@ -97,9 +90,5 @@ impl Simulation for DebugSimulation {
 
     fn get_target_num_instances(&self) -> u32 {
         self.num_instances
-    }
-
-    fn get_num_indices(&self) -> u32 {
-        self.num_indices
     }
 }

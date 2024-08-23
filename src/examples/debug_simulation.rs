@@ -45,7 +45,7 @@ impl DebugSimulation {
             CollisionBody::circle(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0], colors[0]),
             CollisionBody::circle(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1], colors[1]),
             CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2], colors[2]),
-            CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 100., 100., colors[3]),
+            CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 300., 300., colors[3]),
         ];
         let num_instances = bodies.len() as u32;
         let integrator = VerletIntegrator::new(f32::MAX, bodies);

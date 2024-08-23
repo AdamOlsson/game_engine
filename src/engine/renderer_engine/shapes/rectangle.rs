@@ -8,7 +8,7 @@ pub struct Rectangle {}
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Debug)]
 pub struct RectangleInstance {
     pub color: [f32; 3],
-    pub position: [f32; 3], // Top left corner
+    pub position: [f32; 3], // bottom left corner
     pub width: f32,
     pub height: f32,
 }

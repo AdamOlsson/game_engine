@@ -31,7 +31,7 @@ impl Constraint for BoxConstraint {
     fn apply_constraint(&self, body: &mut CollisionBody) {
         let shape = match body.body_type {
             CollisionBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
-            CollisionBodyType::Rectangle { width, height } => Vector3::new(width, height, 0.0), // FIXME
+            //CollisionBodyType::Rectangle { width, height } => Vector3::new(width, height, 0.0), // FIXME
             _ => panic!(),
         };
         // Left side

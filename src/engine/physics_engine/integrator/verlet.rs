@@ -44,14 +44,14 @@ impl VerletIntegrator {
         self.bodies[idx].acceleration.y = new;
     }
 
-    pub fn set_position_x(&mut self, idx: usize, new: f32) {
-        self.bodies[idx].position.x = new;
-        self.bodies[idx].prev_position.x = new - self.bodies[idx].velocity.x;
+    pub fn set_position_x(bodies: &mut Vec<CollisionBody>, idx: usize, new: f32) {
+        bodies[idx].position.x = new;
+        bodies[idx].prev_position.x = new - bodies[idx].velocity.x;
     }
     
-    pub fn set_position_y(&mut self, idx: usize, new: f32) {
-        self.bodies[idx].position.y = new;
-        self.bodies[idx].prev_position.y = new - self.bodies[idx].velocity.y;
+    pub fn set_position_y(bodies: &mut Vec<CollisionBody>, idx: usize, new: f32) {
+        bodies[idx].position.y = new;
+        bodies[idx].prev_position.y = new - bodies[idx].velocity.y;
     }
 
     pub fn get_bodies(&self) -> &Vec<CollisionBody> {

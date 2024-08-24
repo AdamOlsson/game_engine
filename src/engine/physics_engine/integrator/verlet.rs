@@ -20,13 +20,11 @@ impl VerletIntegrator {
             if vel_magn > self.velocity_cap {
                 velocity = velocity*(self.velocity_cap/vel_magn)
             }
-            //self.prev_positions[i] = b.position;
             b.prev_position = b.position;
             b.position = b.position + velocity + b.acceleration * dt*dt;   
             b.velocity = velocity; // Used in constraint handling
         }
     }
-
 
     pub fn set_velocity_x(&mut self, idx: usize, new: f32) {
         let p = self.bodies[idx].position.x;
@@ -44,6 +42,16 @@ impl VerletIntegrator {
     
     pub fn set_acceleration_y(&mut self, idx: usize, new: f32) {
         self.bodies[idx].acceleration.y = new;
+    }
+
+    pub fn set_position_x(&mut self, idx: usize, new: f32) {
+        self.bodies[idx].position.x = new;
+        self.bodies[idx].prev_position.x = new - self.bodies[idx].velocity.x;
+    }
+    
+    pub fn set_position_y(&mut self, idx: usize, new: f32) {
+        self.bodies[idx].position.y = new;
+        self.bodies[idx].prev_position.y = new - self.bodies[idx].velocity.y;
     }
 
     pub fn get_bodies(&self) -> &Vec<CollisionBody> {

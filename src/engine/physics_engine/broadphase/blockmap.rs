@@ -9,8 +9,8 @@ pub struct BlockMap {
 }
 
 impl BlockMap {
-    pub fn new(width: f32) -> Self {
-        Self {width}
+    pub fn new(window_width: f32) -> Self {
+        Self { width: window_width }
     }
 
     fn assign_object_to_cell(&self, bodies: &Vec<CollisionBody>, cell_size: f32, grid_width: u32) -> Vec<Vec<usize>> {

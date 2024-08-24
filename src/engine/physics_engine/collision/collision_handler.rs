@@ -1,11 +1,21 @@
 use super::collision_body::{CollisionBody, CollisionBodyType};
-use cgmath::{InnerSpace};
-
+use cgmath::InnerSpace;
 
 pub trait CollisionHandler {
     fn handle_circle_circle_collision(&self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize);
     fn handle_circle_rect_collision(&self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize);
     fn handle_rect_rect_collision(&self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize);
+}
+
+pub struct IdentityCollisionSolver{}
+impl IdentityCollisionSolver {
+    pub fn new() -> Self { Self{} }
+}
+
+impl CollisionHandler for IdentityCollisionSolver {
+    fn handle_rect_rect_collision(&self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize) {}
+    fn handle_circle_rect_collision(&self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize) {}
+    fn handle_circle_circle_collision(&self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize) {}
 }
 
 pub struct SimpleCollisionSolver {}

@@ -65,10 +65,11 @@ impl BroadPhase for BlockMap {
                 CollisionBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)),
             }
         })*2.0;
+
         let grid_width = (self.width/cell_size).ceil() as u32;
         
         if grid_width < 3 {
-            warn!("Grid width smaller than 3 is not supported.");
+            println!("warning: grid width smaller than 3 is not supported.");
         }
 
         let cells = self.assign_object_to_cell(bodies, cell_size, grid_width);
@@ -93,5 +94,28 @@ impl BroadPhase for BlockMap {
             }
         }
         return all_candidates; 
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use cgmath::{Vector3, Zero};
+
+    use crate::engine::physics_engine::{broadphase::BroadPhase, collision::collision_body::{CollisionBody, CollisionBodyType}};
+
+    use super::BlockMap;
+
+    #[test]
+    fn rect_circle_are_possible_collision_candidates() {
+        let (window_width, window_height) = (1000.0,1000);
+        let blockmap = BlockMap::new(window_width);
+        let zero = Vector3::zero();
+        let circ = CollisionBody::circle(0, zero, zero, zero, zero, 50.0, zero);
+        let rect = CollisionBody::rectangle(1, zero, zero, zero, zero, 50.0, 50.0, zero);
+        
+        let candidates = blockmap.collision_detection(&vec![circ, rect]);
+        assert_eq!(1, candidates.len());
+        assert_eq!(candidates[0].indices, vec![0,1]);
     }
 }

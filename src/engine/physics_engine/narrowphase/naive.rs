@@ -1,4 +1,4 @@
-use cgmath::MetricSpace;
+use cgmath::{MetricSpace, Vector3};
 use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates, collision_handler::CollisionHandler, CollisionGraph};
 
 use super::NarrowPhase;
@@ -14,6 +14,31 @@ impl Naive {
     {
         let s: Box<dyn CollisionHandler> = Box::new(solver);
         Self { solver: s }
+    }
+
+    fn circle_rectangle_test_for_collision(
+        circ_pos: &Vector3<f32>, circ_radius: f32, rect_pos: &Vector3<f32>,
+        rect_width: f32, rect_height: f32
+    ) -> bool {
+        
+        let test_edge_x = 
+            if circ_pos.x < rect_pos.x {
+                rect_pos.x
+            } else if circ_pos.x > rect_pos.x + rect_width {
+                rect_pos.x + rect_width
+            } else {
+                circ_pos.x
+            };
+        let test_edge_y = 
+            if circ_pos.y < rect_pos.y {
+                rect_pos.y
+            } else if circ_pos.y > rect_pos.y + rect_height {
+                rect_pos.y + rect_height
+            } else {
+                circ_pos.y
+            };
+        let dist = ((circ_pos.x - test_edge_x).powi(2) + (circ_pos.y - test_edge_y).powi(2)).sqrt();
+        return dist <= circ_radius;
     }
 }
 
@@ -49,6 +74,7 @@ impl NarrowPhase for Naive {
                             self.solver.handle_circle_circle_collision(bodies, idx_i, idx_j);
                             collisions.push((idx_i, idx_j));
                         },
+
                     (CollisionBodyType::Rectangle { width: wi, height:hi },
                      CollisionBodyType::Rectangle { width: wj, height:hj }) => 
                         if body_i.position.x + wi >= body_j.position.x &&
@@ -58,15 +84,24 @@ impl NarrowPhase for Naive {
                             self.solver.handle_rect_rect_collision(bodies, idx_i, idx_j);
                             collisions.push((idx_i, idx_j));
                         },
-                    (CollisionBodyType::Rectangle { width: _, height: _ },
-                     CollisionBodyType::Circle { radius: _ }) |
-                    (CollisionBodyType::Circle { radius: _ },
-                     CollisionBodyType::Rectangle { width: _, height: _}) => (),
+
+                    (CollisionBodyType::Rectangle { width, height },
+                     CollisionBodyType::Circle { radius }) => 
+                        if Self::circle_rectangle_test_for_collision(
+                                &body_j.position, *radius, &body_i.position, *width, *height) {
+                            collisions.push((idx_i, idx_j));
+                        },
+
+                    (CollisionBodyType::Circle { radius },
+                     CollisionBodyType::Rectangle { width, height }) => 
+                        if Self::circle_rectangle_test_for_collision(
+                                &body_i.position, *radius, &body_j.position, *width, *height) {
+                            collisions.push((idx_i, idx_j));
+                        },
                     //(_, _) => panic!(),
                 }
             }
         } 
-
         return CollisionGraph { collisions }
     }
 }

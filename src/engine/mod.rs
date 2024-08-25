@@ -16,8 +16,6 @@ pub trait State {
 pub trait Simulation {
     fn update(&mut self);
     fn get_bodies(&self) -> &Vec<CollisionBody>;
-    fn get_num_active_instances(&self) -> u32;
-    fn get_target_num_instances(&self) -> u32;
 
     // Interactions
     fn jump(&mut self) {}

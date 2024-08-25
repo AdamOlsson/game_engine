@@ -281,14 +281,6 @@ impl Simulation for FireSimulation {
     fn get_bodies(&self) -> &Vec<CollisionBody> {
         self.state.get_bodies()
     }
-
-    fn get_num_active_instances(&self) -> u32 {
-       self.state.num_instances 
-    }
-
-    fn get_target_num_instances(&self) -> u32 {
-        self.state.num_instances
-    }
 }
 
 struct ColorSpectrum {

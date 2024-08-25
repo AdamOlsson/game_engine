@@ -87,19 +87,9 @@ impl Simulation for DebugSimulation {
                 } 
             }
         }
-
-        //bodies.iter().for_each(|b| println!("{}", b));
     }
 
     fn get_bodies(&self) -> &Vec<CollisionBody> {
         &self.integrator.get_bodies()
-    }
-
-    fn get_num_active_instances(&self) -> u32 {
-        self.num_instances
-    }
-
-    fn get_target_num_instances(&self) -> u32 {
-        self.num_instances
     }
 }

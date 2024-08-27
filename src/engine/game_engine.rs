@@ -1,9 +1,7 @@
-use std::iter::zip;
 use winit::keyboard::KeyCode;
-use winit::window::Window;
 use crate::engine::Simulation;
 use crate::engine::renderer_engine::render_engine::RenderEngine;
-use super::{physics_engine::collision::collision_body::{CollisionBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn Simulation + 'static>,
@@ -83,55 +81,36 @@ impl <'a> GameEngine <'a> {
     }
 }
 
-pub struct GameEngineBuilder {
+pub struct GameEngineBuilder <'a> {
     physics_engine: Option<Box<dyn Simulation>>,
+    render_engine: Option<RenderEngine<'a>>,
 }
 
-impl GameEngineBuilder {
+impl GameEngineBuilder <'static> {
     pub fn new() -> Self {
-        Self { physics_engine: None }
+        Self { physics_engine: None, render_engine: None }
     }
 
     pub fn physics_engine(mut self, sim: Box<dyn Simulation>) -> Self {
         self.physics_engine = Some(sim);
         self
     }
+    
+    pub fn render_engine(mut self, engine: RenderEngine<'static>) -> Self {
+        self.render_engine = Some(engine);
+        self
+    }
 
-    pub async fn build(self, window: Window) -> GameEngine<'static>{
-        let size = window.inner_size();
-        let physics_engine = self.physics_engine.unwrap();
+    pub fn build(self) -> GameEngine<'static>{
+        let physics_engine = match self.physics_engine {
+            Some(p) => p,
+            None => panic!("Physics engine not set."),
+        };
 
-        let bodies = physics_engine.get_bodies();
-        let circle_instances = bodies.iter().filter_map(
-            |body| {
-                if let CollisionBodyType::Circle { radius } = body.body_type {
-                    Some(CircleInstance {
-                        position: body.position.into(), 
-                        color: body.color.into(), 
-                        radius: radius / size.width as f32
-                    })
-                } else {
-                    None
-                }
-        }).collect::<Vec<_>>();
-        let raw_circle_instances: &[u8] = bytemuck::cast_slice(&circle_instances);
-
-        let rect_instances = bodies.iter().filter_map(
-            |body| {
-                match body.body_type { 
-                    CollisionBodyType::Rectangle{ width, height } => 
-                        Some(RectangleInstance {
-                            color: body.color.into(), 
-                            position: body.position.into(),
-                            width,height
-                        }),
-                    _ => None
-                }
-            }).collect::<Vec<_>>();
-        let raw_rectangle_instances: &[u8] = bytemuck::cast_slice(&rect_instances);
-
-        let render_engine = RenderEngine::new(
-            window, raw_circle_instances.len() as u32, raw_rectangle_instances.len() as u32).await;
+        let render_engine = match self.render_engine {
+            Some(r) => r,
+            None => panic!("Render engine not set."),
+        };
        
         GameEngine {
             physics_engine, render_engine

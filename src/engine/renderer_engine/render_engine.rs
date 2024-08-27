@@ -3,52 +3,19 @@ use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::ident
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
-    pub size: PhysicalSize<u32>,
+    window_size: PhysicalSize<u32>,
 
-    pub pp_gray: Option<Gray>,
+    pp_gray: Option<Gray>,
     pp_identity: Identity,
 
-    pub circle_render_pass: render_pass::RenderPass,
+    circle_render_pass: render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
 
-    pub rectangle_render_pass: render_pass::RenderPass,
+    rectangle_render_pass: render_pass::RenderPass,
     pub rectangle_instance_buffer: wgpu::Buffer,
 }
 
 impl <'a> RenderEngine <'a> {
-    pub async fn new(
-        window: Window, circle_instance_buffer_len: u32, rectangle_instance_buffer_len: u32
-
-    ) -> Self {
-        let size = window.inner_size();
-
-        let ctx = GraphicsContext::new(window).await;
-
-        let circle_pass_builder = render_pass::RenderPassBuilder::circle();
-        let circle_render_pass = circle_pass_builder.build(&ctx.device, &size);
-        let circle_instance_buffer = ctx.create_buffer(
-            "Circle instance buffer", circle_instance_buffer_len, 
-             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
-
-       let rectangle_pass_builder = render_pass::RenderPassBuilder::rectangle();
-       let rectangle_render_pass = rectangle_pass_builder.build(&ctx.device, &size);
-       let rectangle_instance_buffer = ctx.create_buffer(
-            "Rectangle instance buffer", rectangle_instance_buffer_len, 
-             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
-        
-        // TODO: Add feature to apply post process in sequence
-        //let pp_gray = Some(Gray::new(&ctx.device, &size));
-        let pp_gray = None; 
-        let pp_identity = Identity::new(&ctx.device, &size);
-
-        Self {
-            ctx, size, 
-            pp_gray, pp_identity,
-            circle_render_pass, circle_instance_buffer,
-            rectangle_render_pass, rectangle_instance_buffer,
-        }
-    }
-
     pub fn render_circles(
         &mut self, num_instances: u32, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
@@ -90,9 +57,50 @@ impl <'a> RenderEngine <'a> {
     }
 
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
-        self.size = new_size;
+        self.window_size = new_size;
         self.ctx.config.width = new_size.width;
         self.ctx.config.height = new_size.height;
         self.ctx.surface.configure(&self.ctx.device, &self.ctx.config);
     }
 }
+
+pub struct RenderEngineBuilder {}
+impl <'a> RenderEngineBuilder {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub async fn build(self,
+        window: Window, circle_instance_buffer_len: u32, rectangle_instance_buffer_len: u32
+    ) -> RenderEngine<'a> {
+        let window_size = window.inner_size();
+        let ctx = GraphicsContext::new(window).await;
+        let circle_pass_builder = render_pass::RenderPassBuilder::circle();
+        // TODO: circle_pass_builder.add_texture(); // TODO: How do I make the end user be able to
+        // call this?
+        let circle_render_pass = circle_pass_builder.build(&ctx.device, &window_size);
+        let circle_instance_buffer = ctx.create_buffer(
+            "Circle instance buffer", circle_instance_buffer_len, 
+             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
+
+       let rectangle_pass_builder = render_pass::RenderPassBuilder::rectangle();
+       let rectangle_render_pass = rectangle_pass_builder.build(&ctx.device, &window_size);
+       let rectangle_instance_buffer = ctx.create_buffer(
+            "Rectangle instance buffer", rectangle_instance_buffer_len, 
+             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
+        
+        // TODO: Add feature to apply post process in sequence
+        //let pp_gray = Some(Gray::new(&ctx.device, &size));
+        let pp_gray = None; 
+        let pp_identity = Identity::new(&ctx.device, &window_size);
+            
+        RenderEngine { 
+            ctx, window_size, 
+            pp_gray, pp_identity,
+            circle_render_pass, circle_instance_buffer,
+            rectangle_render_pass, rectangle_instance_buffer,
+
+        }
+    }
+}
+

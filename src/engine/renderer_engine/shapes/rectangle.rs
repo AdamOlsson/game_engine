@@ -13,6 +13,14 @@ pub struct RectangleInstance {
     pub height: f32,
 }
 
+impl Default for RectangleInstance {
+    fn default() -> Self {
+        RectangleInstance {
+            color: [255.0,0.0,0.0], position: [0.0,0.0,0.0], width: 0.0, height: 0.0,
+        }
+    }
+}
+
 impl Shape for Rectangle {
     fn id() -> String {
         "Rectangle".to_string()

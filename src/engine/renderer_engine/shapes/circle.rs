@@ -13,6 +13,12 @@ pub struct CircleInstance {
     pub radius: f32,
 }
 
+impl Default for CircleInstance {
+    fn default() -> Self {
+        CircleInstance { position: [0.0,0.0,0.0], color: [0.0,255.0,0.0], radius: 0.}
+    }
+}
+
 impl Shape for Circle { 
     fn id() -> String {
         "Circle".to_string()

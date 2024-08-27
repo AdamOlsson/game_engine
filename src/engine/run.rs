@@ -8,6 +8,11 @@ use winit::dpi::PhysicalSize;
 use std::thread;
 use std::time::Instant;
 
+use super::physics_engine::collision::collision_body::CollisionBodyType;
+use super::renderer_engine::render_engine;
+use super::renderer_engine::shapes::circle::CircleInstance;
+use super::renderer_engine::shapes::rectangle::RectangleInstance;
+
 #[derive(Debug, Clone, Copy)]
 enum CustomEvent {
     Timer,
@@ -21,9 +26,33 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
     let game_window_id = window.id();
     let _ = window.request_inner_size(window_size);
 
+    let bodies = simulation.get_bodies();
+    
+    let circle_count: u32 = bodies.iter()
+        .fold(0, |acc, b| match b.body_type {
+            CollisionBodyType::Circle{ .. } => acc + 1,
+            _ => acc,
+        }); 
+    let default_circle = CircleInstance::default();
+    let raw_circle_instance = bytemuck::bytes_of(&default_circle);
+    let circle_instance_buffer_len = (raw_circle_instance.len() as u32)*circle_count;
+
+    let rect_count: u32 = bodies.iter()
+        .fold(0, |acc, b| match b.body_type {
+            CollisionBodyType::Rectangle{ .. } => acc + 1,
+            _ => acc,
+        }); 
+    let default_rect = RectangleInstance::default();
+    let raw_rect_instance = bytemuck::bytes_of(&default_rect);
+    let rect_instance_buffer_len = (raw_rect_instance.len() as u32)*rect_count;
+   
+    let render_engine = render_engine::RenderEngineBuilder::new()
+        .build(window, circle_instance_buffer_len, rect_instance_buffer_len).await;
+
     let mut game_engine = game_engine::GameEngineBuilder::new()
         .physics_engine(Box::new(simulation))
-        .build(window).await;
+        .render_engine(render_engine)
+        .build();
     
     let event_loop_proxy = event_loop.create_proxy();
     std::thread::spawn(move || loop {

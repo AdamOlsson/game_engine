@@ -1,5 +1,7 @@
 use winit::{dpi::PhysicalSize, window::Window};
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::Circle, rectangle::Rectangle, Shape}};
+use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
+
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -64,14 +66,41 @@ impl <'a> RenderEngine <'a> {
     }
 }
 
-pub struct RenderEngineBuilder {}
+pub struct RenderEngineBuilder {
+    circ_instance_buf_len: u32,
+    rect_instance_buf_len: u32,
+}
 impl <'a> RenderEngineBuilder {
     pub fn new() -> Self {
-        Self {}
+        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0,}
+    }
+
+    pub fn bodies(mut self, bodies: &Vec<CollisionBody>) -> Self {
+        let circle_count: u32 = bodies.iter()
+            .fold(0, |acc, b| match b.body_type {
+                CollisionBodyType::Circle{ .. } => acc + 1,
+                _ => acc,
+            }); 
+        let default_circle = CircleInstance::default();
+        let raw_circle_instance = bytemuck::bytes_of(&default_circle);
+        let circle_instance_buffer_len = (raw_circle_instance.len() as u32)*circle_count;
+
+        let rect_count: u32 = bodies.iter()
+            .fold(0, |acc, b| match b.body_type {
+                CollisionBodyType::Rectangle{ .. } => acc + 1,
+                _ => acc,
+            }); 
+        let default_rect = RectangleInstance::default();
+        let raw_rect_instance = bytemuck::bytes_of(&default_rect);
+        let rect_instance_buffer_len = (raw_rect_instance.len() as u32)*rect_count;
+
+        self.circ_instance_buf_len = circle_instance_buffer_len;
+        self.rect_instance_buf_len = rect_instance_buffer_len;
+        self
     }
 
     pub async fn build(self,
-        window: Window, circle_instance_buffer_len: u32, rectangle_instance_buffer_len: u32
+        window: Window,
     ) -> RenderEngine<'a> {
         let window_size = window.inner_size();
         let ctx = GraphicsContext::new(window).await;
@@ -80,13 +109,13 @@ impl <'a> RenderEngineBuilder {
         // call this?
         let circle_render_pass = circle_pass_builder.build(&ctx.device, &window_size);
         let circle_instance_buffer = ctx.create_buffer(
-            "Circle instance buffer", circle_instance_buffer_len, 
+            "Circle instance buffer", self.circ_instance_buf_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
 
        let rectangle_pass_builder = render_pass::RenderPassBuilder::rectangle();
        let rectangle_render_pass = rectangle_pass_builder.build(&ctx.device, &window_size);
        let rectangle_instance_buffer = ctx.create_buffer(
-            "Rectangle instance buffer", rectangle_instance_buffer_len, 
+            "Rectangle instance buffer", self.rect_instance_buf_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
         
         // TODO: Add feature to apply post process in sequence

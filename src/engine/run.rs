@@ -15,7 +15,7 @@ enum CustomEvent {
     Timer,
 }
 
-pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSize<u32>, update_freq_ms: u32) {
+pub fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSize<u32>, update_freq_ms: u32) {
     let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
         .build()
         .unwrap();
@@ -26,7 +26,7 @@ pub async fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSi
     let bodies = simulation.get_bodies();
     let render_engine = render_engine::RenderEngineBuilder::new()
         .bodies(&bodies)
-        .build(window).await;
+        .build(window);
 
     let mut game_engine = game_engine::GameEngineBuilder::new()
         .physics_engine(Box::new(simulation))

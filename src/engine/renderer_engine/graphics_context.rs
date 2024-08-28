@@ -1,4 +1,4 @@
-use wgpu::{util::DeviceExt, Buffer};
+use wgpu::{util::DeviceExt, Adapter, Buffer, Device, Instance, Queue};
 use winit::window::{Window, WindowId};
 
 pub struct GraphicsContext<'a> {
@@ -10,7 +10,7 @@ pub struct GraphicsContext<'a> {
 }
 
 impl<'a> GraphicsContext<'a> {
-    pub async fn new(window: Window) -> Self {
+    pub fn new(window: Window) -> Self {
         let size = window.inner_size();
         let window_id = window.id();
         let gpu_instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -19,17 +19,19 @@ impl<'a> GraphicsContext<'a> {
         });
         let surface = gpu_instance.create_surface(window).unwrap();
 
-        let adapter = gpu_instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
-            compatible_surface: Some(&surface),
-            force_fallback_adapter: false,
-        }).await.unwrap();
+        //let adapter = gpu_instance.request_adapter(&wgpu::RequestAdapterOptions {
+        //    power_preference: wgpu::PowerPreference::default(),
+        //    compatible_surface: Some(&surface),
+        //    force_fallback_adapter: false,
+        //}).await.unwrap();
 
-        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-            required_features: wgpu::Features::empty(),
-            required_limits: wgpu::Limits::default(),
-            label: Some("Device"),
-        }, None).await.unwrap();
+        let adapter = pollster::block_on(Self::request_adapter(&gpu_instance, &surface)).unwrap();
+        let (device, queue) = pollster::block_on(Self::request_device(&adapter));
+        //let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
+        //    required_features: wgpu::Features::empty(),
+        //    required_limits: wgpu::Limits::default(),
+        //    label: Some("Device"),
+        //}, None).await.unwrap();
 
         let surface_capabilities = surface.get_capabilities(&adapter);
         let surface_format = surface_capabilities
@@ -53,6 +55,22 @@ impl<'a> GraphicsContext<'a> {
         surface.configure(&device, &config);
 
         Self { device, queue, surface, config, window_id }
+    }
+
+    async fn request_adapter(gpu_instance: &Instance, surface: &wgpu::Surface<'a>) -> Option<Adapter> {
+        gpu_instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        }).await
+    }
+
+    async fn request_device(adapter: &Adapter) -> (Device, Queue) {
+        adapter.request_device(&wgpu::DeviceDescriptor {
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+            label: Some("Device"),
+        }, None).await.unwrap()
     }
 
     pub fn create_buffer(&self, label: &str, size: u32, usage: wgpu::BufferUsages, 

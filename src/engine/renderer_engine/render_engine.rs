@@ -100,10 +100,9 @@ impl <'a> RenderEngineBuilder {
     }
 
     pub fn build(self,
-        window: Window,
+        ctx: GraphicsContext<'a>,
+        window_size: PhysicalSize<u32>,
     ) -> RenderEngine<'a> {
-        let window_size = window.inner_size();
-        let ctx = GraphicsContext::new(window);
         let circle_pass_builder = render_pass::RenderPassBuilder::circle();
         // TODO: circle_pass_builder.add_texture(); // TODO: How do I make the end user be able to
         // call this?

@@ -8,6 +8,7 @@ use winit::dpi::PhysicalSize;
 use std::thread;
 use std::time::Instant;
 
+use super::renderer_engine::graphics_context::GraphicsContext;
 use super::renderer_engine::render_engine;
 
 #[derive(Debug, Clone, Copy)]
@@ -24,9 +25,10 @@ pub fn run<S: Simulation + 'static>(simulation: S, window_size: PhysicalSize<u32
     let _ = window.request_inner_size(window_size);
 
     let bodies = simulation.get_bodies();
+    let ctx = GraphicsContext::new(window);
     let render_engine = render_engine::RenderEngineBuilder::new()
         .bodies(&bodies)
-        .build(window);
+        .build(ctx, window_size);
 
     let mut game_engine = game_engine::GameEngineBuilder::new()
         .physics_engine(Box::new(simulation))

@@ -18,20 +18,9 @@ impl<'a> GraphicsContext<'a> {
             ..Default::default()
         });
         let surface = gpu_instance.create_surface(window).unwrap();
-
-        //let adapter = gpu_instance.request_adapter(&wgpu::RequestAdapterOptions {
-        //    power_preference: wgpu::PowerPreference::default(),
-        //    compatible_surface: Some(&surface),
-        //    force_fallback_adapter: false,
-        //}).await.unwrap();
-
+        
         let adapter = pollster::block_on(Self::request_adapter(&gpu_instance, &surface)).unwrap();
         let (device, queue) = pollster::block_on(Self::request_device(&adapter));
-        //let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-        //    required_features: wgpu::Features::empty(),
-        //    required_limits: wgpu::Limits::default(),
-        //    label: Some("Device"),
-        //}, None).await.unwrap();
 
         let surface_capabilities = surface.get_capabilities(&adapter);
         let surface_format = surface_capabilities

@@ -1,9 +1,9 @@
 extern crate game_engine;
 
 use cgmath::{ Vector3, Zero};
+use game_engine::engine::game_engine::GameEngineBuilder;
 use winit::dpi::PhysicalSize;
 
-use game_engine::engine::run::run;
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
@@ -97,5 +97,11 @@ impl Simulation for DebugSimulation {
 fn main() {
     let window_size = PhysicalSize::new(1000, 800);
     let simulation = DebugSimulation::new(&window_size);
-    run(simulation, window_size, 0);
+    
+    let engine = GameEngineBuilder::new()
+        .physics_engine(simulation)
+        .window_size(window_size)
+        .build();
+
+    engine.run();
 }

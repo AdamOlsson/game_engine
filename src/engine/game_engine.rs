@@ -26,10 +26,10 @@ impl<'a> GameEngine<'a> {
         self.event_loop.run(move | event, elwt | match event {
             Event::UserEvent(..) => {
                 self.physics_engine.update(); 
-                let num_rect_instances = Self::write_to_rectangle_instance_buffer(&self.physics_engine, &self.render_engine);
-                let num_circle_instances = Self::write_to_circle_instance_buffer(&self.physics_engine, &self.render_engine);
-                let _ = self.render_engine.render_rectangles(num_rect_instances as u32, true);
-                let _ = self.render_engine.render_circles(num_circle_instances as u32, false);
+                let rect_instances = Self::get_rectangle_instances(&self.physics_engine);
+                let circle_instances = Self::get_circle_instances(&self.physics_engine);
+                let _ = self.render_engine.render_rectangles(&rect_instances, true);
+                let _ = self.render_engine.render_circles(&circle_instances, false);
 
                 let _ = self.render_engine.post_process();
             },
@@ -74,9 +74,9 @@ impl<'a> GameEngine<'a> {
         }).unwrap();
     }
 
-    fn write_to_circle_instance_buffer(physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) -> usize {
+    fn get_circle_instances(physics_engine: &Box<dyn Simulation>) -> Vec<CircleInstance> {
         let bodies = physics_engine.get_bodies();
-        let instances = bodies.iter().filter_map(
+        bodies.iter().filter_map(
             |body| {
                 match body.body_type { 
                     CollisionBodyType::Circle { radius } => 
@@ -87,16 +87,12 @@ impl<'a> GameEngine<'a> {
                         }),
                     _ => None
                 }
-        }).collect::<Vec<_>>();
-
-        render_engine.ctx.queue.write_buffer(&render_engine.circle_instance_buffer, 
-              0, bytemuck::cast_slice(&instances));
-        return instances.len();
+        }).collect::<Vec<_>>()
     }
 
-    fn write_to_rectangle_instance_buffer(physics_engine: &Box<dyn Simulation>, render_engine: &RenderEngine) -> usize {
+    fn get_rectangle_instances(physics_engine: &Box<dyn Simulation>) -> Vec<RectangleInstance> {
         let bodies = physics_engine.get_bodies();
-        let instances = bodies.iter().filter_map(
+        bodies.iter().filter_map(
             |body| {
                 match body.body_type { 
                     CollisionBodyType::Rectangle{ width, height } => 
@@ -107,23 +103,20 @@ impl<'a> GameEngine<'a> {
                         }),
                     _ => None
                 }
-            }).collect::<Vec<_>>();
-
-        render_engine.ctx.queue.write_buffer(&render_engine.rectangle_instance_buffer, 
-            0, bytemuck::cast_slice(&instances));
-        return instances.len();
+            }).collect::<Vec<_>>()
     }
 }
 
 
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
+    textures: Vec<Vec<u8>>,
     window_size: PhysicalSize<u32>
 }
 impl <'a> GameEngineBuilder {
     pub fn new() -> Self {
         let window_size = PhysicalSize::new(800,600);
-        Self { window_size, physics_engine: None }
+        Self { window_size, physics_engine: None, textures: vec![] }
     }
 
     pub fn physics_engine<S: Simulation + 'static>(mut self, sim: S) -> Self {
@@ -131,11 +124,15 @@ impl <'a> GameEngineBuilder {
         self
     }
 
+    pub fn textures(mut self, tex: Vec<Vec<u8>>) -> Self {
+        self.textures = tex;
+        self
+    }
+
     pub fn window_size(mut self, window_size: PhysicalSize<u32>) -> Self {
         self.window_size = window_size;
         self
     }
-
 
     pub fn build(self) -> GameEngine<'a> {
         let window_size = self.window_size;
@@ -153,6 +150,7 @@ impl <'a> GameEngineBuilder {
         let bodies = physics_engine.get_bodies();
         let render_engine = render_engine::RenderEngineBuilder::new()
             .bodies(&bodies)
+            //.textures(self.textures)
             .build(ctx,self.window_size);
 
         GameEngine { 

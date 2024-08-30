@@ -10,6 +10,8 @@ pub struct RenderEngine<'a> {
     pp_gray: Option<Gray>,
     pp_identity: Identity,
 
+    //texture_render_pass: ...
+
     circle_render_pass: render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
 
@@ -19,28 +21,39 @@ pub struct RenderEngine<'a> {
 
 impl <'a> RenderEngine <'a> {
     pub fn render_circles(
-        &mut self, num_instances: u32, clear: bool
+        &mut self, instances: &Vec<CircleInstance>, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
+        let buf = &self.circle_instance_buffer;
+        let indices = Circle::compute_indices();
         let pass = &mut self.circle_render_pass;
-        let instance_buffer = &self.circle_instance_buffer;
-        let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
+        let num_instances = instances.len();
 
-       
+        self.ctx.queue.write_buffer(&buf, 
+              0, bytemuck::cast_slice(&instances));
+
+        let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
+        
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
-            instance_buffer, Circle::compute_indices().len() as u32, num_instances, clear)?;
+            buf, indices.len() as u32, num_instances as u32, clear)?;
 
         return Ok(());
     } 
 
     pub fn render_rectangles(
-        &mut self, num_instances: u32, clear: bool
+        &mut self, instances: &Vec<RectangleInstance>, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
+        let buf = &self.rectangle_instance_buffer;
+        let indices = Rectangle::compute_indices();
         let pass = &mut self.rectangle_render_pass;
-        let instance_buffer = &self.rectangle_instance_buffer;
+        let num_instances = instances.len();
+
+        self.ctx.queue.write_buffer(&buf, 
+              0, bytemuck::cast_slice(&instances));
+
         let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
         
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
-            instance_buffer, Rectangle::compute_indices().len() as u32, num_instances, clear)?;
+            buf, indices.len() as u32, num_instances as u32, clear)?;
 
         return Ok(());
     } 
@@ -96,6 +109,10 @@ impl <'a> RenderEngineBuilder {
 
         self.circ_instance_buf_len = circle_instance_buffer_len;
         self.rect_instance_buf_len = rect_instance_buffer_len;
+        self
+    }
+
+    pub fn textures(mut self, tex: Vec<Vec<u8>>) -> Self {
         self
     }
 

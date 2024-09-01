@@ -1,7 +1,8 @@
+use image::{Rgba, RgbaImage};
 use winit::{dpi::PhysicalSize, window::Window};
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}, util};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -9,8 +10,6 @@ pub struct RenderEngine<'a> {
 
     pp_gray: Option<Gray>,
     pp_identity: Identity,
-
-    //texture_render_pass: ...
 
     circle_render_pass: render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
@@ -46,6 +45,14 @@ impl <'a> RenderEngine <'a> {
         let indices = Rectangle::compute_indices();
         let pass = &mut self.rectangle_render_pass;
         let num_instances = instances.len();
+        
+        // TODO: Start looking at how a user would work with textures
+        //assert!(
+        //    instances.iter()
+        //    .map(
+        //        |i| i.texture_coord.is_empty() ||
+        //            i.texture_coord.len() == indices.len())
+        //    .collect::<Vec<bool>>().all());
 
         self.ctx.queue.write_buffer(&buf, 
               0, bytemuck::cast_slice(&instances));
@@ -82,10 +89,11 @@ impl <'a> RenderEngine <'a> {
 pub struct RenderEngineBuilder {
     circ_instance_buf_len: u32,
     rect_instance_buf_len: u32,
+    img_buffer: Option<image::ImageBuffer<Rgba<u8>, Vec<u8>>>
 }
 impl <'a> RenderEngineBuilder {
     pub fn new() -> Self {
-        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0,}
+        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, img_buffer: None }
     }
 
     pub fn bodies(mut self, bodies: &Vec<CollisionBody>) -> Self {
@@ -112,7 +120,8 @@ impl <'a> RenderEngineBuilder {
         self
     }
 
-    pub fn textures(mut self, tex: Vec<Vec<u8>>) -> Self {
+    pub fn texture(mut self, tex: image::ImageBuffer<Rgba<u8>, Vec<u8>>) -> Self {
+        self.img_buffer = Some(tex);
         self
     }
 
@@ -120,16 +129,40 @@ impl <'a> RenderEngineBuilder {
         ctx: GraphicsContext<'a>,
         window_size: PhysicalSize<u32>,
     ) -> RenderEngine<'a> {
-        let circle_pass_builder = render_pass::RenderPassBuilder::circle();
-        // TODO: circle_pass_builder.add_texture(); // TODO: How do I make the end user be able to
-        // call this?
-        let circle_render_pass = circle_pass_builder.build(&ctx.device, &window_size);
+
+        let img_buf = match self.img_buffer {
+            Some(b) => b,
+            None => RgbaImage::new(1,1),
+        };
+
+        let dimensions = &img_buf.dimensions();
+        let circ_texture = util::create_texture(&ctx, dimensions, Some("Rectangle Texture"));
+        let rect_texture = util::create_texture(&ctx, dimensions, Some("Rectangle Texture"));
+        util::write_texture(&ctx, &circ_texture, &img_buf);
+        util::write_texture(&ctx, &rect_texture, &img_buf);
+        let circ_sampler = util::create_sampler(&ctx.device);
+        let rect_sampler = util::create_sampler(&ctx.device);
+
+        // TODO: Should we create a new render pass for textures or include texture
+        // in the existing ones?
+        // - I will use the existing ones.
+        // TODO: How should I pass the texture coordinates to the shader?
+        // - We only provide a cell number for the texture inside the instance data and compute 
+        // texture sample coordinate inside the shader.
+        // TODO: How do I handle that a instance has no texture
+        // - A cell id of 0 means do not sample texture. 
+        let circle_render_pass = render_pass::RenderPassBuilder::circle()
+            .sampler(circ_sampler)
+            .texture(circ_texture)
+            .build(&ctx.device, &window_size);
         let circle_instance_buffer = ctx.create_buffer(
             "Circle instance buffer", self.circ_instance_buf_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
 
-       let rectangle_pass_builder = render_pass::RenderPassBuilder::rectangle();
-       let rectangle_render_pass = rectangle_pass_builder.build(&ctx.device, &window_size);
+        let rectangle_render_pass = render_pass::RenderPassBuilder::rectangle()
+            .sampler(rect_sampler)
+            .texture(rect_texture)
+            .build(&ctx.device, &window_size);
        let rectangle_instance_buffer = ctx.create_buffer(
             "Rectangle instance buffer", self.rect_instance_buf_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);

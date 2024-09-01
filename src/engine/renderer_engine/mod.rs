@@ -7,3 +7,4 @@ pub mod render_pass;
 pub mod instance;
 pub mod shapes;
 pub mod render_engine;
+pub mod util;

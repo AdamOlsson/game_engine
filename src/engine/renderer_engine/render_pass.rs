@@ -1,4 +1,4 @@
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
+use wgpu::{core::resource::{TextureDescriptor, TextureViewDescriptor}, util::{BufferInitDescriptor, DeviceExt}, Texture};
 use super::{shapes::Shape, vertex::Vertex};
 
 pub struct RenderPass {
@@ -6,7 +6,8 @@ pub struct RenderPass {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     render_pipeline: wgpu::RenderPipeline,
-    buffer_bind_group: wgpu::BindGroup,
+    uniform_buf_bind_group: wgpu::BindGroup,
+    texture_bind_group: wgpu::BindGroup,
 }
 
 impl RenderPass {
@@ -53,15 +54,17 @@ impl RenderPass {
                     occlusion_query_set: None,
                     timestamp_writes: None,
                 });
-
-                render_pass.set_bind_group(0, &self.buffer_bind_group, &[]);
+                
+                render_pass.set_bind_group(0, &self.uniform_buf_bind_group, &[]);
+                render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
                 render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
                 render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
                 
                 render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
                 render_pass.set_pipeline(&self.render_pipeline);
-                
+
+                // TODO: There is most likely a way I can merge the two render passes (circle,
+                // rect) into one vertex (and index) by using the base_vertex 
                 render_pass.draw_indexed(0..num_indices, 0, 0..num_instances);
         }
 
@@ -78,6 +81,8 @@ pub struct RenderPassBuilder {
     vertices: Vec<Vertex>,
     indices: Vec<u16>,
     instance_buffer_layout: wgpu::VertexBufferLayout<'static>,
+    texture: Option<wgpu::Texture>,
+    sampler: Option<wgpu::Sampler>,
 }
 
 impl RenderPassBuilder {
@@ -89,7 +94,9 @@ impl RenderPassBuilder {
         let vertices = super::shapes::circle::Circle::compute_vertices();
         let indices = super::shapes::circle::Circle::compute_indices();
         let instance_buffer_layout = super::shapes::circle::Circle::instance_buffer_desc();
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout }
+        let texture = None;
+        let sampler = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture, sampler }
     }
 
     pub fn rectangle() -> Self {
@@ -99,7 +106,9 @@ impl RenderPassBuilder {
         let vertices = super::shapes::rectangle::Rectangle::compute_vertices();
         let indices = super::shapes::rectangle::Rectangle::compute_indices();
         let instance_buffer_layout = super::shapes::rectangle::Rectangle::instance_buffer_desc();
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout }    
+        let texture = None;
+        let sampler = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture, sampler }
     }
 
     fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
@@ -137,7 +146,7 @@ impl RenderPassBuilder {
             }
         );
 
-        let uniform_buffer_bind_group = device.create_bind_group(
+        let uniform_buf_bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 label: Some("Global render information bind group"),
                 layout: &uniform_buffer_group_layout, 
@@ -150,7 +159,64 @@ impl RenderPassBuilder {
             }
         );
 
-        (uniform_buffer, uniform_buffer_bind_group, uniform_buffer_group_layout)
+        (uniform_buffer, uniform_buf_bind_group, uniform_buffer_group_layout)
+    }
+
+    fn create_texture_bind_group(
+        device: &wgpu::Device, texture: wgpu::Texture, sampler: wgpu::Sampler
+    ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
+        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    // This should match the filterable field of the
+                    // corresponding Texture entry above.
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+            label: Some("texture_bind_group_layout"),
+        });
+
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let bind_group = device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout: &layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&texture_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&sampler),
+                    }
+                ],
+                label: Some("diffuse_bind_group"),
+            }
+        );
+        (bind_group, layout)
+    }
+
+    pub fn texture(mut self, texture: Texture) -> Self {
+        self.texture = Some(texture);
+        self
+    }
+
+    pub fn sampler(mut self, sampler: wgpu::Sampler) -> Self {
+        self.sampler = Some(sampler);
+        self
     }
 
     pub fn build(self, device: &wgpu::Device, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
@@ -169,6 +235,11 @@ impl RenderPassBuilder {
                 usage: wgpu::BufferUsages::INDEX,
             }
         );
+
+        let (texture_bind_group, texture_bind_group_layout) = match (self.texture, self.sampler) {
+            (Some(t), Some(s)) => Self::create_texture_bind_group(device, t, s),
+            _ => todo!(), 
+        };
         
         let shader_module = Self::create_shader_module(device, self.shader_path);
 
@@ -179,12 +250,12 @@ impl RenderPassBuilder {
         })];
 
         let size = [window_size.width as f32, window_size.height as f32];
-        let (_buffer, buffer_bind_group, buffer_bind_group_layout) = Self::create_uniform_buffer_init(&device, &size); 
+        let (_buffer, uniform_buf_bind_group, buffer_bind_group_layout) = Self::create_uniform_buffer_init(&device, &size); 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
-                    &buffer_bind_group_layout
+                    &buffer_bind_group_layout, &texture_bind_group_layout,
                 ],
                 push_constant_ranges: &[],
             });
@@ -226,6 +297,6 @@ impl RenderPassBuilder {
             }
         );
 
-        RenderPass {id, vertex_buffer, index_buffer, render_pipeline, buffer_bind_group } 
+        RenderPass {id, vertex_buffer, index_buffer, render_pipeline, uniform_buf_bind_group, texture_bind_group } 
     }
 }

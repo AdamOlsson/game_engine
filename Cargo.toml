@@ -16,3 +16,4 @@ anyhow = "1.0.81"
 rand = "0.8.5"
 cgmath = "0.18.0"
 rayon = "1.10.0"
+image = { version = "0.25.2", default-features = false, features = [ "jpeg", "png" ] }

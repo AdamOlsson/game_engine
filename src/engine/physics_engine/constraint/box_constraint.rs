@@ -32,7 +32,7 @@ impl Constraint for BoxConstraint {
         let shape = match body.body_type {
             CollisionBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
             CollisionBodyType::Rectangle { width, height } => {
-                println!("Constraining rectangles are not yet supported.");
+                //println!("Constraining rectangles are not yet supported.");
                 Vector3::new(width, height, 0.0) // FIXME
             },            
             //_ => panic!(),

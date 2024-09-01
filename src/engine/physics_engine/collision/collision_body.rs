@@ -17,6 +17,7 @@ pub struct CollisionBody {
 
     // Render data
     pub color: Vector3<f32>,
+    pub texture_cell: u32,
 }
 
 impl CollisionBody {
@@ -34,6 +35,7 @@ impl CollisionBody {
             id,
             body_type: CollisionBodyType::Circle { radius },
             color,
+            texture_cell: 0,
         }
     }
 
@@ -49,8 +51,13 @@ impl CollisionBody {
             position,
             id,
             body_type: CollisionBodyType::Rectangle { width, height },
-            color
+            color,
+            texture_cell: 0,
         }
+    }
+
+    pub fn set_texture_cell(&mut self, cell: u32) {
+        self.texture_cell = cell;
     }
  }
 

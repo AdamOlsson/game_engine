@@ -1,3 +1,4 @@
+use image::Rgba;
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
 use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
@@ -19,7 +20,8 @@ impl<'a> GameEngine<'a> {
     pub fn run(mut self) {
 
         std::thread::spawn(move || loop {
-            std::thread::sleep(std::time::Duration::from_millis(0));
+            let fps = (1000.0 / 60.0) as u64;
+            std::thread::sleep(std::time::Duration::from_millis(fps));
             self.event_loop_proxy.send_event(CustomEvent::Timer).ok();
         });
        
@@ -99,7 +101,8 @@ impl<'a> GameEngine<'a> {
                         Some(RectangleInstance{
                             color: body.color.into(), 
                             position: body.position.into(),
-                            width,height
+                            width,height,
+                            texture_cell: body.texture_cell,
                         }),
                     _ => None
                 }
@@ -110,13 +113,13 @@ impl<'a> GameEngine<'a> {
 
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
-    textures: Vec<Vec<u8>>,
+    texture: Option<image::ImageBuffer<Rgba<u8>, Vec<u8>>>,
     window_size: PhysicalSize<u32>
 }
 impl <'a> GameEngineBuilder {
     pub fn new() -> Self {
         let window_size = PhysicalSize::new(800,600);
-        Self { window_size, physics_engine: None, textures: vec![] }
+        Self { window_size, physics_engine: None, texture: None }
     }
 
     pub fn physics_engine<S: Simulation + 'static>(mut self, sim: S) -> Self {
@@ -124,8 +127,8 @@ impl <'a> GameEngineBuilder {
         self
     }
 
-    pub fn textures(mut self, tex: Vec<Vec<u8>>) -> Self {
-        self.textures = tex;
+    pub fn texture(mut self, tex: image::ImageBuffer<Rgba<u8>, Vec<u8>>) -> Self {
+        self.texture = Some(tex);
         self
     }
 
@@ -148,11 +151,17 @@ impl <'a> GameEngineBuilder {
 
         // Build the render engine with data from the physics engine
         let bodies = physics_engine.get_bodies();
-        let render_engine = render_engine::RenderEngineBuilder::new()
-            .bodies(&bodies)
-            //.textures(self.textures)
-            .build(ctx,self.window_size);
-
+        let render_engine = if let Some(tex) = self.texture {
+            render_engine::RenderEngineBuilder::new()
+                .bodies(&bodies)
+                .texture(tex)
+                .build(ctx,self.window_size)
+        } else  {
+            render_engine::RenderEngineBuilder::new()
+                .bodies(&bodies)
+                .build(ctx,self.window_size)
+        };
+        
         GameEngine { 
             physics_engine, render_engine, event_loop, event_loop_proxy, window_size, window_id }
     }

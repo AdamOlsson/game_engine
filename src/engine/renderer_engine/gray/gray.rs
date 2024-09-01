@@ -1,6 +1,7 @@
-
-use util::{BufferInitDescriptor, DeviceExt};
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use::wgpu::*;
+
+use crate::engine::renderer_engine::util;
 
 pub struct Gray {
     render_pipeline: RenderPipeline,
@@ -14,7 +15,7 @@ impl Gray {
         let texture = Self::create_texture(device, size);
         let sampler = Self::create_sampler(device);
         let (vertex_buffer, vertex_buffer_layout) = Self::create_vertex_buffer(device);
-        let (bind_group, bind_group_layout) = Self::create_bind_group(device, &sampler, &texture);
+        let (bind_group, bind_group_layout) = util::texture_bind_group_from_texture(device, &sampler, &texture);
         
         let render_pipeline = Self::create_pipeline(device, &[&bind_group_layout], vertex_buffer_layout);
 
@@ -36,6 +37,8 @@ impl Gray {
                                 view: &target_texture_view,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
+                                    // TODO: We can probably use LoadOp::Load here instead
+                                    // and avoid the texture pipe I have for post processing
                                     load: wgpu::LoadOp::Clear(
                                         wgpu::Color {
                                             r: 0.0,
@@ -132,48 +135,6 @@ impl Gray {
                 contents: &bytemuck::cast_slice(&vertices),
                 usage: BufferUsages::VERTEX });
         (buffer, layout)
-    }
-
-    fn create_bind_group(
-        device: &wgpu::Device, sampler: &Sampler, texture: &Texture
-    ) -> (BindGroup, BindGroupLayout) {
-        let layout = device.create_bind_group_layout(
-            &BindGroupLayoutDescriptor {
-                label: Some("Gray Bind Group Layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false },
-                        count: None }
-                ] }
-        );
-        let bind_group = device.create_bind_group(
-            &BindGroupDescriptor {
-                label: Some("Gray Bind Group"),
-                layout: &layout,
-                entries: &[
-                    BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Sampler(sampler) 
-                    },
-                    BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(
-                            &texture.create_view(&TextureViewDescriptor::default())) 
-                    }
-                ] }
-        );
-        (bind_group, layout)
     }
 
     fn create_pipeline(

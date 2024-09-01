@@ -34,7 +34,8 @@ fn vs_main(
     return out;
 }
 
-// Fragment shader
+@group(1) @binding(0) var texture_sampler: sampler;
+@group(1) @binding(1) var texture: texture_2d<f32>;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(in.color, 1.0);

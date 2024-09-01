@@ -26,6 +26,11 @@ pub struct DebugSimulation {
     narrowphase: Box<dyn NarrowPhase>,
 }
 
+const SPRITE_WIDTH: f32 = 16.;
+const SPRITE_HEIGHT: f32 = 16.;
+const SPRITE_SHEET_WIDTH: f32 = 128.;
+const SPRITE_SHEET_HEIGHT: f32 = 128.;
+
 impl DebugSimulation {
     pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
         let dt = 0.001;
@@ -44,12 +49,20 @@ impl DebugSimulation {
             Vector3::new(0.0,0.0,255.0),
         ];
         let radius = vec![100.0, 100.0, 120.0];
-        let bodies = vec![
+        let mut bodies = vec![
             CollisionBody::circle(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0], colors[0]),
             CollisionBody::circle(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1], colors[1]),
             CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2], colors[2]),
-            CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 100., 100., colors[3]),
+            CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
         ];
+        
+        bodies[3].set_texture_cell(1);
+        //bodies[3].set_texture_coords(vec![
+        //    [0.0,0.0,0.0],[0.0,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],[SPRITE_WIDTH/SPRITE_SHEET_WIDTH,0.0,0.0],
+        //    [0.0,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],[SPRITE_WIDTH/SPRITE_SHEET_WIDTH,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],
+        //    [SPRITE_WIDTH/SPRITE_SHEET_WIDTH,0.0,0.0]]);
+
+
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
@@ -98,9 +111,14 @@ fn main() {
     let window_size = PhysicalSize::new(1000, 800);
     let simulation = DebugSimulation::new(&window_size);
     
+    let texture_sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
+    let texture_sprite_sheet_buf = image::load_from_memory(texture_sprite_sheet_bytes).unwrap();
+    let texture_sprite_sheet_rgb = texture_sprite_sheet_buf.to_rgba8();
+
     let engine = GameEngineBuilder::new()
         .physics_engine(simulation)
         .window_size(window_size)
+        .texture(texture_sprite_sheet_rgb)
         .build();
 
     engine.run();

@@ -55,8 +55,8 @@ impl DebugSimulation {
             CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2], colors[2]),
             CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
         ];
-        
-        bodies[3].set_texture_cell(1);
+         
+        bodies[3].set_texture_cell(0); // u32::MAX == No sprite
         //bodies[3].set_texture_coords(vec![
         //    [0.0,0.0,0.0],[0.0,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],[SPRITE_WIDTH/SPRITE_SHEET_WIDTH,0.0,0.0],
         //    [0.0,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],[SPRITE_WIDTH/SPRITE_SHEET_WIDTH,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],

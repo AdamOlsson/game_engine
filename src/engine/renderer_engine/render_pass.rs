@@ -34,8 +34,8 @@ impl RenderPass {
                     true =>  wgpu::LoadOp::Clear(
                     wgpu::Color {
                         r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
+                        g: 0.2,
+                        b: 0.2,
                         a: 1.0,
                     }),
                     false => wgpu::LoadOp::Load,
@@ -54,7 +54,9 @@ impl RenderPass {
                     occlusion_query_set: None,
                     timestamp_writes: None,
                 });
-                
+               
+                // TODO: I wish to somehow set the bind_groups in a loop and make it possible
+                // to have a render pass with and without buffer without any effort
                 render_pass.set_bind_group(0, &self.uniform_buf_bind_group, &[]);
                 render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
                 render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

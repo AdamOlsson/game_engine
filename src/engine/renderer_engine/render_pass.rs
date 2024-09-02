@@ -167,6 +167,31 @@ impl RenderPassBuilder {
     fn create_texture_bind_group(
         device: &wgpu::Device, texture: wgpu::Texture, sampler: wgpu::Sampler
     ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
+        
+        let sprite_width = 128.;
+        let sprite_height = 128.;
+        let cell_width = 16.;
+        let cell_height = 16.;
+        let px = 1.0 / (sprite_width as f32);
+        let cell_right_edge = px*(cell_width as f32);
+        let cell_bottom_edge = px*(cell_height as f32);
+        let sprite_data = [sprite_width, sprite_height, cell_width, cell_height];
+        let tex_coords = [
+            sprite_data,
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, cell_bottom_edge, 0.0, 0.0],
+            [cell_right_edge, 0.0, 0.0, 0.0],
+            [cell_right_edge, cell_bottom_edge, 0.0, 0.0],
+            [0.0, cell_bottom_edge, 0.0, 0.0],
+            [cell_right_edge, 0.0, 0.0, 0.0]
+        ];
+        let sprite_data_buffer = device.create_buffer_init(
+            &BufferInitDescriptor{
+                label: Some("Global render information"),
+                contents: bytemuck::cast_slice(&tex_coords),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
+        });
+        
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
@@ -182,11 +207,19 @@ impl RenderPassBuilder {
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
-                    // This should match the filterable field of the
-                    // corresponding Texture entry above.
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
             ],
             label: Some("texture_bind_group_layout"),
         });
@@ -203,7 +236,11 @@ impl RenderPassBuilder {
                     wgpu::BindGroupEntry {
                         binding: 1,
                         resource: wgpu::BindingResource::Sampler(&sampler),
-                    }
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: sprite_data_buffer.as_entire_binding(),
+                    },
                 ],
                 label: Some("diffuse_bind_group"),
             }

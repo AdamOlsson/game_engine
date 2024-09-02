@@ -56,12 +56,7 @@ impl DebugSimulation {
             CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
         ];
          
-        bodies[3].set_texture_cell(0); // u32::MAX == No sprite
-        //bodies[3].set_texture_coords(vec![
-        //    [0.0,0.0,0.0],[0.0,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],[SPRITE_WIDTH/SPRITE_SHEET_WIDTH,0.0,0.0],
-        //    [0.0,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],[SPRITE_WIDTH/SPRITE_SHEET_WIDTH,SPRITE_HEIGHT/SPRITE_SHEET_HEIGHT,0.0],
-        //    [SPRITE_WIDTH/SPRITE_SHEET_WIDTH,0.0,0.0]]);
-
+        bodies[3].set_texture_cell(2); // u32::MAX == No sprite
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         

@@ -1,5 +1,5 @@
-use wgpu::{core::resource::{TextureDescriptor, TextureViewDescriptor}, util::{BufferInitDescriptor, DeviceExt}, Texture};
-use super::{shapes::Shape, vertex::Vertex};
+use wgpu::util::{ BufferInitDescriptor, DeviceExt};
+use super::{graphics_context::GraphicsContext, shapes::Shape, sprite_sheet::SpriteSheet, vertex::Vertex};
 
 pub struct RenderPass {
     id: String,
@@ -83,8 +83,7 @@ pub struct RenderPassBuilder {
     vertices: Vec<Vertex>,
     indices: Vec<u16>,
     instance_buffer_layout: wgpu::VertexBufferLayout<'static>,
-    texture: Option<wgpu::Texture>,
-    sampler: Option<wgpu::Sampler>,
+    sprite_sheet: Option<SpriteSheet>,
 }
 
 impl RenderPassBuilder {
@@ -96,9 +95,8 @@ impl RenderPassBuilder {
         let vertices = super::shapes::circle::Circle::compute_vertices();
         let indices = super::shapes::circle::Circle::compute_indices();
         let instance_buffer_layout = super::shapes::circle::Circle::instance_buffer_desc();
-        let texture = None;
-        let sampler = None;
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture, sampler }
+        let sprite_sheet = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet }
     }
 
     pub fn rectangle() -> Self {
@@ -108,9 +106,8 @@ impl RenderPassBuilder {
         let vertices = super::shapes::rectangle::Rectangle::compute_vertices();
         let indices = super::shapes::rectangle::Rectangle::compute_indices();
         let instance_buffer_layout = super::shapes::rectangle::Rectangle::instance_buffer_desc();
-        let texture = None;
-        let sampler = None;
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture, sampler }
+        let sprite_sheet = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet }
     }
 
     fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
@@ -164,31 +161,13 @@ impl RenderPassBuilder {
         (uniform_buffer, uniform_buf_bind_group, uniform_buffer_group_layout)
     }
 
-    fn create_texture_bind_group(
-        device: &wgpu::Device, texture: wgpu::Texture, sampler: wgpu::Sampler
+    fn create_texture_bind_group_from_sprite_sheet(
+        device: &wgpu::Device, texture: wgpu::Texture, sampler: wgpu::Sampler, sprite_sheet: &SpriteSheet
     ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
-        
-        let sprite_width = 128.;
-        let sprite_height = 128.;
-        let cell_width = 16.;
-        let cell_height = 16.;
-        let px = 1.0 / (sprite_width as f32);
-        let cell_right_edge = px*(cell_width as f32);
-        let cell_bottom_edge = px*(cell_height as f32);
-        let sprite_data = [sprite_width, sprite_height, cell_width, cell_height];
-        let tex_coords = [
-            sprite_data,
-            [0.0, 0.0, 0.0, 0.0],
-            [0.0, cell_bottom_edge, 0.0, 0.0],
-            [cell_right_edge, 0.0, 0.0, 0.0],
-            [cell_right_edge, cell_bottom_edge, 0.0, 0.0],
-            [0.0, cell_bottom_edge, 0.0, 0.0],
-            [cell_right_edge, 0.0, 0.0, 0.0]
-        ];
         let sprite_data_buffer = device.create_buffer_init(
             &BufferInitDescriptor{
                 label: Some("Global render information"),
-                contents: bytemuck::cast_slice(&tex_coords),
+                contents: bytemuck::cast_slice(&sprite_sheet.sprite_data),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
         });
         
@@ -248,26 +227,21 @@ impl RenderPassBuilder {
         (bind_group, layout)
     }
 
-    pub fn texture(mut self, texture: Texture) -> Self {
-        self.texture = Some(texture);
+    pub fn sprite_sheet(mut self, sprite_sheet: SpriteSheet) -> Self {
+        self.sprite_sheet= Some(sprite_sheet);
         self
     }
 
-    pub fn sampler(mut self, sampler: wgpu::Sampler) -> Self {
-        self.sampler = Some(sampler);
-        self
-    }
-
-    pub fn build(self, device: &wgpu::Device, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
+    pub fn build(self, ctx: &GraphicsContext, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
         let id = self.id;
-        let vertex_buffer = device.create_buffer_init(
+        let vertex_buffer = ctx.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor{
                 label: Some(&self.shader_label),
                 contents: bytemuck::cast_slice(&self.vertices),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
-        let index_buffer = device.create_buffer_init(
+        let index_buffer = ctx.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor{
                 label: Some(&self.shader_label),
                 contents: bytemuck::cast_slice(&self.indices),
@@ -275,12 +249,17 @@ impl RenderPassBuilder {
             }
         );
 
-        let (texture_bind_group, texture_bind_group_layout) = match (self.texture, self.sampler) {
-            (Some(t), Some(s)) => Self::create_texture_bind_group(device, t, s),
+        let (texture_bind_group, texture_bind_group_layout) = match self.sprite_sheet {
+            Some(sprite) => {
+                let texture = super::util::create_texture(&ctx, &sprite, Some(format!("{} Sprite Sheet", id.clone()).as_str()));
+                super::util::write_texture(&ctx, &texture, &sprite);
+                let sampler = super::util::create_sampler(&ctx.device);
+                Self::create_texture_bind_group_from_sprite_sheet(&ctx.device, texture, sampler, &sprite)
+            }
             _ => todo!(), 
         };
         
-        let shader_module = Self::create_shader_module(device, self.shader_path);
+        let shader_module = Self::create_shader_module(&ctx.device, self.shader_path);
 
         let render_targets = [Some(wgpu::ColorTargetState {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
@@ -289,9 +268,9 @@ impl RenderPassBuilder {
         })];
 
         let size = [window_size.width as f32, window_size.height as f32];
-        let (_buffer, uniform_buf_bind_group, buffer_bind_group_layout) = Self::create_uniform_buffer_init(&device, &size); 
+        let (_buffer, uniform_buf_bind_group, buffer_bind_group_layout) = Self::create_uniform_buffer_init(&ctx.device, &size); 
         let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            &ctx.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
                     &buffer_bind_group_layout, &texture_bind_group_layout,
@@ -299,7 +278,7 @@ impl RenderPassBuilder {
                 push_constant_ranges: &[],
             });
 
-        let render_pipeline = device.create_render_pipeline(
+        let render_pipeline = ctx.device.create_render_pipeline(
             &wgpu::RenderPipelineDescriptor {
                 label: Some("Render Pipeline"),
                 layout: Some(&render_pipeline_layout),

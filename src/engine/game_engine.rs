@@ -1,7 +1,6 @@
-use image::Rgba;
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}, sprite_sheet::SpriteSheet}, Simulation};
 
 enum CustomEvent {
     Timer,
@@ -113,7 +112,7 @@ impl<'a> GameEngine<'a> {
 
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
-    texture: Option<image::ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    texture: Option<SpriteSheet>,
     window_size: PhysicalSize<u32>
 }
 impl <'a> GameEngineBuilder {
@@ -127,7 +126,7 @@ impl <'a> GameEngineBuilder {
         self
     }
 
-    pub fn texture(mut self, tex: image::ImageBuffer<Rgba<u8>, Vec<u8>>) -> Self {
+    pub fn texture(mut self, tex: SpriteSheet) -> Self {
         self.texture = Some(tex);
         self
     }

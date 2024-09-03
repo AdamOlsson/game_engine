@@ -2,6 +2,7 @@ extern crate game_engine;
 
 use cgmath::{ Vector3, Zero};
 use game_engine::engine::game_engine::GameEngineBuilder;
+use game_engine::engine::renderer_engine::sprite_sheet::SpriteSheet;
 use winit::dpi::PhysicalSize;
 
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
@@ -25,11 +26,6 @@ pub struct DebugSimulation {
     broadphase: Box<dyn BroadPhase>,
     narrowphase: Box<dyn NarrowPhase>,
 }
-
-const SPRITE_WIDTH: f32 = 16.;
-const SPRITE_HEIGHT: f32 = 16.;
-const SPRITE_SHEET_WIDTH: f32 = 128.;
-const SPRITE_SHEET_HEIGHT: f32 = 128.;
 
 impl DebugSimulation {
     pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
@@ -56,7 +52,7 @@ impl DebugSimulation {
             CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
         ];
          
-        bodies[3].set_texture_cell(2); // u32::MAX == No sprite
+        bodies[3].set_texture_cell(1); // u32::MAX == No sprite
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
@@ -106,14 +102,12 @@ fn main() {
     let window_size = PhysicalSize::new(1000, 800);
     let simulation = DebugSimulation::new(&window_size);
     
-    let texture_sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
-    let texture_sprite_sheet_buf = image::load_from_memory(texture_sprite_sheet_bytes).unwrap();
-    let texture_sprite_sheet_rgb = texture_sprite_sheet_buf.to_rgba8();
+    let sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
 
     let engine = GameEngineBuilder::new()
         .physics_engine(simulation)
         .window_size(window_size)
-        .texture(texture_sprite_sheet_rgb)
+        .texture(SpriteSheet::new(sprite_sheet_bytes, 16, 16))
         .build();
 
     engine.run();

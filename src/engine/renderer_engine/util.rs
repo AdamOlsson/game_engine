@@ -1,4 +1,4 @@
-use super::graphics_context::GraphicsContext;
+use super::{graphics_context::GraphicsContext, sprite_sheet::SpriteSheet};
 
 pub fn texture_bind_group_from_texture(
     device: &wgpu::Device, sampler: &wgpu::Sampler, texture: &wgpu::Texture
@@ -42,9 +42,10 @@ pub fn texture_bind_group_from_texture(
     (bind_group, layout)
 }
 
-pub fn create_texture(
-    ctx: &GraphicsContext, dimensions: &(u32,u32), label: Option<&str>,
+pub (crate) fn create_texture(
+    ctx: &GraphicsContext, sprite_sheet: &SpriteSheet, label: Option<&str>,
 ) -> wgpu::Texture { 
+    let dimensions = sprite_sheet.dimensions();
     let texture_size = wgpu::Extent3d {
         width: dimensions.0, height: dimensions.1, depth_or_array_layers: 1,
     };
@@ -64,9 +65,9 @@ pub fn create_texture(
         })
 }
 
-pub fn write_texture(
+pub (crate) fn write_texture(
     ctx: &GraphicsContext, texture: &wgpu::Texture, 
-    data: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+    data: &SpriteSheet,
 ) {
     let dimensions = data.dimensions();
     let texture_size = wgpu::Extent3d {
@@ -79,7 +80,7 @@ pub fn write_texture(
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
         }, 
-        data, 
+        &data.sprite_buf, 
         wgpu::ImageDataLayout {
             offset: 0, 
             bytes_per_row: Some(4*dimensions.0),
@@ -88,7 +89,7 @@ pub fn write_texture(
         texture_size);
 }
 
-pub fn create_sampler(device: &wgpu::Device) -> wgpu::Sampler {
+pub (crate) fn create_sampler(device: &wgpu::Device) -> wgpu::Sampler {
     device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("Gray Sampler"), 
         address_mode_u: wgpu::AddressMode::ClampToEdge,

@@ -101,7 +101,7 @@ impl<'a> GameEngine<'a> {
                             color: body.color.into(), 
                             position: body.position.into(),
                             width,height,
-                            texture_cell: body.texture_cell,
+                            sprite_coord: body.sprite_coord.coordinate,
                         }),
                     _ => None
                 }

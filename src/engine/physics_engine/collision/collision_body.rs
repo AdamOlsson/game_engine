@@ -1,5 +1,7 @@
 use cgmath::Vector3;
 
+use crate::engine::renderer_engine::sprite_sheet::SpriteCoordinate;
+
 #[derive(Clone)]
 pub enum CollisionBodyType {
     Circle { radius: f32 },
@@ -17,7 +19,7 @@ pub struct CollisionBody {
 
     // Render data
     pub color: Vector3<f32>,
-    pub texture_cell: u32,
+    pub sprite_coord: SpriteCoordinate,
 }
 
 impl CollisionBody {
@@ -35,7 +37,7 @@ impl CollisionBody {
             id,
             body_type: CollisionBodyType::Circle { radius },
             color,
-            texture_cell: 0,
+            sprite_coord: SpriteCoordinate::none(),
         }
     }
 
@@ -52,13 +54,15 @@ impl CollisionBody {
             id,
             body_type: CollisionBodyType::Rectangle { width, height },
             color,
-            texture_cell: 0,
+            sprite_coord: SpriteCoordinate::none(),
         }
     }
 
-    pub fn set_texture_cell(&mut self, cell: u32) {
-        self.texture_cell = cell;
+
+    pub fn set_sprite(&mut self, coord: SpriteCoordinate) {
+        self.sprite_coord = coord;
     }
+
  }
 
 impl std::fmt::Display for CollisionBodyType {

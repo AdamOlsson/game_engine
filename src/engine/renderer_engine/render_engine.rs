@@ -1,8 +1,7 @@
-use image::{Rgba, RgbaImage};
-use winit::{dpi::PhysicalSize, window::Window};
+use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}, sprite_sheet::SpriteSheet, util};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}, sprite_sheet::SpriteSheet};
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -45,14 +44,6 @@ impl <'a> RenderEngine <'a> {
         let indices = Rectangle::compute_indices();
         let pass = &mut self.rectangle_render_pass;
         let num_instances = instances.len();
-        
-        // TODO: Start looking at how a user would work with textures
-        //assert!(
-        //    instances.iter()
-        //    .map(
-        //        |i| i.texture_coord.is_empty() ||
-        //            i.texture_coord.len() == indices.len())
-        //    .collect::<Vec<bool>>().all());
 
         self.ctx.queue.write_buffer(&buf, 
               0, bytemuck::cast_slice(&instances));

@@ -2,7 +2,7 @@ extern crate game_engine;
 
 use cgmath::{ Vector3, Zero};
 use game_engine::engine::game_engine::GameEngineBuilder;
-use game_engine::engine::renderer_engine::sprite_sheet::SpriteSheet;
+use game_engine::engine::renderer_engine::sprite_sheet::{SpriteCoordinate, SpriteSheet};
 use winit::dpi::PhysicalSize;
 
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
@@ -46,13 +46,18 @@ impl DebugSimulation {
         ];
         let radius = vec![100.0, 100.0, 120.0];
         let mut bodies = vec![
-            CollisionBody::circle(0, Vector3::zero(), Vector3::zero(),prev_positions[0], position[0], radius[0], colors[0]),
-            CollisionBody::circle(1, Vector3::zero(), Vector3::zero(),prev_positions[1], position[1], radius[1], colors[1]),
-            CollisionBody::circle(2, Vector3::zero(), Vector3::zero(),prev_positions[2], position[2], radius[2], colors[2]),
+            CollisionBody::circle(0, Vector3::zero(), Vector3::zero(), prev_positions[0], position[0], radius[0], colors[0]),
+            CollisionBody::circle(1, Vector3::zero(), Vector3::zero(), prev_positions[1], position[1], radius[1], colors[1]),
+            CollisionBody::circle(2, Vector3::zero(), Vector3::zero(), prev_positions[2], position[2], radius[2], colors[2]),
             CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
+            CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
         ];
-         
-        bodies[3].set_texture_cell(1); // u32::MAX == No sprite
+
+        bodies[3].set_sprite(SpriteCoordinate::new([1.,0.], [2.,1.]));
+        
+        bodies[4].prev_position = Vector3::new(-500., -200., 0.0);
+        bodies[4].position = Vector3::new(-500., -200., 0.0);
+        bodies[4].set_sprite(SpriteCoordinate::new([0.,0.], [2.,1.]));
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         

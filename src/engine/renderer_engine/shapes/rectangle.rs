@@ -11,14 +11,14 @@ pub struct RectangleInstance {
     pub position: [f32; 3], // bottom left corner
     pub width: f32,
     pub height: f32,
-    pub texture_cell: u32,
+    pub sprite_coord: [f32; 4],
 }
 
 impl Default for RectangleInstance {
     fn default() -> Self {
         RectangleInstance {
             color: [255.0,0.0,0.0], position: [0.0,0.0,0.0], width: 0.0, height: 0.0,
-            texture_cell: 0,
+            sprite_coord: [0.0,0.0,1.0,1.0],
         }
     }
 }
@@ -72,7 +72,7 @@ impl Shape for Rectangle {
                 wgpu::VertexAttribute {
                     offset: mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
                     shader_location: 6,
-                    format: wgpu::VertexFormat::Uint32,
+                    format: wgpu::VertexFormat::Float32x4,
                 }
 
             ],

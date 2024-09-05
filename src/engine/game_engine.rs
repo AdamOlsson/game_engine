@@ -1,9 +1,12 @@
+use std::time::{Duration, Instant};
+
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
 use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}, sprite_sheet::SpriteSheet}, Simulation};
 
 enum CustomEvent {
-    Timer,
+    ServerTick,
+    ClientRender,
 }
 
 pub struct GameEngine<'a> {
@@ -13,26 +16,60 @@ pub struct GameEngine<'a> {
     event_loop_proxy: EventLoopProxy<CustomEvent>,
     window_size: PhysicalSize<u32>,
     window_id: WindowId,
+    target_fps: u32,
+    target_tpf: u32,
 }
 
 impl<'a> GameEngine<'a> {
     pub fn run(mut self) {
 
+        let mut tick_count = 0;
+        let hz = Duration::from_millis((1000/self.target_fps) as u64);
+        let mut time_since_render = Instant::now();
         std::thread::spawn(move || loop {
-            let fps = (1000.0 / 60.0) as u64;
-            std::thread::sleep(std::time::Duration::from_millis(fps));
-            self.event_loop_proxy.send_event(CustomEvent::Timer).ok();
-        });
-       
-        self.event_loop.run(move | event, elwt | match event {
-            Event::UserEvent(..) => {
-                self.physics_engine.update(); 
-                let rect_instances = Self::get_rectangle_instances(&self.physics_engine);
-                let circle_instances = Self::get_circle_instances(&self.physics_engine);
-                let _ = self.render_engine.render_rectangles(&rect_instances, true);
-                let _ = self.render_engine.render_circles(&circle_instances, false);
+            if tick_count < self.target_tpf {
+                self.event_loop_proxy.send_event(CustomEvent::ServerTick).ok();
+                tick_count += 1;
+                continue;
+            } 
 
-                let _ = self.render_engine.post_process();
+            if time_since_render.elapsed() > hz {
+                self.event_loop_proxy.send_event(CustomEvent::ClientRender).ok();
+                tick_count = 0;
+                time_since_render = Instant::now();
+                continue;
+            } 
+
+        });
+        
+        let mut num_ticks = 0;
+        let mut total_tick_time = Duration::from_millis(0);
+        self.event_loop.run(move | event, elwt | match event {
+            Event::UserEvent(e) => { 
+                match e {
+                    CustomEvent::ServerTick => {
+                        let now = Instant::now();
+                        self.physics_engine.update();
+                        //std::thread::sleep(Duration::from_millis(300));
+                        let time = now.elapsed();
+                        total_tick_time += time;
+                        num_ticks += 1;
+                    },
+                    CustomEvent::ClientRender => {
+                        let now = Instant::now();
+                        let rect_instances = Self::get_rectangle_instances(&self.physics_engine);
+                        let circle_instances = Self::get_circle_instances(&self.physics_engine);
+                        let _ = self.render_engine.render_rectangles(&rect_instances, true);
+                        let _ = self.render_engine.render_circles(&circle_instances, false);
+                        let _ = self.render_engine.post_process();
+                        //std::thread::sleep(Duration::from_millis(100));
+                        let render_time = now.elapsed();
+                        let avg_tick_time = total_tick_time / num_ticks;
+                        print!("{}FPS, {}TPS\r", 1000/render_time.as_millis().max(1), 1000/avg_tick_time.as_millis().max(1));
+                        num_ticks = 0;
+                        total_tick_time = Duration::from_millis(0);
+                    },
+                }
             },
 
             Event::WindowEvent {
@@ -113,12 +150,16 @@ impl<'a> GameEngine<'a> {
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
     texture: Option<SpriteSheet>,
-    window_size: PhysicalSize<u32>
+    window_size: PhysicalSize<u32>,
+    target_fps: u32,
+    target_tpf: u32,
 }
 impl <'a> GameEngineBuilder {
     pub fn new() -> Self {
         let window_size = PhysicalSize::new(800,600);
-        Self { window_size, physics_engine: None, texture: None }
+        let target_fps = 60;
+        let target_tpf = 1;
+        Self { window_size, physics_engine: None, texture: None, target_tpf, target_fps}
     }
 
     pub fn physics_engine<S: Simulation + 'static>(mut self, sim: S) -> Self {
@@ -133,6 +174,16 @@ impl <'a> GameEngineBuilder {
 
     pub fn window_size(mut self, window_size: PhysicalSize<u32>) -> Self {
         self.window_size = window_size;
+        self
+    }
+
+    pub fn target_ticks_per_frame(mut self, n: u32) -> Self {
+        self.target_tpf = n;
+        self
+    }
+
+    pub fn target_frames_per_sec(mut self, n: u32) -> Self {
+        self.target_fps = n;
         self
     }
 
@@ -160,9 +211,12 @@ impl <'a> GameEngineBuilder {
                 .bodies(&bodies)
                 .build(ctx,self.window_size)
         };
-        
+       
+        let target_fps = self.target_fps;
+        let target_tpf = self.target_tpf;
         GameEngine { 
-            physics_engine, render_engine, event_loop, event_loop_proxy, window_size, window_id }
+            physics_engine, render_engine, event_loop, event_loop_proxy, window_size, 
+            window_id, target_tpf, target_fps }
     }
 }
 

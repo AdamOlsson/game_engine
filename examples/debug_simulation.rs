@@ -50,14 +50,14 @@ impl DebugSimulation {
             CollisionBody::circle(1, Vector3::zero(), Vector3::zero(), prev_positions[1], position[1], radius[1], colors[1]),
             CollisionBody::circle(2, Vector3::zero(), Vector3::zero(), prev_positions[2], position[2], radius[2], colors[2]),
             CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
-            CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
+            //CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
         ];
 
         bodies[3].set_sprite(SpriteCoordinate::new([1.,0.], [2.,1.]));
         
-        bodies[4].prev_position = Vector3::new(-500., -200., 0.0);
-        bodies[4].position = Vector3::new(-500., -200., 0.0);
-        bodies[4].set_sprite(SpriteCoordinate::new([0.,0.], [2.,1.]));
+        //bodies[4].prev_position = Vector3::new(-500., -200., 0.0);
+        //bodies[4].position = Vector3::new(-500., -200., 0.0);
+        //bodies[4].set_sprite(SpriteCoordinate::new([0.,0.], [2.,1.]));
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
@@ -112,6 +112,8 @@ fn main() {
     let engine = GameEngineBuilder::new()
         .physics_engine(simulation)
         .window_size(window_size)
+        .target_frames_per_sec(60)
+        .target_ticks_per_frame(1)
         .texture(SpriteSheet::new(sprite_sheet_bytes, 16, 16))
         .build();
 

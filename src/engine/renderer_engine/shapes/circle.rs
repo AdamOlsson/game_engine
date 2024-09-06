@@ -11,11 +11,14 @@ pub struct CircleInstance {
     pub position: [f32; 3],
     pub color: [f32; 3], 
     pub radius: f32,
+    pub sprite_coord: [f32; 4],
 }
 
 impl Default for CircleInstance {
     fn default() -> Self {
-        CircleInstance { position: [0.0,0.0,0.0], color: [0.0,255.0,0.0], radius: 0.}
+        CircleInstance { position: [0.0,0.0,0.0], color: [0.0,255.0,0.0], radius: 0.,
+            sprite_coord: [0.0,0.0,1.0,1.0]
+        }
     }
 }
 
@@ -71,7 +74,13 @@ impl Shape for Circle {
                     offset: mem::size_of::<[f32; 6]>() as wgpu::BufferAddress,
                     shader_location: 4,
                     format: wgpu::VertexFormat::Float32,
+                },
+                wgpu::VertexAttribute {
+                    offset: mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
+                    shader_location: 5,
+                    format: wgpu::VertexFormat::Float32x4,
                 }
+
             ],
         }
     }

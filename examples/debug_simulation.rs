@@ -52,7 +52,9 @@ impl DebugSimulation {
             CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
             //CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
         ];
+        
 
+        bodies[0].set_sprite(SpriteCoordinate::new([2.,0.], [3.,1.]));
         bodies[3].set_sprite(SpriteCoordinate::new([1.,0.], [2.,1.]));
         
         //bodies[4].prev_position = Vector3::new(-500., -200., 0.0);

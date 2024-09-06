@@ -122,6 +122,7 @@ impl<'a> GameEngine<'a> {
                             position: body.position.into(), 
                             color: body.color.into(), 
                             radius,
+                            sprite_coord: body.sprite_coord.coordinate, 
                         }),
                     _ => None
                 }

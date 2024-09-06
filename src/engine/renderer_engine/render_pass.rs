@@ -1,5 +1,5 @@
 use wgpu::util::{ BufferInitDescriptor, DeviceExt};
-use super::{graphics_context::GraphicsContext, shapes::Shape, sprite_sheet::SpriteSheet, vertex::Vertex};
+use super::{graphics_context::GraphicsContext, shapes::Shape, sprite_sheet::SpriteSheet, util, vertex::Vertex};
 
 pub struct RenderPass {
     id: String,
@@ -110,12 +110,6 @@ impl RenderPassBuilder {
         Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet }
     }
 
-    fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
-        device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some(&path.clone()),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::from(path)),
-        })
-    }
 
     fn create_uniform_buffer_init(
         device: &wgpu::Device, data: &[f32]
@@ -259,7 +253,7 @@ impl RenderPassBuilder {
             _ => todo!(), 
         };
         
-        let shader_module = Self::create_shader_module(&ctx.device, self.shader_path);
+        let shader_module = util::create_shader_module(&ctx.device, self.shader_path);
 
         let render_targets = [Some(wgpu::ColorTargetState {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,

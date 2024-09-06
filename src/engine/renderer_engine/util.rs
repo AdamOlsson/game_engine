@@ -1,5 +1,12 @@
 use super::{graphics_context::GraphicsContext, sprite_sheet::SpriteSheet};
 
+pub fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some(&path.clone()),
+        source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::from(path)),
+    })
+}
+
 pub fn texture_bind_group_from_texture(
     device: &wgpu::Device, sampler: &wgpu::Sampler, texture: &wgpu::Texture
 ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {

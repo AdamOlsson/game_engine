@@ -1,6 +1,6 @@
 use cgmath::Vector3;
 
-use crate::engine::renderer_engine::sprite_sheet::SpriteCoordinate;
+use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 
 #[derive(Clone)]
 pub enum CollisionBodyType {

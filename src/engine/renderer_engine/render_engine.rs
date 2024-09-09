@@ -1,7 +1,9 @@
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}, sprite_sheet::SpriteSheet};
+use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+
+use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 pub struct RenderEngine<'a> {
     pub ctx: GraphicsContext<'a>,
@@ -112,7 +114,7 @@ impl <'a> RenderEngineBuilder {
         self
     }
 
-    pub fn texture(mut self, tex: SpriteSheet) -> Self {
+    pub fn sprite_sheet(mut self, tex: SpriteSheet) -> Self {
         self.sprite_sheet = Some(tex);
         self
     }

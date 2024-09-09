@@ -2,7 +2,8 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}, sprite_sheet::SpriteSheet}, Simulation};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
+use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
     ServerTick,
@@ -150,17 +151,18 @@ impl<'a> GameEngine<'a> {
 
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
-    texture: Option<SpriteSheet>,
+    sprite_sheet: Option<SpriteSheet>,
     window_size: PhysicalSize<u32>,
     target_fps: u32,
     target_tpf: u32,
 }
+
 impl <'a> GameEngineBuilder {
     pub fn new() -> Self {
         let window_size = PhysicalSize::new(800,600);
         let target_fps = 60;
         let target_tpf = 1;
-        Self { window_size, physics_engine: None, texture: None, target_tpf, target_fps}
+        Self { window_size, physics_engine: None, sprite_sheet: None, target_tpf, target_fps}
     }
 
     pub fn physics_engine<S: Simulation + 'static>(mut self, sim: S) -> Self {
@@ -168,8 +170,8 @@ impl <'a> GameEngineBuilder {
         self
     }
 
-    pub fn texture(mut self, tex: SpriteSheet) -> Self {
-        self.texture = Some(tex);
+    pub fn sprite_sheet(mut self, tex: SpriteSheet) -> Self {
+        self.sprite_sheet = Some(tex);
         self
     }
 
@@ -202,10 +204,10 @@ impl <'a> GameEngineBuilder {
 
         // Build the render engine with data from the physics engine
         let bodies = physics_engine.get_bodies();
-        let render_engine = if let Some(tex) = self.texture {
+        let render_engine = if let Some(sprite_sheet) = self.sprite_sheet {
             render_engine::RenderEngineBuilder::new()
                 .bodies(&bodies)
-                .texture(tex)
+                .sprite_sheet(sprite_sheet)
                 .build(ctx,self.window_size)
         } else  {
             render_engine::RenderEngineBuilder::new()

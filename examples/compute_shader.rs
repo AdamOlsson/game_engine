@@ -37,7 +37,7 @@ enum CustomEvent {
     ClientRender,
 }
 
-async fn run_compute(input: &[u32]) {
+async fn run_compute(input: &Vec<Vec<u32>>) {
     let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
         .build()
         .unwrap();
@@ -63,7 +63,9 @@ async fn run_compute(input: &[u32]) {
     let shader_path = include_str!("compute_shader.wgsl").to_string();
     let shader_module = util::create_shader_module(&ctx.device, shader_path); 
     
-    let input_u8 = bytemuck::cast_slice(&input[..]);
+    let input_flat: Vec<u32> = input.concat();
+
+    let input_u8 = bytemuck::cast_slice(&input_flat[..]);
 
     let readback_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
         label: None,
@@ -76,7 +78,7 @@ async fn run_compute(input: &[u32]) {
     let storage_buffer = ctx.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Storage buffer"),
         contents: &input_u8,
-        usage: wgpu::BufferUsages::STORAGE
+        usage: wgpu::BufferUsages::STORAGE // Storage address space I assume
             | wgpu::BufferUsages::COPY_DST
             | wgpu::BufferUsages::COPY_SRC,
     });
@@ -109,7 +111,8 @@ async fn run_compute(input: &[u32]) {
         let mut compute_pass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: Some("Compute pass"), timestamp_writes: None});
         compute_pass.set_bind_group(0, &bind_group, &[]);
         compute_pass.set_pipeline(&compute_pipeline);
-        compute_pass.dispatch_workgroups(input.len() as u32, 1, 1);
+        //compute_pass.dispatch_workgroups(input.len() as u32, 1, 1);
+        compute_pass.dispatch_workgroups(1, 1, 1);
     }
     
     command_encoder.copy_buffer_to_buffer(&storage_buffer, 0, &readback_buffer, 0, input_u8.len() as wgpu::BufferAddress);
@@ -126,11 +129,16 @@ async fn run_compute(input: &[u32]) {
         .map(|b| u32::from_ne_bytes(b.try_into().unwrap()))
         .collect::<Vec<_>>();
 
-    println!("Output: {:?}", output);
+    let chunks: Vec<Vec<u32>> = output.chunks(input[0].len()).map(|c|c.to_vec()).collect();
+    println!("Output: ");
+    chunks.iter().for_each(|c| println!("{:?}", c));
     
 }
 
 pub fn main() {
-    let data = [0,1,2,3,4];
+    let data = vec![
+        vec![4,2,4,1,2,3,4],
+        vec![8,3,2,5,7,1,2],
+    ];
     pollster::block_on(run_compute(&data));
 }

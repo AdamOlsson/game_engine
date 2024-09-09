@@ -2,7 +2,8 @@ extern crate game_engine;
 
 use cgmath::{ Vector3, Zero};
 use game_engine::engine::game_engine::GameEngineBuilder;
-use game_engine::engine::renderer_engine::sprite_sheet::{SpriteCoordinate, SpriteSheet};
+use game_engine::engine::renderer_engine::asset::asset::Asset;
+use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use winit::dpi::PhysicalSize;
 
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
@@ -110,13 +111,18 @@ fn main() {
     let simulation = DebugSimulation::new(&window_size);
     
     let sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
+    let sprite_sheet_asset  = Asset::sprite_sheet(sprite_sheet_bytes, 16, 16);
+    
+    let background_bytes = include_bytes!("../assets/sprite_sheet.png"); // TODO
+    let background_asset = Asset::background(background_bytes);
+
 
     let engine = GameEngineBuilder::new()
         .physics_engine(simulation)
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)
-        .texture(SpriteSheet::new(sprite_sheet_bytes, 16, 16))
+        .sprite_sheet(sprite_sheet_asset)
         .build();
 
     engine.run();

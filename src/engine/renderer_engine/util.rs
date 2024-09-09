@@ -1,4 +1,5 @@
-use super::{graphics_context::GraphicsContext, sprite_sheet::SpriteSheet};
+use super::graphics_context::GraphicsContext;
+use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 pub fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
     device.create_shader_module(wgpu::ShaderModuleDescriptor {

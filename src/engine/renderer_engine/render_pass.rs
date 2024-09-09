@@ -1,5 +1,6 @@
 use wgpu::util::{ BufferInitDescriptor, DeviceExt};
-use super::{graphics_context::GraphicsContext, shapes::Shape, sprite_sheet::SpriteSheet, util, vertex::Vertex};
+use super::{graphics_context::GraphicsContext, shapes::Shape, util, vertex::Vertex};
+use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 pub struct RenderPass {
     id: String,
@@ -223,6 +224,10 @@ impl RenderPassBuilder {
 
     pub fn sprite_sheet(mut self, sprite_sheet: SpriteSheet) -> Self {
         self.sprite_sheet= Some(sprite_sheet);
+        self
+    }
+
+    pub fn background(mut self, background: &[u8]) -> Self {
         self
     }
 

@@ -113,9 +113,8 @@ fn main() {
     let sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
     let sprite_sheet_asset  = Asset::sprite_sheet(sprite_sheet_bytes, 16, 16);
     
-    let background_bytes = include_bytes!("../assets/sprite_sheet.png"); // TODO
+    let background_bytes = include_bytes!("../assets/background.png"); // TODO
     let background_asset = Asset::background(background_bytes);
-
 
     let engine = GameEngineBuilder::new()
         .physics_engine(simulation)
@@ -123,6 +122,7 @@ fn main() {
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)
         .sprite_sheet(sprite_sheet_asset)
+        .background(background_asset)
         .build();
 
     engine.run();

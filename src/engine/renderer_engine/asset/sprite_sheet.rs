@@ -1,9 +1,11 @@
 use image::{ImageBuffer, Rgba, RgbaImage};
 
+use super::Asset;
+
 #[derive(Clone)]
 pub struct SpriteSheet {
     pub sprite_buf: ImageBuffer<Rgba<u8>, Vec<u8>>,
-    pub sprite_data: [f32; 4],
+    pub sprite_data: Vec<f32>,
 }
 
 impl SpriteSheet {
@@ -11,20 +13,27 @@ impl SpriteSheet {
         let texture_sprite_sheet_img = image::load_from_memory(bytes).unwrap();
         let sprite_buf = texture_sprite_sheet_img.to_rgba8();
         let (sprite_width, sprite_height) = sprite_buf.dimensions();
-        let sprite_data = [sprite_width as f32, sprite_height as f32, cell_width as f32, cell_height as f32];
+        let sprite_data = [sprite_width as f32, sprite_height as f32, cell_width as f32, cell_height as f32].to_vec();
         Self { sprite_buf, sprite_data }
     }
+}
 
-    pub fn dimensions(&self) -> (u32, u32) {
-        self.sprite_buf.dimensions()
+impl Asset for SpriteSheet {
+    fn buffer(&self) -> &ImageBuffer<Rgba<u8>, Vec<u8>> {
+        &self.sprite_buf
+    }
+
+    fn specific_data(&self) -> &Vec<f32> {
+        &self.sprite_data
     }
 }
+
 
 impl Default for SpriteSheet {
     fn default() -> Self {
         Self {
             sprite_buf: RgbaImage::new(1,1),
-            sprite_data: [0.0,0.0,0.0,0.0],
+            sprite_data: [0.0,0.0,0.0,0.0].to_vec(),
         }
     }
 }

@@ -12,6 +12,8 @@ pub struct RenderEngine<'a> {
     pp_gray: Option<Gray>,
     pp_identity: Identity,
 
+    background_render_pass: Option<render_pass::render_pass::RenderPass>,
+
     circle_render_pass: render_pass::render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
 
@@ -20,6 +22,15 @@ pub struct RenderEngine<'a> {
 }
 
 impl <'a> RenderEngine <'a> {
+    pub fn render_background(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
+        let num_indices = 6;
+        if let Some(pass) = &mut self.background_render_pass {
+            pass.render(&self.ctx.device, &target_texture, &self.ctx.queue, None, num_indices, 1, true)?;
+        }
+        return Ok(());
+    }
+
     pub fn render_circles(
         &mut self, instances: &Vec<CircleInstance>, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
@@ -34,7 +45,7 @@ impl <'a> RenderEngine <'a> {
         let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
         
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
-            buf, indices.len() as u32, num_instances as u32, clear)?;
+            Some(buf), indices.len() as u32, num_instances as u32, clear)?;
 
         return Ok(());
     } 
@@ -53,7 +64,7 @@ impl <'a> RenderEngine <'a> {
         let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
         
         pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
-            buf, indices.len() as u32, num_instances as u32, clear)?;
+            Some(buf), indices.len() as u32, num_instances as u32, clear)?;
 
         return Ok(());
     } 
@@ -136,15 +147,21 @@ impl <'a> RenderEngineBuilder {
             None => SpriteSheet::default(),
         };
 
+        let background_render_pass = if let Some(bg) = self.background {
+            Some(render_pass::render_pass::RenderPassBuilder::background()
+                .texture_data(Box::new(bg))
+                .build(&ctx,&window_size))
+        } else { None };
+       
         let circle_render_pass = render_pass::render_pass::RenderPassBuilder::circle()
-            .sprite_sheet(sprite_sheet.clone())
+            .texture_data(Box::new(sprite_sheet.clone()))
             .build(&ctx, &window_size);
         let circle_instance_buffer = ctx.create_buffer(
             "Circle instance buffer", self.circ_instance_buf_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
 
         let rectangle_render_pass = render_pass::render_pass::RenderPassBuilder::rectangle()
-            .sprite_sheet(sprite_sheet)
+            .texture_data(Box::new(sprite_sheet.clone()))
             .build(&ctx, &window_size);
        let rectangle_instance_buffer = ctx.create_buffer(
             "Rectangle instance buffer", self.rect_instance_buf_len, 
@@ -158,6 +175,7 @@ impl <'a> RenderEngineBuilder {
         RenderEngine { 
             ctx, window_size, 
             pp_gray, pp_identity,
+            background_render_pass,
             circle_render_pass, circle_instance_buffer,
             rectangle_render_pass, rectangle_instance_buffer,
 

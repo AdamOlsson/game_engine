@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{graphics_context::GraphicsContext, render_engine::{self, RenderEngine}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::background::Background, graphics_context::GraphicsContext, render_engine::{self, RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
@@ -60,7 +60,8 @@ impl<'a> GameEngine<'a> {
                         let now = Instant::now();
                         let rect_instances = Self::get_rectangle_instances(&self.physics_engine);
                         let circle_instances = Self::get_circle_instances(&self.physics_engine);
-                        let _ = self.render_engine.render_rectangles(&rect_instances, true);
+                        let _ = self.render_engine.render_background();
+                        let _ = self.render_engine.render_rectangles(&rect_instances, false);
                         let _ = self.render_engine.render_circles(&circle_instances, false);
                         let _ = self.render_engine.post_process();
                         //std::thread::sleep(Duration::from_millis(100));
@@ -152,6 +153,7 @@ impl<'a> GameEngine<'a> {
 pub struct GameEngineBuilder {
     physics_engine: Option<Box<dyn Simulation>>,
     sprite_sheet: Option<SpriteSheet>,
+    background: Option<Background>,
     window_size: PhysicalSize<u32>,
     target_fps: u32,
     target_tpf: u32,
@@ -162,7 +164,9 @@ impl <'a> GameEngineBuilder {
         let window_size = PhysicalSize::new(800,600);
         let target_fps = 60;
         let target_tpf = 1;
-        Self { window_size, physics_engine: None, sprite_sheet: None, target_tpf, target_fps}
+        Self { window_size, physics_engine: None, sprite_sheet: None, target_tpf, target_fps,
+            background: None,
+        }
     }
 
     pub fn physics_engine<S: Simulation + 'static>(mut self, sim: S) -> Self {
@@ -172,6 +176,11 @@ impl <'a> GameEngineBuilder {
 
     pub fn sprite_sheet(mut self, tex: SpriteSheet) -> Self {
         self.sprite_sheet = Some(tex);
+        self
+    }
+
+    pub fn background(mut self, background: Background) -> Self {
+        self.background = Some(background);
         self
     }
 
@@ -204,16 +213,21 @@ impl <'a> GameEngineBuilder {
 
         // Build the render engine with data from the physics engine
         let bodies = physics_engine.get_bodies();
-        let render_engine = if let Some(sprite_sheet) = self.sprite_sheet {
-            render_engine::RenderEngineBuilder::new()
-                .bodies(&bodies)
-                .sprite_sheet(sprite_sheet)
-                .build(ctx,self.window_size)
+        let mut render_engine_builder = RenderEngineBuilder::new();
+        render_engine_builder = if let Some(sprite_sheet) = self.sprite_sheet {
+            render_engine_builder.sprite_sheet(sprite_sheet)
         } else  {
-            render_engine::RenderEngineBuilder::new()
-                .bodies(&bodies)
-                .build(ctx,self.window_size)
+            render_engine_builder
         };
+
+        render_engine_builder = if let Some(bg) = self.background {
+            render_engine_builder.background(bg)
+        } else  {
+            render_engine_builder
+        };
+
+        let render_engine = render_engine_builder.bodies(bodies)
+            .build(ctx, window_size);
        
         let target_fps = self.target_fps;
         let target_tpf = self.target_tpf;

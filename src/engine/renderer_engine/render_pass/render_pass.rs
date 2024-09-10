@@ -1,4 +1,6 @@
+use image::{ImageBuffer, Rgba};
 use wgpu::util::{ BufferInitDescriptor, DeviceExt};
+use crate::engine::renderer_engine::asset::Asset;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
 use crate::engine::renderer_engine::shapes::rectangle::Rectangle;
 use crate::engine::renderer_engine::util::{create_sampler, create_shader_module, create_texture, write_texture};
@@ -17,7 +19,7 @@ pub struct RenderPass {
 impl RenderPass {
     pub fn render(
         &mut self, device: &wgpu::Device, target_texture: &wgpu::Texture,
-        queue: &wgpu::Queue, instance_buffer: &wgpu::Buffer, num_indices: u32,
+        queue: &wgpu::Queue, instance_buffer: Option<&wgpu::Buffer>, num_indices: u32,
         num_instances: u32, clear_texture: bool,
     ) -> Result<(), wgpu::SurfaceError> {
 
@@ -49,7 +51,7 @@ impl RenderPass {
         };
 
         {
-        let rp_label = format!("{id} Render Pass");            
+        let rp_label = format!("{id} Render Pass"); 
         let mut render_pass = command_encoder.begin_render_pass(
                 &wgpu::RenderPassDescriptor {
                     label: Some(rp_label.as_str()),
@@ -64,7 +66,10 @@ impl RenderPass {
                 render_pass.set_bind_group(0, &self.uniform_buf_bind_group, &[]);
                 render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
                 render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-                render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
+
+                if let Some(buf) = instance_buffer {
+                    render_pass.set_vertex_buffer(1, buf.slice(..));
+                }
                 
                 render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.set_pipeline(&self.render_pipeline);
@@ -86,8 +91,8 @@ pub struct RenderPassBuilder {
     shader_label: String,
     vertices: Vec<Vertex>,
     indices: Vec<u16>,
-    instance_buffer_layout: wgpu::VertexBufferLayout<'static>,
-    sprite_sheet: Option<SpriteSheet>,
+    instance_buffer_layout: Option<wgpu::VertexBufferLayout<'static>>,
+    texture_data: Option<Box<dyn Asset>>,
 }
 
 impl RenderPassBuilder {
@@ -98,9 +103,9 @@ impl RenderPassBuilder {
         let shader_label = "Circle Shader".to_string();
         let vertices = Circle::compute_vertices();
         let indices = Circle::compute_indices();
-        let instance_buffer_layout = Circle::instance_buffer_desc();
-        let sprite_sheet = None;
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet  }
+        let instance_buffer_layout = Some(Circle::instance_buffer_desc());
+        let texture_data = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture_data  }
     }
 
     pub fn rectangle() -> Self {
@@ -109,31 +114,26 @@ impl RenderPassBuilder {
         let shader_label = "Rectangle Shader".to_string();
         let vertices = Rectangle::compute_vertices();
         let indices = Rectangle::compute_indices();
-        let instance_buffer_layout = Rectangle::instance_buffer_desc();
-        let sprite_sheet = None;
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet  }
+        let instance_buffer_layout = Some(Rectangle::instance_buffer_desc());
+        let texture_data = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture_data  }
     }
 
-    //pub fn background() -> Self {
-    //    let id = "Background".to_string();
-    //    let shader_path = include_str!("./asset/shaders/background.wgsl").to_string();
-    //    let shader_label = "Background  Shader".to_string();
-    //    let vertices = vec![
-    //        Vertex { position: [-1.,  1., 0.]},
-    //        Vertex { position: [-1., -1., 0.]},
-    //        Vertex { position: [ 1.,  1., 0.]},
-    //        Vertex { position: [ 1., -1., 0.]},
-    //    ];
-    //    let indices = vec![0,1,2,1,3,2];
-    //    let instance_buffer_layout = wgpu::VertexBufferLayout {
-    //        array_stride: mem::size_of::<u32>() as wgpu::BufferAddress,
-    //        step_mode: wgpu::VertexStepMode::Instance,
-    //        attributes: &[],
-    //    };
-    //    let sprite_sheet = None;
-    //    let background = None;
-    //    Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet, background }
-    //}
+    pub fn background() -> Self {
+        let id = "Background".to_string();
+        let shader_path = include_str!("./shaders/background.wgsl").to_string();
+        let shader_label = "Background  Shader".to_string();
+        let vertices = vec![
+            Vertex { position: [-1.,  1., 0.]},
+            Vertex { position: [-1., -1., 0.]},
+            Vertex { position: [ 1.,  1., 0.]},
+            Vertex { position: [ 1., -1., 0.]},
+        ];
+        let indices = vec![0,1,2,1,3,2];
+        let instance_buffer_layout = None;
+        let texture_data = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture_data }
+    }
 
     fn create_uniform_buffer_init(
         device: &wgpu::Device, data: &[f32]
@@ -180,12 +180,12 @@ impl RenderPassBuilder {
     }
 
     fn create_texture_bind_group_from_sprite_sheet(
-        device: &wgpu::Device, texture: wgpu::Texture, sampler: wgpu::Sampler, sprite_sheet: &SpriteSheet
+        device: &wgpu::Device, texture: wgpu::Texture, sampler: wgpu::Sampler, sprite_sheet: &Box<dyn Asset>
     ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
         let sprite_data_buffer = device.create_buffer_init(
             &BufferInitDescriptor{
                 label: Some("Global render information"),
-                contents: bytemuck::cast_slice(&sprite_sheet.sprite_data),
+                contents: bytemuck::cast_slice(&sprite_sheet.specific_data()),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
         });
         
@@ -245,15 +245,10 @@ impl RenderPassBuilder {
         (bind_group, layout)
     }
 
-    pub fn sprite_sheet(mut self, sprite_sheet: SpriteSheet) -> Self {
-        self.sprite_sheet = Some(sprite_sheet);
+    pub fn texture_data(mut self, tex_data: Box<dyn Asset>) -> Self {
+        self.texture_data = Some(tex_data);
         self
     }
-
-    //pub fn background(mut self, background: Background) -> Self {
-    //    //self.background = Some(background);
-    //    self
-    //}
 
     pub fn build(self, ctx: &GraphicsContext, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
         let id = self.id;
@@ -272,12 +267,12 @@ impl RenderPassBuilder {
             }
         );
 
-        let (texture_bind_group, texture_bind_group_layout) = match self.sprite_sheet {
-            Some(sprite) => {
-                let texture = create_texture(&ctx, sprite.dimensions(), Some(format!("{} Sprite Sheet", id.clone()).as_str()));
-                write_texture(&ctx, &texture, &sprite.sprite_buf);
+        let (texture_bind_group, texture_bind_group_layout) = match self.texture_data {
+            Some(data) => {
+                let texture = create_texture(&ctx, data.buffer().dimensions(), Some(format!("{} Sprite Sheet", id.clone()).as_str()));
+                write_texture(&ctx, &texture, data.buffer());
                 let sampler = create_sampler(&ctx.device);
-                Self::create_texture_bind_group_from_sprite_sheet(&ctx.device, texture, sampler, &sprite)
+                Self::create_texture_bind_group_from_sprite_sheet(&ctx.device, texture, sampler, &data)
             }
             _ => todo!(), 
         };
@@ -301,6 +296,11 @@ impl RenderPassBuilder {
                 push_constant_ranges: &[],
             });
 
+
+        let vertex_buffer_layouts = if let Some(instance_layout) = self.instance_buffer_layout {
+            vec![Vertex::desc(), instance_layout ]
+        } else { vec![Vertex::desc() ] };
+        
         let render_pipeline = ctx.device.create_render_pipeline(
             &wgpu::RenderPipelineDescriptor {
                 label: Some("Render Pipeline"),
@@ -309,7 +309,7 @@ impl RenderPassBuilder {
                 vertex: wgpu::VertexState {
                     module: &shader_module,
                     entry_point: "vs_main",
-                    buffers: &[Vertex::desc(), self.instance_buffer_layout ], 
+                    buffers: &vertex_buffer_layouts,
                 },
     
                 primitive: wgpu::PrimitiveState {

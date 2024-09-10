@@ -1,7 +1,7 @@
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{asset::background::Background, graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
 
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
@@ -12,10 +12,10 @@ pub struct RenderEngine<'a> {
     pp_gray: Option<Gray>,
     pp_identity: Identity,
 
-    circle_render_pass: render_pass::RenderPass,
+    circle_render_pass: render_pass::render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
 
-    rectangle_render_pass: render_pass::RenderPass,
+    rectangle_render_pass: render_pass::render_pass::RenderPass,
     pub rectangle_instance_buffer: wgpu::Buffer,
 }
 
@@ -82,12 +82,13 @@ impl <'a> RenderEngine <'a> {
 pub struct RenderEngineBuilder {
     circ_instance_buf_len: u32,
     rect_instance_buf_len: u32,
-    sprite_sheet: Option<SpriteSheet>
+    sprite_sheet: Option<SpriteSheet>,
+    background: Option<Background>,
 }
 
 impl <'a> RenderEngineBuilder {
     pub fn new() -> Self {
-        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, sprite_sheet: None }
+        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, sprite_sheet: None, background: None }
     }
 
     pub fn bodies(mut self, bodies: &Vec<CollisionBody>) -> Self {
@@ -119,6 +120,12 @@ impl <'a> RenderEngineBuilder {
         self
     }
 
+    pub fn background(mut self, background: Background) -> Self {
+        self.background = Some(background);
+        self
+    }
+
+
     pub fn build(self,
         ctx: GraphicsContext<'a>,
         window_size: PhysicalSize<u32>,
@@ -129,14 +136,14 @@ impl <'a> RenderEngineBuilder {
             None => SpriteSheet::default(),
         };
 
-        let circle_render_pass = render_pass::RenderPassBuilder::circle()
+        let circle_render_pass = render_pass::render_pass::RenderPassBuilder::circle()
             .sprite_sheet(sprite_sheet.clone())
             .build(&ctx, &window_size);
         let circle_instance_buffer = ctx.create_buffer(
             "Circle instance buffer", self.circ_instance_buf_len, 
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
 
-        let rectangle_render_pass = render_pass::RenderPassBuilder::rectangle()
+        let rectangle_render_pass = render_pass::render_pass::RenderPassBuilder::rectangle()
             .sprite_sheet(sprite_sheet)
             .build(&ctx, &window_size);
        let rectangle_instance_buffer = ctx.create_buffer(

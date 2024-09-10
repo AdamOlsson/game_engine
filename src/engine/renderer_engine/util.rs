@@ -1,3 +1,5 @@
+use image::{ImageBuffer, Rgba};
+
 use super::graphics_context::GraphicsContext;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
@@ -51,9 +53,8 @@ pub fn texture_bind_group_from_texture(
 }
 
 pub (crate) fn create_texture(
-    ctx: &GraphicsContext, sprite_sheet: &SpriteSheet, label: Option<&str>,
+    ctx: &GraphicsContext, dimensions: (u32, u32), label: Option<&str>,
 ) -> wgpu::Texture { 
-    let dimensions = sprite_sheet.dimensions();
     let texture_size = wgpu::Extent3d {
         width: dimensions.0, height: dimensions.1, depth_or_array_layers: 1,
     };
@@ -75,7 +76,7 @@ pub (crate) fn create_texture(
 
 pub (crate) fn write_texture(
     ctx: &GraphicsContext, texture: &wgpu::Texture, 
-    data: &SpriteSheet,
+    data: &ImageBuffer<Rgba<u8>, Vec<u8>>,
 ) {
     let dimensions = data.dimensions();
     let texture_size = wgpu::Extent3d {
@@ -88,7 +89,7 @@ pub (crate) fn write_texture(
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
         }, 
-        &data.sprite_buf, 
+        &data, 
         wgpu::ImageDataLayout {
             offset: 0, 
             bytes_per_row: Some(4*dimensions.0),

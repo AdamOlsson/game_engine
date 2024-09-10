@@ -1,6 +1,9 @@
 use wgpu::util::{ BufferInitDescriptor, DeviceExt};
-use super::{graphics_context::GraphicsContext, shapes::Shape, util, vertex::Vertex};
-use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
+use crate::engine::renderer_engine::graphics_context::GraphicsContext;
+use crate::engine::renderer_engine::shapes::rectangle::Rectangle;
+use crate::engine::renderer_engine::util::{create_sampler, create_shader_module, create_texture, write_texture};
+use crate::engine::renderer_engine::{asset::sprite_sheet::SpriteSheet, shapes::circle::Circle, vertex::Vertex};
+use crate::engine::renderer_engine::shapes::Shape;
 
 pub struct RenderPass {
     id: String,
@@ -90,27 +93,47 @@ pub struct RenderPassBuilder {
 impl RenderPassBuilder {
     
     pub fn circle() -> Self {
-        let id = super::shapes::circle::Circle::id();
-        let shader_path = include_str!("shapes/shaders/circle.wgsl").to_string();
+        let id = Circle::id();
+        let shader_path = include_str!("../shapes/shaders/circle.wgsl").to_string();
         let shader_label = "Circle Shader".to_string();
-        let vertices = super::shapes::circle::Circle::compute_vertices();
-        let indices = super::shapes::circle::Circle::compute_indices();
-        let instance_buffer_layout = super::shapes::circle::Circle::instance_buffer_desc();
+        let vertices = Circle::compute_vertices();
+        let indices = Circle::compute_indices();
+        let instance_buffer_layout = Circle::instance_buffer_desc();
         let sprite_sheet = None;
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet }
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet  }
     }
 
     pub fn rectangle() -> Self {
-        let id = super::shapes::rectangle::Rectangle::id();
-        let shader_path = include_str!("shapes/shaders/rectangle.wgsl").to_string();
+        let id = Rectangle::id();
+        let shader_path = include_str!("../shapes/shaders/rectangle.wgsl").to_string();
         let shader_label = "Rectangle Shader".to_string();
-        let vertices = super::shapes::rectangle::Rectangle::compute_vertices();
-        let indices = super::shapes::rectangle::Rectangle::compute_indices();
-        let instance_buffer_layout = super::shapes::rectangle::Rectangle::instance_buffer_desc();
+        let vertices = Rectangle::compute_vertices();
+        let indices = Rectangle::compute_indices();
+        let instance_buffer_layout = Rectangle::instance_buffer_desc();
         let sprite_sheet = None;
-        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet }
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet  }
     }
 
+    //pub fn background() -> Self {
+    //    let id = "Background".to_string();
+    //    let shader_path = include_str!("./asset/shaders/background.wgsl").to_string();
+    //    let shader_label = "Background  Shader".to_string();
+    //    let vertices = vec![
+    //        Vertex { position: [-1.,  1., 0.]},
+    //        Vertex { position: [-1., -1., 0.]},
+    //        Vertex { position: [ 1.,  1., 0.]},
+    //        Vertex { position: [ 1., -1., 0.]},
+    //    ];
+    //    let indices = vec![0,1,2,1,3,2];
+    //    let instance_buffer_layout = wgpu::VertexBufferLayout {
+    //        array_stride: mem::size_of::<u32>() as wgpu::BufferAddress,
+    //        step_mode: wgpu::VertexStepMode::Instance,
+    //        attributes: &[],
+    //    };
+    //    let sprite_sheet = None;
+    //    let background = None;
+    //    Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, sprite_sheet, background }
+    //}
 
     fn create_uniform_buffer_init(
         device: &wgpu::Device, data: &[f32]
@@ -223,13 +246,14 @@ impl RenderPassBuilder {
     }
 
     pub fn sprite_sheet(mut self, sprite_sheet: SpriteSheet) -> Self {
-        self.sprite_sheet= Some(sprite_sheet);
+        self.sprite_sheet = Some(sprite_sheet);
         self
     }
 
-    pub fn background(mut self, background: &[u8]) -> Self {
-        self
-    }
+    //pub fn background(mut self, background: Background) -> Self {
+    //    //self.background = Some(background);
+    //    self
+    //}
 
     pub fn build(self, ctx: &GraphicsContext, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
         let id = self.id;
@@ -250,15 +274,15 @@ impl RenderPassBuilder {
 
         let (texture_bind_group, texture_bind_group_layout) = match self.sprite_sheet {
             Some(sprite) => {
-                let texture = super::util::create_texture(&ctx, &sprite, Some(format!("{} Sprite Sheet", id.clone()).as_str()));
-                super::util::write_texture(&ctx, &texture, &sprite);
-                let sampler = super::util::create_sampler(&ctx.device);
+                let texture = create_texture(&ctx, sprite.dimensions(), Some(format!("{} Sprite Sheet", id.clone()).as_str()));
+                write_texture(&ctx, &texture, &sprite.sprite_buf);
+                let sampler = create_sampler(&ctx.device);
                 Self::create_texture_bind_group_from_sprite_sheet(&ctx.device, texture, sampler, &sprite)
             }
             _ => todo!(), 
         };
         
-        let shader_module = util::create_shader_module(&ctx.device, self.shader_path);
+        let shader_module = create_shader_module(&ctx.device, self.shader_path);
 
         let render_targets = [Some(wgpu::ColorTargetState {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,

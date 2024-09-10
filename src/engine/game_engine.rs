@@ -66,7 +66,7 @@ impl<'a> GameEngine<'a> {
                         //std::thread::sleep(Duration::from_millis(100));
                         let render_time = now.elapsed();
                         let avg_tick_time = total_tick_time / num_ticks;
-                        print!("{}FPS, {}TPS\r", 1000/render_time.as_millis().max(1), 1000/avg_tick_time.as_millis().max(1));
+                        println!("{}FPS, {}TPS", 1000/render_time.as_millis().max(1), 1000/avg_tick_time.as_millis().max(1));
                         num_ticks = 0;
                         total_tick_time = Duration::from_millis(0);
                     },

@@ -281,7 +281,7 @@ impl RenderPassBuilder {
 
         let render_targets = [Some(wgpu::ColorTargetState {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
-            blend: Some(wgpu::BlendState::REPLACE),
+            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
             write_mask: wgpu::ColorWrites::ALL,
         })];
 

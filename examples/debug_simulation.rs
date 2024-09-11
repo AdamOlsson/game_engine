@@ -104,6 +104,7 @@ impl Simulation for DebugSimulation {
     fn get_bodies(&self) -> &Vec<CollisionBody> {
         &self.integrator.get_bodies()
     }
+
 }
 
 fn main() {

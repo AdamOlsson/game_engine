@@ -44,7 +44,11 @@ impl<'a> GameEngine<'a> {
         });
         
         let mut num_ticks = 0;
+        let mut num_renders = 0;
         let mut total_tick_time = Duration::from_millis(0);
+        let mut total_render_time = Duration::from_millis(0);
+        let statistics_interval = Duration::from_secs(5);
+        let mut statistics_timer_last_print = Instant::now();
         self.event_loop.run(move | event, elwt | match event {
             Event::UserEvent(e) => { 
                 match e {
@@ -64,12 +68,22 @@ impl<'a> GameEngine<'a> {
                         let _ = self.render_engine.render_rectangles(&rect_instances, false);
                         let _ = self.render_engine.render_circles(&circle_instances, false);
                         let _ = self.render_engine.post_process();
-                        //std::thread::sleep(Duration::from_millis(100));
-                        let render_time = now.elapsed();
-                        let avg_tick_time = total_tick_time / num_ticks;
-                        println!("{}FPS, {}TPS", 1000/render_time.as_millis().max(1), 1000/avg_tick_time.as_millis().max(1));
-                        num_ticks = 0;
-                        total_tick_time = Duration::from_millis(0);
+
+                        total_render_time += now.elapsed();
+                        num_renders += 1;
+
+                        if now.duration_since(statistics_timer_last_print) > statistics_interval {
+                            let avg_fps = 1000 / (total_render_time.as_millis().max(1) / num_renders).max(1);
+                            let avg_tps = 1000 / (total_tick_time.as_millis().max(1) / num_ticks).max(1);
+                            println!("{}FPS, {}TPS", avg_fps, avg_tps);
+                            statistics_timer_last_print = now;
+                            
+                            num_ticks = 0;
+                            num_renders = 0;
+                            total_tick_time = Duration::from_millis(0);
+                            total_render_time = Duration::from_millis(0);
+                        }
+                        
                     },
                 }
             },

@@ -11,4 +11,6 @@ impl Asset {
     pub fn background(bytes: &[u8]) -> Background {
         Background::new(bytes)
     }
+
+    //pub fn font(bytes:)
 }

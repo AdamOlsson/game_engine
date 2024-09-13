@@ -142,9 +142,9 @@ mod test {
         
         let expected_center = Vector2::new(0.5, 0.5);
         let expected_right = Vector2::new(1.0, 0.5);
-        let expected_top = Vector2::new(0.5, 0.0);
+        let expected_top = Vector2::new(0.5, 1.0);
         let expected_left = Vector2::new(0.0, 0.5);
-        let expected_bot = Vector2::new(0.5, 1.0);
+        let expected_bot = Vector2::new(0.5, 0.0);
 
         let vertex_center = Vector2::new(0.0,0.0);
         let vertex_right = Vector2::new(1.0,0.0);

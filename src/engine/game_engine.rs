@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::background::Background, graphics_context::GraphicsContext, render_engine::{self, RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::Font}, graphics_context::GraphicsContext, render_engine::{self, RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
@@ -67,6 +67,9 @@ impl<'a> GameEngine<'a> {
                         let _ = self.render_engine.render_background();
                         let _ = self.render_engine.render_rectangles(&rect_instances, false);
                         let _ = self.render_engine.render_circles(&circle_instances, false);
+
+                        let _ = self.render_engine.render_text("A", false);
+
                         let _ = self.render_engine.post_process();
 
                         total_render_time += now.elapsed();
@@ -240,7 +243,9 @@ impl <'a> GameEngineBuilder {
             render_engine_builder
         };
 
+        let font = Font::new(include_bytes!("./renderer_engine/asset/fonts/font.png"), 11, 11);
         let render_engine = render_engine_builder.bodies(bodies)
+            .font(font)
             .build(ctx, window_size);
        
         let target_fps = self.target_fps;

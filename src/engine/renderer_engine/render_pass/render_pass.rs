@@ -1,10 +1,10 @@
-use image::{ImageBuffer, Rgba};
 use wgpu::util::{ BufferInitDescriptor, DeviceExt};
+use crate::engine::renderer_engine::asset::font::Font;
 use crate::engine::renderer_engine::asset::Asset;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
 use crate::engine::renderer_engine::shapes::rectangle::Rectangle;
 use crate::engine::renderer_engine::util::{create_sampler, create_shader_module, create_texture, write_texture};
-use crate::engine::renderer_engine::{asset::sprite_sheet::SpriteSheet, shapes::circle::Circle, vertex::Vertex};
+use crate::engine::renderer_engine::{shapes::circle::Circle, vertex::Vertex};
 use crate::engine::renderer_engine::shapes::Shape;
 
 pub struct RenderPass {
@@ -135,6 +135,17 @@ impl RenderPassBuilder {
         Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture_data }
     }
 
+    pub fn text() -> Self {
+        let id = "Text".to_string();
+        let shader_path = include_str!("./shaders/text.wgsl").to_string();
+        let shader_label = "Text Shader".to_string();
+        let vertices = Rectangle::compute_vertices();
+        let indices = Rectangle::compute_indices();
+        let instance_buffer_layout = Some(Font::instance_buffer_desc());
+        let texture_data = None;
+        Self { id, shader_path, shader_label, vertices, indices, instance_buffer_layout, texture_data }
+    }
+
     fn create_uniform_buffer_init(
         device: &wgpu::Device, data: &[f32]
     ) -> (wgpu::Buffer, wgpu::BindGroup, wgpu::BindGroupLayout) {
@@ -250,6 +261,7 @@ impl RenderPassBuilder {
         self
     }
 
+    // TODO: Should this also return the instance buffer?
     pub fn build(self, ctx: &GraphicsContext, window_size: &winit::dpi::PhysicalSize<u32>) -> RenderPass {
         let id = self.id;
         let vertex_buffer = ctx.device.create_buffer_init(

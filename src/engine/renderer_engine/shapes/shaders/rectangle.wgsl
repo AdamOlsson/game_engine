@@ -33,7 +33,7 @@ fn compute_sprite_coordinates(
 ) -> array<vec2<f32>, 6> {
     let cell_dims = sprite_data.zw / sprite_data.xy; // Normalized
     
-    // TODO: Redo this using the vertex position, look at circle shader.
+    // TODO: Redo this using the vertex position, look at text shader.
     let top_left = vec2<f32>(0.0,0.0); 
     let bot_left = vec2<f32>(0.0,1.0); 
     let top_right = vec2<f32>(1.0,0.0); 

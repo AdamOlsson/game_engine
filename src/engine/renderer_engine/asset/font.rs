@@ -6,6 +6,14 @@ pub struct Font {
     font_sprite: SpriteSheet,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Debug)]
+pub struct FontInstance {
+    pub position: [f32; 3],
+    pub font_coord: [f32; 4],
+    pub size: f32,
+}
+
 /* UTF8 Character Table
  * Characters 0 - 9 = 48 - 57
  * Characters A - Z = 65 - 90
@@ -44,6 +52,30 @@ impl Font {
             .collect();
 
         return coordinates;
+    }
+
+    pub fn instance_buffer_desc() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<FontInstance>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 2,
+                    format: wgpu::VertexFormat::Float32x4,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
+                    shader_location: 3,
+                    format: wgpu::VertexFormat::Float32,
+                },
+            ],
+        }
     }
 }
 

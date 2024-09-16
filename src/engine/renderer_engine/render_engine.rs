@@ -1,7 +1,7 @@
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{asset::background::Background, graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{asset::{background::Background, font::{self, Font, FontInstance}}, graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass::{self, render_pass::RenderPass}, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
 
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
@@ -13,6 +13,9 @@ pub struct RenderEngine<'a> {
     pp_identity: Identity,
 
     background_render_pass: Option<render_pass::render_pass::RenderPass>,
+
+    text_render_pass: Option<render_pass::render_pass::RenderPass>,
+    text_instance_buf: Option<wgpu::Buffer>,
 
     circle_render_pass: render_pass::render_pass::RenderPass,
     pub circle_instance_buffer: wgpu::Buffer,
@@ -69,6 +72,32 @@ impl <'a> RenderEngine <'a> {
         return Ok(());
     } 
 
+    pub fn render_text(
+        &mut self, text: &str, clear: bool
+    ) -> Result<(), wgpu::SurfaceError>{
+        let pass = match &mut self.text_render_pass {
+            None => panic!("No font is set"),
+            Some(p) => p,
+        };
+
+        if let Some(buf) = &self.text_instance_buf {
+            let indices = Rectangle::compute_indices();
+            let num_instances = text.len();
+            let font_coords = Font::text_to_coordinates(text);
+            //let inner_font_coords: Vec<[f32;4]> = font_coords.iter().map(|c| c.coordinate).collect();
+            let text_instance = vec![FontInstance { position: [0.,0.,0.], size: 110.0, font_coord: font_coords[0].coordinate }];
+
+            self.ctx.queue.write_buffer(&buf, 0, bytemuck::cast_slice(&text_instance));
+
+            let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
+
+            pass.render(&self.ctx.device, &target_texture, &self.ctx.queue,
+                Some(buf), indices.len() as u32, num_instances as u32, clear)?;
+        }
+
+        return Ok(());
+    }
+
     pub fn post_process(&mut self) -> Result<(), wgpu::SurfaceError>{
         let output_frame = self.ctx.surface.get_current_texture()?;
         
@@ -95,11 +124,13 @@ pub struct RenderEngineBuilder {
     rect_instance_buf_len: u32,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
+    font: Option<Font>,
 }
 
 impl <'a> RenderEngineBuilder {
     pub fn new() -> Self {
-        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, sprite_sheet: None, background: None }
+        Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, sprite_sheet: None, 
+            background: None, font: None }
     }
 
     pub fn bodies(mut self, bodies: &Vec<CollisionBody>) -> Self {
@@ -136,6 +167,10 @@ impl <'a> RenderEngineBuilder {
         self
     }
 
+    pub fn font(mut self, font: Font) -> Self {
+        self.font = Some(font);
+        self
+    }
 
     pub fn build(self,
         ctx: GraphicsContext<'a>,
@@ -145,6 +180,19 @@ impl <'a> RenderEngineBuilder {
         let sprite_sheet = match self.sprite_sheet{
             Some(b) => b,
             None => SpriteSheet::default(),
+        };
+
+        let (text_render_pass, text_instance_buf) = if let Some(f) = self.font {
+            let pass = Some(render_pass::render_pass::RenderPassBuilder::text()
+                .texture_data(Box::new(f))
+                .build(&ctx, &window_size));
+            
+            let buf = Some(ctx.create_buffer("Text instance buffer", 32,
+                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false));
+
+            (pass, buf)
+        } else {
+            (None, None) 
         };
 
         let background_render_pass = if let Some(bg) = self.background {
@@ -178,7 +226,7 @@ impl <'a> RenderEngineBuilder {
             background_render_pass,
             circle_render_pass, circle_instance_buffer,
             rectangle_render_pass, rectangle_instance_buffer,
-
+            text_render_pass, text_instance_buf,
         }
     }
 }

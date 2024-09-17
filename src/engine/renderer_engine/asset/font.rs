@@ -1,9 +1,12 @@
-use super::sprite_sheet::{SpriteCoordinate, SpriteSheet};
+use super::sprite_sheet::SpriteSheet;
 
 use super::Asset;
 
+
 pub struct Font {
     font_sprite: SpriteSheet,
+    char_width: u32,
+    char_height: u32,
 }
 
 #[repr(C)]
@@ -19,21 +22,13 @@ pub struct FontInstance {
  * Characters A - Z = 65 - 90
  */
 
-impl Font {
-    pub fn new(bytes: &[u8], char_width: u32, char_height: u32) -> Self {
-        let font_sprite = SpriteSheet::new(bytes, char_width, char_height);
-        Self { font_sprite }
-    }
+pub struct Writer {
+    char_width: f32,
+    char_height: f32,
+}
 
-    fn is_number(b: &u8) -> bool {
-        48 <= *b && *b <= 57
-    }
-
-    fn is_character(b: &u8) -> bool {
-        65 <= *b && *b <= 90
-    }
-
-    pub fn text_to_coordinates(text: &str) -> Vec<SpriteCoordinate> {
+impl Writer {
+    pub fn write(&self, text: &str) -> Vec<FontInstance> {
         let upper = text.to_uppercase();
         let bytes = upper.as_bytes();
 
@@ -46,12 +41,36 @@ impl Font {
                 println!("Found invalid u8 character {b}");
                 return 0;
             });
-
-        let coordinates: Vec<SpriteCoordinate> = locations
-            .map(|l| SpriteCoordinate::new([l as f32, 0.0], [l as f32 + 1., 1.]))
+        
+        let size = 110.0;
+        let coordinates: Vec<FontInstance> = locations
+            .enumerate()
+            .map(|(i,l)| FontInstance {
+                font_coord: [l as f32, 0.0, l as f32 + 1., 1.],
+                position: [i as f32 * size, 0., 0.],
+                size
+            })
             .collect();
-
         return coordinates;
+    }
+
+    fn is_number(b: &u8) -> bool {
+        48 <= *b && *b <= 57
+    }
+
+    fn is_character(b: &u8) -> bool {
+        65 <= *b && *b <= 90
+    }
+}
+
+impl Font {
+    pub fn new(bytes: &[u8], char_width: u32, char_height: u32) -> Self {
+        let font_sprite = SpriteSheet::new(bytes, char_width, char_height);
+        Self { font_sprite, char_width, char_height }
+    }
+
+    pub fn writer(&self) -> Writer {
+        Writer { char_width: self.char_width as f32, char_height: self.char_height as f32 }
     }
 
     pub fn instance_buffer_desc() -> wgpu::VertexBufferLayout<'static> {
@@ -91,21 +110,23 @@ impl Asset for Font {
 
 #[cfg(test)]
 mod test {
-    use super::Font;
+    use crate::engine::renderer_engine::asset::font::Writer;
 
     #[test]
     fn zero(){
+        let writer = Writer{ char_width: 11.0, char_height: 11.0 };
         let char = "0";
         let expected_out = [0.0,0.0, 1.0,1.0];
-        let out = Font::text_to_coordinates(char);
-        assert_eq!(out[0].coordinate, expected_out, "Character {char} did not convert to the correct sprite coordinate");
+        let out = writer.write(char);
+        assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
 
     #[test]
     fn z(){
+        let writer = Writer{ char_width: 11.0, char_height: 11.0 };
         let char = "Z";
         let expected_out = [35.0,0.0, 36.0,1.0];
-        let out = Font::text_to_coordinates(char);
-        assert_eq!(out[0].coordinate, expected_out, "Character {char} did not convert to the correct sprite coordinate");
+        let out = writer.write(char);
+        assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
 }

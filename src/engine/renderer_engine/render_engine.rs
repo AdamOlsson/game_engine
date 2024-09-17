@@ -73,7 +73,7 @@ impl <'a> RenderEngine <'a> {
     } 
 
     pub fn render_text(
-        &mut self, text: &str, clear: bool
+        &mut self, text: Vec<FontInstance>, clear: bool
     ) -> Result<(), wgpu::SurfaceError>{
         let pass = match &mut self.text_render_pass {
             None => panic!("No font is set"),
@@ -83,11 +83,11 @@ impl <'a> RenderEngine <'a> {
         if let Some(buf) = &self.text_instance_buf {
             let indices = Rectangle::compute_indices();
             let num_instances = text.len();
-            let font_coords = Font::text_to_coordinates(text);
-            //let inner_font_coords: Vec<[f32;4]> = font_coords.iter().map(|c| c.coordinate).collect();
-            let text_instance = vec![FontInstance { position: [0.,0.,0.], size: 110.0, font_coord: font_coords[0].coordinate }];
+            // TODO: Text position 
+            // TODO: Add whitespace
+            // TODO: Text sentences
 
-            self.ctx.queue.write_buffer(&buf, 0, bytemuck::cast_slice(&text_instance));
+            self.ctx.queue.write_buffer(&buf, 0, bytemuck::cast_slice(&text));
 
             let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
 
@@ -187,7 +187,7 @@ impl <'a> RenderEngineBuilder {
                 .texture_data(Box::new(f))
                 .build(&ctx, &window_size));
             
-            let buf = Some(ctx.create_buffer("Text instance buffer", 32,
+            let buf = Some(ctx.create_buffer("Text instance buffer", 1024,
                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false));
 
             (pass, buf)

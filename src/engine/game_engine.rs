@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::Font}, graphics_context::GraphicsContext, render_engine::{self, RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{self, RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
@@ -19,6 +19,7 @@ pub struct GameEngine<'a> {
     window_id: WindowId,
     target_fps: u32,
     target_tpf: u32,
+    writer: Writer,
 }
 
 impl<'a> GameEngine<'a> {
@@ -68,7 +69,8 @@ impl<'a> GameEngine<'a> {
                         let _ = self.render_engine.render_rectangles(&rect_instances, false);
                         let _ = self.render_engine.render_circles(&circle_instances, false);
 
-                        let _ = self.render_engine.render_text("A", false);
+                        let text = self.writer.write("HELLOWORLD");
+                        let _ = self.render_engine.render_text(text, false);
 
                         let _ = self.render_engine.post_process();
 
@@ -244,6 +246,7 @@ impl <'a> GameEngineBuilder {
         };
 
         let font = Font::new(include_bytes!("./renderer_engine/asset/fonts/font.png"), 11, 11);
+        let writer = font.writer();
         let render_engine = render_engine_builder.bodies(bodies)
             .font(font)
             .build(ctx, window_size);
@@ -252,7 +255,7 @@ impl <'a> GameEngineBuilder {
         let target_tpf = self.target_tpf;
         GameEngine { 
             physics_engine, render_engine, event_loop, event_loop_proxy, window_size, 
-            window_id, target_tpf, target_fps }
+            window_id, target_tpf, target_fps, writer }
     }
 }
 

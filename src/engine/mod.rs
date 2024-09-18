@@ -6,13 +6,7 @@ pub mod util;
 
 use physics_engine::collision::collision_body::CollisionBody;
 
-#[allow(dead_code)]
-pub trait State {
-    fn get_bodies(&self) -> &Vec<CollisionBody>;
-    fn get_bodies_mut(&mut self) -> &mut Vec<CollisionBody>;
-}
-
-pub trait Simulation {
+pub trait PhysicsEngine {
     fn update(&mut self);
     fn get_bodies(&self) -> &Vec<CollisionBody>;
 
@@ -20,5 +14,3 @@ pub trait Simulation {
     fn jump(&mut self) {}
 }
 
-pub trait Interaction {
-}

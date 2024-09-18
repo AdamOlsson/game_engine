@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{self, RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, Simulation};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{ RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, PhysicsEngine};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
@@ -11,11 +11,11 @@ enum CustomEvent {
 }
 
 pub struct GameEngine<'a> {
-    physics_engine: Box<dyn Simulation + 'static>,
+    physics_engine: Box<dyn PhysicsEngine + 'static>,
     render_engine: RenderEngine<'a>,
     event_loop: EventLoop<CustomEvent>,
     event_loop_proxy: EventLoopProxy<CustomEvent>,
-    window_size: PhysicalSize<u32>,
+    //window_size: PhysicalSize<u32>,
     window_id: WindowId,
     target_fps: u32,
     target_tpf: u32,
@@ -68,9 +68,10 @@ impl<'a> GameEngine<'a> {
                         let _ = self.render_engine.render_background();
                         let _ = self.render_engine.render_rectangles(&rect_instances, false);
                         let _ = self.render_engine.render_circles(&circle_instances, false);
-
-                        let text1 = self.writer.write("HELLO WORLD", &[-400.0, -100.0, 0.0]);
-                        let text2 = self.writer.write("012 345 678 9", &[-700.0, -400.0, 0.0]);
+                        
+                        let text_size = 110.;
+                        let text1 = self.writer.write("HELLO WORLD", &[-400.0, -100.0, 0.0], text_size);
+                        let text2 = self.writer.write("012 345 678 9", &[-700.0, -400.0, 0.0], text_size);
                         let _ = self.render_engine.render_text(text1, false);
                         let _ = self.render_engine.render_text(text2, false);
 
@@ -135,7 +136,7 @@ impl<'a> GameEngine<'a> {
         }).unwrap();
     }
 
-    fn get_circle_instances(physics_engine: &Box<dyn Simulation>) -> Vec<CircleInstance> {
+    fn get_circle_instances(physics_engine: &Box<dyn PhysicsEngine>) -> Vec<CircleInstance> {
         let bodies = physics_engine.get_bodies();
         bodies.iter().filter_map(
             |body| {
@@ -152,7 +153,7 @@ impl<'a> GameEngine<'a> {
         }).collect::<Vec<_>>()
     }
 
-    fn get_rectangle_instances(physics_engine: &Box<dyn Simulation>) -> Vec<RectangleInstance> {
+    fn get_rectangle_instances(physics_engine: &Box<dyn PhysicsEngine>) -> Vec<RectangleInstance> {
         let bodies = physics_engine.get_bodies();
         bodies.iter().filter_map(
             |body| {
@@ -172,12 +173,13 @@ impl<'a> GameEngine<'a> {
 
 
 pub struct GameEngineBuilder {
-    physics_engine: Option<Box<dyn Simulation>>,
+    physics_engine: Option<Box<dyn PhysicsEngine>>,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
     window_size: PhysicalSize<u32>,
     target_fps: u32,
     target_tpf: u32,
+    window_title: String,
 }
 
 impl <'a> GameEngineBuilder {
@@ -186,11 +188,11 @@ impl <'a> GameEngineBuilder {
         let target_fps = 60;
         let target_tpf = 1;
         Self { window_size, physics_engine: None, sprite_sheet: None, target_tpf, target_fps,
-            background: None,
+            background: None, window_title: "".to_string(),
         }
     }
 
-    pub fn physics_engine<S: Simulation + 'static>(mut self, sim: S) -> Self {
+    pub fn physics_engine<S: PhysicsEngine + 'static>(mut self, sim: S) -> Self {
         self.physics_engine = Some(Box::new(sim));
         self
     }
@@ -220,12 +222,19 @@ impl <'a> GameEngineBuilder {
         self
     }
 
+    pub fn window_title(mut self, title: String) -> Self {
+        self.window_title = title;
+        self
+    }
+
     pub fn build(self) -> GameEngine<'a> {
         let window_size = self.window_size;
         let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
             .build()
             .unwrap();
-        let window =  WindowBuilder::new().build(&event_loop).unwrap();
+        let window =  WindowBuilder::new()
+            .with_title(self.window_title)
+            .build(&event_loop).unwrap();
         let window_id = window.id();
         let _ = window.request_inner_size(window_size);
         let event_loop_proxy = event_loop.create_proxy();
@@ -256,7 +265,7 @@ impl <'a> GameEngineBuilder {
         let target_fps = self.target_fps;
         let target_tpf = self.target_tpf;
         GameEngine { 
-            physics_engine, render_engine, event_loop, event_loop_proxy, window_size, 
+            physics_engine, render_engine, event_loop, event_loop_proxy, //window_size, 
             window_id, target_tpf, target_fps, writer }
     }
 }

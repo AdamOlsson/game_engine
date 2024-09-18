@@ -10,7 +10,7 @@ use game_engine::engine::physics_engine::collision::collision_body::CollisionBod
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
-use game_engine::engine::Simulation;
+use game_engine::engine::PhysicsEngine;
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::constraint::Constraint;
@@ -20,7 +20,7 @@ use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::broadphase::blockmap::BlockMap;
 use game_engine::engine::init_utils::create_grid_positions;
 
-pub struct DebugSimulation {
+pub struct DebugPhysicsEngine {
     dt: f32,
     integrator: VerletIntegrator,
     constraint: Box<dyn Constraint>,
@@ -28,7 +28,7 @@ pub struct DebugSimulation {
     narrowphase: Box<dyn NarrowPhase>,
 }
 
-impl DebugSimulation {
+impl DebugPhysicsEngine {
     pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
         let dt = 0.001;
         
@@ -76,7 +76,7 @@ impl DebugSimulation {
     }
 }
 
-impl Simulation for DebugSimulation {
+impl PhysicsEngine for DebugPhysicsEngine {
     fn update(&mut self) {
         self.integrator.update(self.dt);
         let bodies = self.integrator.get_bodies_mut();
@@ -109,7 +109,7 @@ impl Simulation for DebugSimulation {
 
 fn main() {
     let window_size = PhysicalSize::new(1000, 800);
-    let simulation = DebugSimulation::new(&window_size);
+    let physics_engine = DebugPhysicsEngine::new(&window_size);
     
     let sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
     let sprite_sheet_asset  = Asset::sprite_sheet(sprite_sheet_bytes, 16, 16);
@@ -118,7 +118,8 @@ fn main() {
     let background_asset = Asset::background(background_bytes);
 
     let engine = GameEngineBuilder::new()
-        .physics_engine(simulation)
+        .window_title("Debug Physics Engine".to_string())
+        .physics_engine(physics_engine)
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)

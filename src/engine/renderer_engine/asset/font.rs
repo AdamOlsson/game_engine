@@ -5,8 +5,6 @@ use super::Asset;
 
 pub struct Font {
     font_sprite: SpriteSheet,
-    char_width: u32,
-    char_height: u32,
 }
 
 #[repr(C)]
@@ -17,18 +15,10 @@ pub struct FontInstance {
     pub size: f32,
 }
 
-/* UTF8 Character Table
- * Characters 0 - 9 = 48 - 57
- * Characters A - Z = 65 - 90
- */
-
-pub struct Writer {
-    char_width: f32,
-    char_height: f32,
-}
+pub struct Writer {}
 
 impl Writer {
-    pub fn write(&self, text: &str, position: &[f32; 3]) -> Vec<FontInstance> {
+    pub fn write(&self, text: &str, position: &[f32; 3], size: f32) -> Vec<FontInstance> {
         let upper = text.to_uppercase();
         let bytes = upper.as_bytes();
         
@@ -45,7 +35,6 @@ impl Writer {
                 return 0;
             });
         
-        let size = 110.0;
         let coordinates: Vec<FontInstance> = locations
             .enumerate()
             .map(|(i,l)| FontInstance {
@@ -73,11 +62,11 @@ impl Writer {
 impl Font {
     pub fn new(bytes: &[u8], char_width: u32, char_height: u32) -> Self {
         let font_sprite = SpriteSheet::new(bytes, char_width, char_height);
-        Self { font_sprite, char_width, char_height }
+        Self { font_sprite }
     }
 
     pub fn writer(&self) -> Writer {
-        Writer { char_width: self.char_width as f32, char_height: self.char_height as f32 }
+        Writer {}
     }
 
     pub fn instance_buffer_desc() -> wgpu::VertexBufferLayout<'static> {

@@ -69,8 +69,10 @@ impl<'a> GameEngine<'a> {
                         let _ = self.render_engine.render_rectangles(&rect_instances, false);
                         let _ = self.render_engine.render_circles(&circle_instances, false);
 
-                        let text = self.writer.write("HELLOWORLD");
-                        let _ = self.render_engine.render_text(text, false);
+                        let text1 = self.writer.write("HELLO WORLD", &[-400.0, -100.0, 0.0]);
+                        let text2 = self.writer.write("012 345 678 9", &[-700.0, -400.0, 0.0]);
+                        let _ = self.render_engine.render_text(text1, false);
+                        let _ = self.render_engine.render_text(text2, false);
 
                         let _ = self.render_engine.post_process();
 

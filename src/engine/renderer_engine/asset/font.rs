@@ -28,15 +28,18 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn write(&self, text: &str) -> Vec<FontInstance> {
+    pub fn write(&self, text: &str, position: &[f32; 3]) -> Vec<FontInstance> {
         let upper = text.to_uppercase();
         let bytes = upper.as_bytes();
-
+        
+        // All characters are offset by because whitespace is the first char 
         let locations = bytes.iter()
             .map(|b| if Self::is_number(b) {
-                return b - 48;
+                return b - 48 + 1;
             } else if Self::is_character(b) {
-                return b - 65 + 10; // +10 to get the position of the character in the sprite sheet
+                return b - 65 + 10 + 1; // +10 to get the position of the character in the sprite sheet
+            } else if Self::is_whitespace(b) {
+                return 0;
             } else {
                 println!("Found invalid u8 character {b}");
                 return 0;
@@ -47,7 +50,7 @@ impl Writer {
             .enumerate()
             .map(|(i,l)| FontInstance {
                 font_coord: [l as f32, 0.0, l as f32 + 1., 1.],
-                position: [i as f32 * size, 0., 0.],
+                position: [(i as f32 * size) + position[0], position[1], position[2]],
                 size
             })
             .collect();
@@ -60,6 +63,10 @@ impl Writer {
 
     fn is_character(b: &u8) -> bool {
         65 <= *b && *b <= 90
+    }
+
+    fn is_whitespace(b: &u8) -> bool {
+        *b == 32
     }
 }
 
@@ -117,7 +124,7 @@ mod test {
         let writer = Writer{ char_width: 11.0, char_height: 11.0 };
         let char = "0";
         let expected_out = [0.0,0.0, 1.0,1.0];
-        let out = writer.write(char);
+        let out = writer.write(char, &[0.,0.,0.]);
         assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
 
@@ -126,7 +133,7 @@ mod test {
         let writer = Writer{ char_width: 11.0, char_height: 11.0 };
         let char = "Z";
         let expected_out = [35.0,0.0, 36.0,1.0];
-        let out = writer.write(char);
+        let out = writer.write(char, &[0.,0.,0.]);
         assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
 }

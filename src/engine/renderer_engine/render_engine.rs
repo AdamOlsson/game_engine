@@ -83,9 +83,6 @@ impl <'a> RenderEngine <'a> {
         if let Some(buf) = &self.text_instance_buf {
             let indices = Rectangle::compute_indices();
             let num_instances = text.len();
-            // TODO: Text position 
-            // TODO: Add whitespace
-            // TODO: Text sentences
 
             self.ctx.queue.write_buffer(&buf, 0, bytemuck::cast_slice(&text));
 

@@ -5,7 +5,7 @@ use super::{asset::{background::Background, font::{self, Font, FontInstance}}, g
 
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
-pub struct RenderEngine<'a> {
+pub struct RenderEngineControl<'a> {
     pub ctx: GraphicsContext<'a>,
     window_size: PhysicalSize<u32>,
 
@@ -24,7 +24,7 @@ pub struct RenderEngine<'a> {
     pub rectangle_instance_buffer: wgpu::Buffer,
 }
 
-impl <'a> RenderEngine <'a> {
+impl <'a> RenderEngineControl <'a> {
     pub fn render_background(&mut self) -> Result<(), wgpu::SurfaceError> {
         let target_texture = if let Some(tex) = &self.pp_gray { &tex.texture } else { &self.pp_identity.texture };
         let num_indices = 6;
@@ -116,7 +116,7 @@ impl <'a> RenderEngine <'a> {
     }
 }
 
-pub struct RenderEngineBuilder {
+pub struct RenderEngineControlBuilder {
     circ_instance_buf_len: u32,
     rect_instance_buf_len: u32,
     sprite_sheet: Option<SpriteSheet>,
@@ -124,7 +124,7 @@ pub struct RenderEngineBuilder {
     font: Option<Font>,
 }
 
-impl <'a> RenderEngineBuilder {
+impl <'a> RenderEngineControlBuilder {
     pub fn new() -> Self {
         Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, sprite_sheet: None, 
             background: None, font: None }
@@ -172,7 +172,7 @@ impl <'a> RenderEngineBuilder {
     pub fn build(self,
         ctx: GraphicsContext<'a>,
         window_size: PhysicalSize<u32>,
-    ) -> RenderEngine<'a> {
+    ) -> RenderEngineControl<'a> {
 
         let sprite_sheet = match self.sprite_sheet{
             Some(b) => b,
@@ -217,7 +217,7 @@ impl <'a> RenderEngineBuilder {
         let pp_gray = None; 
         let pp_identity = Identity::new(&ctx.device, &window_size);
             
-        RenderEngine { 
+        RenderEngineControl { 
             ctx, window_size, 
             pp_gray, pp_identity,
             background_render_pass,

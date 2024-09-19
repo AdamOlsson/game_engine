@@ -4,13 +4,14 @@ use cgmath::{ Vector3, Zero};
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::renderer_engine::asset::asset::Asset;
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
+use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use winit::dpi::PhysicalSize;
 
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
-use game_engine::engine::PhysicsEngine;
+use game_engine::engine::{PhysicsEngine, RenderEngine};
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::constraint::Constraint;
@@ -76,6 +77,14 @@ impl DebugPhysicsEngine {
     }
 }
 
+impl RenderEngine for DebugPhysicsEngine {
+    fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
+        //let rect_instances = GameEngine::get_rectangle_instances(&self.physics_engine);
+        //let circle_instances = GameEngine::get_circle_instances(&self.physics_engine);
+
+    }
+}
+
 impl PhysicsEngine for DebugPhysicsEngine {
     fn update(&mut self) {
         self.integrator.update(self.dt);
@@ -104,7 +113,6 @@ impl PhysicsEngine for DebugPhysicsEngine {
     fn get_bodies(&self) -> &Vec<CollisionBody> {
         &self.integrator.get_bodies()
     }
-
 }
 
 fn main() {

@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{ RenderEngine, RenderEngineBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, PhysicsEngine};
+use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{ RenderEngineControl, RenderEngineControlBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, PhysicsEngine};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
@@ -12,7 +12,7 @@ enum CustomEvent {
 
 pub struct GameEngine<'a> {
     physics_engine: Box<dyn PhysicsEngine + 'static>,
-    render_engine: RenderEngine<'a>,
+    render_engine: RenderEngineControl<'a>,
     event_loop: EventLoop<CustomEvent>,
     event_loop_proxy: EventLoopProxy<CustomEvent>,
     //window_size: PhysicalSize<u32>,
@@ -63,6 +63,7 @@ impl<'a> GameEngine<'a> {
                     },
                     CustomEvent::ClientRender => {
                         let now = Instant::now();
+
                         let rect_instances = Self::get_rectangle_instances(&self.physics_engine);
                         let circle_instances = Self::get_circle_instances(&self.physics_engine);
                         let _ = self.render_engine.render_background();
@@ -243,7 +244,7 @@ impl <'a> GameEngineBuilder {
 
         // Build the render engine with data from the physics engine
         let bodies = physics_engine.get_bodies();
-        let mut render_engine_builder = RenderEngineBuilder::new();
+        let mut render_engine_builder = RenderEngineControlBuilder::new();
         render_engine_builder = if let Some(sprite_sheet) = self.sprite_sheet {
             render_engine_builder.sprite_sheet(sprite_sheet)
         } else  {

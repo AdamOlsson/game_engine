@@ -10,8 +10,9 @@ enum CustomEvent {
     ClientRender,
 }
 
-pub struct GameEngine<'a> {
-    physics_engine: Box<dyn PhysicsEngine + 'static>,
+pub struct GameEngine<'a, T: PhysicsEngine> {
+    //physics_engine: Box<dyn PhysicsEngine + 'static>,
+    physics_engine: T,
     render_engine: RenderEngineControl<'a>,
     event_loop: EventLoop<CustomEvent>,
     event_loop_proxy: EventLoopProxy<CustomEvent>,
@@ -22,9 +23,8 @@ pub struct GameEngine<'a> {
     writer: Writer,
 }
 
-impl<'a> GameEngine<'a> {
+impl<'a, T: PhysicsEngine> GameEngine<'a, T> {
     pub fn run(mut self) {
-
         let mut tick_count = 0;
         let hz = Duration::from_millis((1000/self.target_fps) as u64);
         let mut time_since_render = Instant::now();
@@ -137,7 +137,7 @@ impl<'a> GameEngine<'a> {
         }).unwrap();
     }
 
-    fn get_circle_instances(physics_engine: &Box<dyn PhysicsEngine>) -> Vec<CircleInstance> {
+    fn get_circle_instances(physics_engine: &T) -> Vec<CircleInstance> {
         let bodies = physics_engine.get_bodies();
         bodies.iter().filter_map(
             |body| {
@@ -154,7 +154,7 @@ impl<'a> GameEngine<'a> {
         }).collect::<Vec<_>>()
     }
 
-    fn get_rectangle_instances(physics_engine: &Box<dyn PhysicsEngine>) -> Vec<RectangleInstance> {
+    fn get_rectangle_instances(physics_engine: &T) -> Vec<RectangleInstance> {
         let bodies = physics_engine.get_bodies();
         bodies.iter().filter_map(
             |body| {
@@ -173,8 +173,9 @@ impl<'a> GameEngine<'a> {
 }
 
 
-pub struct GameEngineBuilder {
-    physics_engine: Option<Box<dyn PhysicsEngine>>,
+pub struct GameEngineBuilder<T: PhysicsEngine> {
+    //physics_engine: Option<Box<dyn PhysicsEngine>>,
+    physics_engine: Option<T>,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
     window_size: PhysicalSize<u32>,
@@ -183,7 +184,7 @@ pub struct GameEngineBuilder {
     window_title: String,
 }
 
-impl <'a> GameEngineBuilder {
+impl <'a, T: PhysicsEngine> GameEngineBuilder<T> {
     pub fn new() -> Self {
         let window_size = PhysicalSize::new(800,600);
         let target_fps = 60;
@@ -193,8 +194,10 @@ impl <'a> GameEngineBuilder {
         }
     }
 
-    pub fn physics_engine<S: PhysicsEngine + 'static>(mut self, sim: S) -> Self {
-        self.physics_engine = Some(Box::new(sim));
+    //pub fn physics_engine<S: PhysicsEngine + 'static>(mut self, sim: S) -> Self {
+    pub fn physics_engine(mut self, sim: T) -> Self {
+        //self.physics_engine = Some(Box::new(sim));
+        self.physics_engine = Some(sim);
         self
     }
 
@@ -228,7 +231,7 @@ impl <'a> GameEngineBuilder {
         self
     }
 
-    pub fn build(self) -> GameEngine<'a> {
+    pub fn build(self) -> GameEngine<'a, T> {
         let window_size = self.window_size;
         let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
             .build()

@@ -2,7 +2,6 @@ use super::sprite_sheet::SpriteSheet;
 
 use super::Asset;
 
-
 pub struct Font {
     font_sprite: SpriteSheet,
 }
@@ -18,7 +17,7 @@ pub struct FontInstance {
 pub struct Writer {}
 
 impl Writer {
-    pub fn write(&self, text: &str, position: &[f32; 3], size: f32) -> Vec<FontInstance> {
+    pub fn write(text: &str, position: &[f32; 3], size: f32) -> Vec<FontInstance> {
         let upper = text.to_uppercase();
         let bytes = upper.as_bytes();
         
@@ -110,19 +109,20 @@ mod test {
 
     #[test]
     fn zero(){
-        let writer = Writer{ char_width: 11.0, char_height: 11.0 };
+
+        let char_width = 11.0;
         let char = "0";
         let expected_out = [0.0,0.0, 1.0,1.0];
-        let out = writer.write(char, &[0.,0.,0.]);
+        let out = Writer::write(char, &[0.,0.,0.], char_width);
         assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
 
     #[test]
     fn z(){
-        let writer = Writer{ char_width: 11.0, char_height: 11.0 };
+        let char_width = 11.0;
         let char = "Z";
         let expected_out = [35.0,0.0, 36.0,1.0];
-        let out = writer.write(char, &[0.,0.,0.]);
+        let out = Writer::write(char, &[0.,0.,0.], char_width);
         assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
 }

@@ -1,7 +1,7 @@
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{asset::{background::Background, font::{self, Font, FontInstance}}, graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass::{self, render_pass::RenderPass}, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{asset::{background::Background, font::{Font, FontInstance}}, graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
 
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
@@ -178,7 +178,7 @@ impl <'a> RenderEngineControlBuilder {
             Some(b) => b,
             None => SpriteSheet::default(),
         };
-
+        
         let (text_render_pass, text_instance_buf) = if let Some(f) = self.font {
             let pass = Some(render_pass::render_pass::RenderPassBuilder::text()
                 .texture_data(Box::new(f))
@@ -216,7 +216,8 @@ impl <'a> RenderEngineControlBuilder {
         //let pp_gray = Some(Gray::new(&ctx.device, &size));
         let pp_gray = None; 
         let pp_identity = Identity::new(&ctx.device, &window_size);
-            
+        
+
         RenderEngineControl { 
             ctx, window_size, 
             pp_gray, pp_identity,

@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::CollisionBodyType, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{ RenderEngineControl, RenderEngineControlBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, PhysicsEngine};
+use super::{physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType}, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{ RenderEngineControl, RenderEngineControlBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, PhysicsEngine, RenderEngine};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 enum CustomEvent {
@@ -10,8 +10,7 @@ enum CustomEvent {
     ClientRender,
 }
 
-pub struct GameEngine<'a, T: PhysicsEngine> {
-    //physics_engine: Box<dyn PhysicsEngine + 'static>,
+pub struct GameEngine<'a, T: PhysicsEngine + RenderEngine> {
     physics_engine: T,
     render_engine: RenderEngineControl<'a>,
     event_loop: EventLoop<CustomEvent>,
@@ -20,10 +19,9 @@ pub struct GameEngine<'a, T: PhysicsEngine> {
     window_id: WindowId,
     target_fps: u32,
     target_tpf: u32,
-    writer: Writer,
 }
 
-impl<'a, T: PhysicsEngine> GameEngine<'a, T> {
+impl<'a, T: PhysicsEngine + RenderEngine> GameEngine<'a, T> {
     pub fn run(mut self) {
         let mut tick_count = 0;
         let hz = Duration::from_millis((1000/self.target_fps) as u64);
@@ -64,20 +62,9 @@ impl<'a, T: PhysicsEngine> GameEngine<'a, T> {
                     CustomEvent::ClientRender => {
                         let now = Instant::now();
 
-                        let rect_instances = Self::get_rectangle_instances(&self.physics_engine);
-                        let circle_instances = Self::get_circle_instances(&self.physics_engine);
-                        let _ = self.render_engine.render_background();
-                        let _ = self.render_engine.render_rectangles(&rect_instances, false);
-                        let _ = self.render_engine.render_circles(&circle_instances, false);
+                        let render_engine_ctl = &mut self.render_engine; 
+                        self.physics_engine.render(render_engine_ctl);
                         
-                        let text_size = 110.;
-                        let text1 = self.writer.write("HELLO WORLD", &[-400.0, -100.0, 0.0], text_size);
-                        let text2 = self.writer.write("012 345 678 9", &[-700.0, -400.0, 0.0], text_size);
-                        let _ = self.render_engine.render_text(text1, false);
-                        let _ = self.render_engine.render_text(text2, false);
-
-                        let _ = self.render_engine.post_process();
-
                         total_render_time += now.elapsed();
                         num_renders += 1;
 
@@ -136,45 +123,11 @@ impl<'a, T: PhysicsEngine> GameEngine<'a, T> {
             _ => (),
         }).unwrap();
     }
-
-    fn get_circle_instances(physics_engine: &T) -> Vec<CircleInstance> {
-        let bodies = physics_engine.get_bodies();
-        bodies.iter().filter_map(
-            |body| {
-                match body.body_type { 
-                    CollisionBodyType::Circle { radius } => 
-                        Some(CircleInstance {
-                            position: body.position.into(), 
-                            color: body.color.into(), 
-                            radius,
-                            sprite_coord: body.sprite_coord.coordinate, 
-                        }),
-                    _ => None
-                }
-        }).collect::<Vec<_>>()
-    }
-
-    fn get_rectangle_instances(physics_engine: &T) -> Vec<RectangleInstance> {
-        let bodies = physics_engine.get_bodies();
-        bodies.iter().filter_map(
-            |body| {
-                match body.body_type { 
-                    CollisionBodyType::Rectangle{ width, height } => 
-                        Some(RectangleInstance{
-                            color: body.color.into(), 
-                            position: body.position.into(),
-                            width,height,
-                            sprite_coord: body.sprite_coord.coordinate,
-                        }),
-                    _ => None
-                }
-            }).collect::<Vec<_>>()
-    }
 }
 
 
-pub struct GameEngineBuilder<T: PhysicsEngine> {
-    //physics_engine: Option<Box<dyn PhysicsEngine>>,
+
+pub struct GameEngineBuilder<T: PhysicsEngine + RenderEngine> {
     physics_engine: Option<T>,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
@@ -182,21 +135,20 @@ pub struct GameEngineBuilder<T: PhysicsEngine> {
     target_fps: u32,
     target_tpf: u32,
     window_title: String,
+    font: Option<Font>,
 }
 
-impl <'a, T: PhysicsEngine> GameEngineBuilder<T> {
+impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
     pub fn new() -> Self {
         let window_size = PhysicalSize::new(800,600);
         let target_fps = 60;
         let target_tpf = 1;
         Self { window_size, physics_engine: None, sprite_sheet: None, target_tpf, target_fps,
-            background: None, window_title: "".to_string(),
+            background: None, window_title: "".to_string(), font: None, 
         }
     }
 
-    //pub fn physics_engine<S: PhysicsEngine + 'static>(mut self, sim: S) -> Self {
     pub fn physics_engine(mut self, sim: T) -> Self {
-        //self.physics_engine = Some(Box::new(sim));
         self.physics_engine = Some(sim);
         self
     }
@@ -231,6 +183,11 @@ impl <'a, T: PhysicsEngine> GameEngineBuilder<T> {
         self
     }
 
+    pub fn font(mut self, font: Font) -> Self {
+        self.font = Some(font);
+        self
+    }
+
     pub fn build(self) -> GameEngine<'a, T> {
         let window_size = self.window_size;
         let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
@@ -250,27 +207,25 @@ impl <'a, T: PhysicsEngine> GameEngineBuilder<T> {
         let mut render_engine_builder = RenderEngineControlBuilder::new();
         render_engine_builder = if let Some(sprite_sheet) = self.sprite_sheet {
             render_engine_builder.sprite_sheet(sprite_sheet)
-        } else  {
-            render_engine_builder
-        };
+        } else { render_engine_builder };
 
         render_engine_builder = if let Some(bg) = self.background {
             render_engine_builder.background(bg)
-        } else  {
-            render_engine_builder
-        };
+        } else  { render_engine_builder };
 
-        let font = Font::new(include_bytes!("./renderer_engine/asset/fonts/font.png"), 11, 11);
-        let writer = font.writer();
-        let render_engine = render_engine_builder.bodies(bodies)
-            .font(font)
+        render_engine_builder = if let Some(f) = self.font {
+            render_engine_builder.font(f)
+        } else { render_engine_builder };
+
+        let render_engine = render_engine_builder
+            .bodies(bodies)
             .build(ctx, window_size);
        
         let target_fps = self.target_fps;
         let target_tpf = self.target_tpf;
         GameEngine { 
             physics_engine, render_engine, event_loop, event_loop_proxy, //window_size, 
-            window_id, target_tpf, target_fps, writer }
+            window_id, target_tpf, target_fps }
     }
 }
 

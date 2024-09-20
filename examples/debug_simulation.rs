@@ -3,6 +3,7 @@ extern crate game_engine;
 use cgmath::{ Vector3, Zero};
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::renderer_engine::asset::asset::Asset;
+use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use winit::dpi::PhysicalSize;
@@ -30,7 +31,7 @@ pub struct DebugPhysicsEngine {
 }
 
 impl DebugPhysicsEngine {
-    pub fn new(window_size: &winit::dpi::PhysicalSize<u32>) -> Self {
+    pub fn new(window_size: &winit::dpi::PhysicalSize<u32> ) -> Self {
         let dt = 0.001;
         
         let velocities = vec![Vector3::new(-5., 0.5, 0.0),
@@ -79,8 +80,21 @@ impl DebugPhysicsEngine {
 
 impl RenderEngine for DebugPhysicsEngine {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
-        //let rect_instances = GameEngine::get_rectangle_instances(&self.physics_engine);
-        //let circle_instances = GameEngine::get_circle_instances(&self.physics_engine);
+        let bodies = self.integrator.get_bodies();
+        let rect_instances = game_engine::engine::util::get_rectangle_instances(bodies);
+        let circle_instances = game_engine::engine::util::get_circle_instances(bodies);
+
+        let _ = engine_ctl.render_background();
+        let _ = engine_ctl.render_rectangles(&rect_instances, false);
+        let _ = engine_ctl.render_circles(&circle_instances, false);
+
+        let text_size = 110.;
+        let text1 = Writer::write("HELLO WORLD", &[-400.0, -100.0, 0.0], text_size);
+        let text2 = Writer::write("012 345 678 9", &[-700.0, -400.0, 0.0], text_size);
+        let _ = engine_ctl.render_text(text1, false);
+        let _ = engine_ctl.render_text(text2, false);
+
+        let _ = engine_ctl.post_process();
 
     }
 }
@@ -116,18 +130,21 @@ impl PhysicsEngine for DebugPhysicsEngine {
 }
 
 fn main() {
-    let window_size = PhysicalSize::new(1000, 800);
-    let physics_engine = DebugPhysicsEngine::new(&window_size);
-    
     let sprite_sheet_bytes = include_bytes!("../assets/sprite_sheet.png");
     let sprite_sheet_asset  = Asset::sprite_sheet(sprite_sheet_bytes, 16, 16);
     
     let background_bytes = include_bytes!("../assets/background.png"); // TODO
     let background_asset = Asset::background(background_bytes);
 
+    let font = Font::new(include_bytes!("../src/engine/renderer_engine/asset/fonts/font.png"), 11, 11);
+
+    let window_size = PhysicalSize::new(1000, 800);
+    let physics_engine = DebugPhysicsEngine::new(&window_size);
+
     let engine = GameEngineBuilder::new()
         .window_title("Debug Physics Engine".to_string())
         .physics_engine(physics_engine)
+        .font(font)
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)

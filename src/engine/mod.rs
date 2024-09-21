@@ -16,5 +16,5 @@ pub trait PhysicsEngine {
 }
 
 pub trait RenderEngine {
-    fn render(&mut self, engine: &mut RenderEngineControl);
+    fn render(&mut self, engine_ctl: &mut RenderEngineControl);
 }

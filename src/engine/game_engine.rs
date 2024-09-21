@@ -12,7 +12,7 @@ enum CustomEvent {
 
 pub struct GameEngine<'a, T: PhysicsEngine + RenderEngine> {
     physics_engine: T,
-    render_engine: RenderEngineControl<'a>,
+    render_engine_ctl: RenderEngineControl<'a>,
     event_loop: EventLoop<CustomEvent>,
     event_loop_proxy: EventLoopProxy<CustomEvent>,
     //window_size: PhysicalSize<u32>,
@@ -62,7 +62,7 @@ impl<'a, T: PhysicsEngine + RenderEngine> GameEngine<'a, T> {
                     CustomEvent::ClientRender => {
                         let now = Instant::now();
 
-                        let render_engine_ctl = &mut self.render_engine; 
+                        let render_engine_ctl = &mut self.render_engine_ctl; 
                         self.physics_engine.render(render_engine_ctl);
                         
                         total_render_time += now.elapsed();
@@ -128,7 +128,7 @@ impl<'a, T: PhysicsEngine + RenderEngine> GameEngine<'a, T> {
 
 
 pub struct GameEngineBuilder<T: PhysicsEngine + RenderEngine> {
-    physics_engine: Option<T>,
+    engine: Option<T>,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
     window_size: PhysicalSize<u32>,
@@ -143,13 +143,13 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         let window_size = PhysicalSize::new(800,600);
         let target_fps = 60;
         let target_tpf = 1;
-        Self { window_size, physics_engine: None, sprite_sheet: None, target_tpf, target_fps,
+        Self { window_size, engine: None, sprite_sheet: None, target_tpf, target_fps,
             background: None, window_title: "".to_string(), font: None, 
         }
     }
 
-    pub fn physics_engine(mut self, sim: T) -> Self {
-        self.physics_engine = Some(sim);
+    pub fn engine(mut self, sim: T) -> Self {
+        self.engine = Some(sim);
         self
     }
 
@@ -200,31 +200,31 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         let _ = window.request_inner_size(window_size);
         let event_loop_proxy = event_loop.create_proxy();
         let ctx = GraphicsContext::new(window);
-        let physics_engine = self.physics_engine.unwrap();
+        let physics_engine = self.engine.unwrap();
 
         // Build the render engine with data from the physics engine
         let bodies = physics_engine.get_bodies();
-        let mut render_engine_builder = RenderEngineControlBuilder::new();
-        render_engine_builder = if let Some(sprite_sheet) = self.sprite_sheet {
-            render_engine_builder.sprite_sheet(sprite_sheet)
-        } else { render_engine_builder };
+        let mut render_engine_ctl_builder = RenderEngineControlBuilder::new();
+        render_engine_ctl_builder = if let Some(sprite_sheet) = self.sprite_sheet {
+            render_engine_ctl_builder.sprite_sheet(sprite_sheet)
+        } else { render_engine_ctl_builder };
 
-        render_engine_builder = if let Some(bg) = self.background {
-            render_engine_builder.background(bg)
-        } else  { render_engine_builder };
+        render_engine_ctl_builder = if let Some(bg) = self.background {
+            render_engine_ctl_builder.background(bg)
+        } else  { render_engine_ctl_builder };
 
-        render_engine_builder = if let Some(f) = self.font {
-            render_engine_builder.font(f)
-        } else { render_engine_builder };
+        render_engine_ctl_builder = if let Some(f) = self.font {
+            render_engine_ctl_builder.font(f)
+        } else { render_engine_ctl_builder };
 
-        let render_engine = render_engine_builder
+        let render_engine_ctl = render_engine_ctl_builder
             .bodies(bodies)
             .build(ctx, window_size);
        
         let target_fps = self.target_fps;
         let target_tpf = self.target_tpf;
         GameEngine { 
-            physics_engine, render_engine, event_loop, event_loop_proxy, //window_size, 
+            physics_engine, render_engine_ctl, event_loop, event_loop_proxy, //window_size, 
             window_id, target_tpf, target_fps }
     }
 }

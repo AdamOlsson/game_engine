@@ -139,11 +139,11 @@ fn main() {
     let font = Font::new(include_bytes!("../src/engine/renderer_engine/asset/fonts/font.png"), 11, 11);
 
     let window_size = PhysicalSize::new(1000, 800);
-    let physics_engine = DebugPhysicsEngine::new(&window_size);
+    let debug_engine = DebugPhysicsEngine::new(&window_size);
 
     let engine = GameEngineBuilder::new()
         .window_title("Debug Physics Engine".to_string())
-        .physics_engine(physics_engine)
+        .engine(debug_engine)
         .font(font)
         .window_size(window_size)
         .target_frames_per_sec(60)

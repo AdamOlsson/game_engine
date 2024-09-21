@@ -1,7 +1,7 @@
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{asset::{background::Background, font::{Font, FontInstance}}, graphics_context::GraphicsContext, gray::gray::Gray, identity::identity::Identity, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+use super::{asset::{background::Background, font::{Font, FontInstance}}, graphics_context::GraphicsContext, post_process::{gray::gray::Gray, identity::identity::Identity}, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
 
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
@@ -94,6 +94,10 @@ impl <'a> RenderEngineControl <'a> {
 
         return Ok(());
     }
+
+    // Tint
+    // Blur
+    // Gray
 
     pub fn post_process(&mut self) -> Result<(), wgpu::SurfaceError>{
         let output_frame = self.ctx.surface.get_current_texture()?;

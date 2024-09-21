@@ -1,8 +1,6 @@
 pub mod vertex;
-//pub mod bloom;
-pub mod gray;
-pub mod identity;
 pub mod graphics_context;
+pub mod post_process;
 pub mod render_pass;
 pub mod instance;
 pub mod shapes;

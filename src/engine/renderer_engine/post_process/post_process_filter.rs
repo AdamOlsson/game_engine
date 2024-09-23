@@ -1,6 +1,7 @@
 use crate::engine::renderer_engine::{graphics_context::GraphicsContext, vertex::Vertex};
 
-use super::post_process_pipeline::PostProcessPipelineContext;
+use super::{post_process_pipeline::PostProcessPipelineContext, PostProcessFilterId};
+
 
 pub struct PostProcessFilter {
     label: Option<String>,
@@ -58,6 +59,12 @@ pub struct PostProcessFilterBuilder {
 }
 
 impl PostProcessFilterBuilder {
+
+    pub fn request_filter_builder(id: &PostProcessFilterId) -> PostProcessFilterBuilder {
+        match id {
+            PostProcessFilterId::Gray => Self::gray()
+        }
+    }
 
     pub fn identity() -> PostProcessFilterBuilder {
         let id = "Identity".to_string();

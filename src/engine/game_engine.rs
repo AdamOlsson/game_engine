@@ -2,8 +2,13 @@ use std::time::{Duration, Instant};
 
 use winit::{dpi::PhysicalSize, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{EventLoop, EventLoopBuilder, EventLoopProxy}, keyboard::{KeyCode, PhysicalKey}, window::{WindowBuilder, WindowId}};
 
-use super::{physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType}, renderer_engine::{asset::{background::Background, font::{Font, Writer}}, graphics_context::GraphicsContext, render_engine::{ RenderEngineControl, RenderEngineControlBuilder}, shapes::{circle::CircleInstance, rectangle::RectangleInstance}}, PhysicsEngine, RenderEngine};
+use crate::engine::renderer_engine::post_process::PostProcessFilterId;
+use crate::engine::renderer_engine::render_engine::{ RenderEngineControl, RenderEngineControlBuilder};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
+use crate::engine::renderer_engine::asset::background::Background;
+use crate::engine::renderer_engine::asset::font::Font;
+use crate::engine::{RenderEngine, PhysicsEngine};
+use crate::engine::renderer_engine::graphics_context::GraphicsContext;
 
 enum CustomEvent {
     ServerTick,
@@ -136,6 +141,7 @@ pub struct GameEngineBuilder<T: PhysicsEngine + RenderEngine> {
     target_tpf: u32,
     window_title: String,
     font: Option<Font>,
+    pp_filter: Vec<PostProcessFilterId>,
 }
 
 impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
@@ -144,7 +150,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         let target_fps = 60;
         let target_tpf = 1;
         Self { window_size, engine: None, sprite_sheet: None, target_tpf, target_fps,
-            background: None, window_title: "".to_string(), font: None, 
+            background: None, window_title: "".to_string(), font: None, pp_filter: vec![],
         }
     }
 
@@ -188,7 +194,12 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         self
     }
 
-    pub fn build(self) -> GameEngine<'a, T> {
+    pub fn add_post_process_filters(mut self, filters: &mut Vec<PostProcessFilterId>) -> Self {
+        self.pp_filter.append(filters);
+        self
+    }
+
+    pub fn build(mut self) -> GameEngine<'a, T> {
         let window_size = self.window_size;
         let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
             .build()
@@ -219,6 +230,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
 
         let render_engine_ctl = render_engine_ctl_builder
             .bodies(bodies)
+            .add_post_process_filters(&mut self.pp_filter)
             .build(ctx, window_size);
        
         let target_fps = self.target_fps;

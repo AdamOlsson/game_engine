@@ -1,16 +1,23 @@
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
-use super::{asset::{background::Background, font::{Font, FontInstance}}, graphics_context::GraphicsContext, post_process::{post_process_filter::PostProcessFilterBuilder, post_process_pipeline::{PostProcessPipeline, PostProcessPipelineContext}}, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
-
+use crate::engine::renderer_engine::post_process::PostProcessFilterId;
+use crate::engine::renderer_engine::post_process::post_process_filter::PostProcessFilterBuilder;
+use crate::engine::renderer_engine::post_process::post_process_filter::PostProcessFilter;
+use crate::engine::renderer_engine::post_process::post_process_pipeline::PostProcessPipelineContext;
+use crate::engine::renderer_engine::post_process::post_process_pipeline::PostProcessPipeline;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
+use crate::engine::renderer_engine::asset::background::Background;
+use crate::engine::renderer_engine::asset::font::{Font, FontInstance};
+
+use super::{ graphics_context::GraphicsContext, render_pass, shapes::{circle::{Circle, CircleInstance}, rectangle::{Rectangle, RectangleInstance}, Shape}};
+
 
 pub struct RenderEngineControl<'a> {
     pub g_ctx: GraphicsContext<'a>,
     window_size: PhysicalSize<u32>,
 
-    //pp_ctx: PostProcessPipelineContext,
-    pub pp_ctx: PostProcessPipelineContext,
+    pp_ctx: PostProcessPipelineContext,
 
     post_process_pipeline: PostProcessPipeline,
 
@@ -134,13 +141,14 @@ pub struct RenderEngineControlBuilder {
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
     font: Option<Font>,
-    use_gray_pp: bool,
+    pp_filter: Vec<PostProcessFilterId>,
 }
 
 impl <'a> RenderEngineControlBuilder {
     pub fn new() -> Self {
         Self { circ_instance_buf_len: 0,rect_instance_buf_len: 0, sprite_sheet: None, 
-            background: None, font: None, use_gray_pp: false }
+            background: None, font: None, pp_filter: vec![],
+}
     }
 
     pub fn bodies(mut self, bodies: &Vec<CollisionBody>) -> Self {
@@ -182,8 +190,8 @@ impl <'a> RenderEngineControlBuilder {
         self
     }
 
-    pub fn use_gray_pp(mut self) -> Self {
-        self.use_gray_pp = true;
+    pub fn add_post_process_filters(mut self, filters: &mut Vec<PostProcessFilterId>) -> Self {
+        self.pp_filter.append(filters);
         self
     }
 
@@ -231,9 +239,16 @@ impl <'a> RenderEngineControlBuilder {
              wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, false);
         
         let pp_ctx = PostProcessPipelineContext::new(&g_ctx, &window_size);
-        let gray = PostProcessFilterBuilder::gray().build(&g_ctx, &pp_ctx);
+
         let mut post_process_pipeline = PostProcessPipeline::new(&g_ctx, &pp_ctx);
-        post_process_pipeline.add_filters(&mut vec![gray]);
+        let mut filters: Vec<PostProcessFilter> = self.pp_filter.iter()
+            .map(|f_id| {
+                let builder = PostProcessFilterBuilder::request_filter_builder(f_id);
+                return builder.build(&g_ctx, &pp_ctx);
+                
+        })
+        .collect();
+        post_process_pipeline.add_filters(&mut filters);
 
         RenderEngineControl { 
             g_ctx, pp_ctx, window_size, 

@@ -5,6 +5,7 @@ use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::renderer_engine::asset::asset::Asset;
 use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
+use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use winit::dpi::PhysicalSize;
 
@@ -153,6 +154,7 @@ fn main() {
         .window_title("Debug Physics Engine".to_string())
         .engine(debug_engine)
         .font(font)
+        .add_post_process_filters(&mut vec![PostProcessFilterId::Gray])
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)

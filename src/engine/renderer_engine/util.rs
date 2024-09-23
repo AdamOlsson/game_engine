@@ -1,7 +1,6 @@
 use image::{ImageBuffer, Rgba};
 
 use super::graphics_context::GraphicsContext;
-use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 
 pub fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::ShaderModule{
     device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -11,11 +10,12 @@ pub fn create_shader_module(device: &wgpu::Device, path: String) -> wgpu::Shader
 }
 
 pub fn texture_bind_group_from_texture(
-    device: &wgpu::Device, sampler: &wgpu::Sampler, texture: &wgpu::Texture
+    device: &wgpu::Device, sampler: &wgpu::Sampler, texture: &wgpu::Texture,
+    label: Option<&str>,
 ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
     let layout = device.create_bind_group_layout(
         &wgpu::BindGroupLayoutDescriptor {
-            label: Some("Gray Bind Group Layout"),
+            label,
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -98,9 +98,11 @@ pub (crate) fn write_texture(
         texture_size);
 }
 
-pub (crate) fn create_sampler(device: &wgpu::Device) -> wgpu::Sampler {
+pub (crate) fn create_sampler(
+    device: &wgpu::Device, label: Option<&str>,
+) -> wgpu::Sampler {
     device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("Gray Sampler"), 
+        label, 
         address_mode_u: wgpu::AddressMode::ClampToEdge,
         address_mode_v: wgpu::AddressMode::ClampToEdge,
         address_mode_w: wgpu::AddressMode::ClampToEdge, 

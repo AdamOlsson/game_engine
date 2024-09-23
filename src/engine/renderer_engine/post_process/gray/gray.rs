@@ -15,7 +15,7 @@ impl Gray {
         let texture = Self::create_texture(device, size);
         let sampler = Self::create_sampler(device);
         let (vertex_buffer, vertex_buffer_layout) = Self::create_vertex_buffer(device);
-        let (bind_group, bind_group_layout) = util::texture_bind_group_from_texture(device, &sampler, &texture);
+        let (bind_group, bind_group_layout) = util::texture_bind_group_from_texture(device, &sampler, &texture, Some("gray bind group"));
         
         let render_pipeline = Self::create_pipeline(device, &[&bind_group_layout], vertex_buffer_layout);
 

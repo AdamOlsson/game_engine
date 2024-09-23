@@ -283,7 +283,8 @@ impl RenderPassBuilder {
             Some(data) => {
                 let texture = create_texture(&ctx, data.buffer().dimensions(), Some(format!("{} Sprite Sheet", id.clone()).as_str()));
                 write_texture(&ctx, &texture, data.buffer());
-                let sampler = create_sampler(&ctx.device);
+                let sampler = create_sampler(&ctx.device, 
+                    Some(format!("{} Sprite Sheet Sampler", id.clone()).as_str()));
                 Self::create_texture_bind_group_from_sprite_sheet(&ctx.device, texture, sampler, &data)
             }
             _ => todo!(), 

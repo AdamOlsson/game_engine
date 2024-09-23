@@ -81,21 +81,29 @@ impl DebugPhysicsEngine {
 impl RenderEngine for DebugPhysicsEngine {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let bodies = self.integrator.get_bodies();
+
+        let target_texture_handle = engine_ctl.request_texture_handle();
+
         let rect_instances = game_engine::engine::util::get_rectangle_instances(bodies);
         let circle_instances = game_engine::engine::util::get_circle_instances(bodies);
+        engine_ctl.render_background(&target_texture_handle).unwrap();
 
-        let _ = engine_ctl.render_background();
-        let _ = engine_ctl.render_rectangles(&rect_instances, false);
-        let _ = engine_ctl.render_circles(&circle_instances, false);
+        engine_ctl.render_rectangles(&target_texture_handle, &rect_instances, false).unwrap();
+        engine_ctl.render_circles(&target_texture_handle, &circle_instances, false).unwrap();
 
         let text_size = 110.;
         let text1 = Writer::write("HELLO WORLD", &[-400.0, -100.0, 0.0], text_size);
         let text2 = Writer::write("012 345 678 9", &[-700.0, -400.0, 0.0], text_size);
-        let _ = engine_ctl.render_text(text1, false);
-        let _ = engine_ctl.render_text(text2, false);
+        engine_ctl.render_text(&target_texture_handle, text1, false).unwrap();
+        engine_ctl.render_text(&target_texture_handle, text2, false).unwrap();
 
-        let _ = engine_ctl.post_process();
+        // engine_ctl.start_post_process();
+        // engine_ctl.run_post_process( <pp id>);
+        // engine_ctl.run_post_process( <pp id>);
+        // let post_process_texture = engine_ctl.end_post_process();
+        let final_texture_handle = engine_ctl.post_process(&target_texture_handle).unwrap();
 
+        let _ = engine_ctl.present(&final_texture_handle);
     }
 }
 

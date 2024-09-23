@@ -14,6 +14,8 @@ fn vs_main(
     return output;
 }
 
+// TODO: If we don't bring in the texture specifically but have selected load operation 
+// load, how do we access color loaded on the specific vertex?
 @group(0) @binding(0) var gray_sampler: sampler;
 @group(0) @binding(1) var input_texture: texture_2d<f32>;
 @fragment

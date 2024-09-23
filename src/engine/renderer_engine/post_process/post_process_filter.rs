@@ -68,13 +68,13 @@ impl PostProcessFilterBuilder {
 
     pub fn identity() -> PostProcessFilterBuilder {
         let id = "Identity".to_string();
-        let shader_path = include_str!("./identity/shaders/identity2.wgsl").to_string();
+        let shader_path = include_str!("./identity/identity.wgsl").to_string();
         Self { id, shader_path, }
     }
 
     pub fn gray() -> PostProcessFilterBuilder {
         let id = "Gray".to_string();
-        let shader_path = include_str!("./gray/shaders/gray2.wgsl").to_string();
+        let shader_path = include_str!("./gray/gray.wgsl").to_string();
         Self { id, shader_path, }
     }
 

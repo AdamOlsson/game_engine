@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use winit::dpi::PhysicalSize;
 use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
@@ -107,10 +109,10 @@ impl <'a> RenderEngineControl <'a> {
         return Ok(());
     }
 
-    pub fn post_process(
-        &mut self, texture_handle: &wgpu::Id<wgpu::Texture>,
+    pub fn run_post_process_filter(
+        &mut self, filter_id: &PostProcessFilterId, texture_handle: &wgpu::Id<wgpu::Texture>,
     ) -> Result<wgpu::Id<wgpu::Texture>, wgpu::SurfaceError>{
-        self.post_process_pipeline.run(&self.g_ctx, &self.pp_ctx, &texture_handle)
+        self.post_process_pipeline.run(&self.g_ctx, &self.pp_ctx, &filter_id, texture_handle)
     }
 
     pub fn present(
@@ -241,14 +243,14 @@ impl <'a> RenderEngineControlBuilder {
         let pp_ctx = PostProcessPipelineContext::new(&g_ctx, &window_size);
 
         let mut post_process_pipeline = PostProcessPipeline::new(&g_ctx, &pp_ctx);
-        let mut filters: Vec<PostProcessFilter> = self.pp_filter.iter()
-            .map(|f_id| {
+        let mut filters = HashMap::new();
+        self.pp_filter.iter()
+            .for_each(|f_id| {
                 let builder = PostProcessFilterBuilder::request_filter_builder(f_id);
-                return builder.build(&g_ctx, &pp_ctx);
-                
-        })
-        .collect();
-        post_process_pipeline.add_filters(&mut filters);
+                let f = builder.build(&g_ctx, &pp_ctx);
+                filters.insert(*f_id, f); 
+        });
+        post_process_pipeline.set_filters(filters);
 
         RenderEngineControl { 
             g_ctx, pp_ctx, window_size, 

@@ -1,11 +1,21 @@
+use std::collections::HashMap;
+
 use wgpu::util::DeviceExt;
 
-use crate::engine::renderer_engine::{graphics_context::GraphicsContext, util::{create_sampler, create_texture, texture_bind_group_from_texture}, vertex::Vertex};
+use crate::engine::renderer_engine::{
+    graphics_context::GraphicsContext,
+    vertex::Vertex,
+    util::{
+        create_sampler,
+        create_texture,
+        texture_bind_group_from_texture
+    },
+};
 
-use super::post_process_filter::{PostProcessFilter, PostProcessFilterBuilder};
+use super::{post_process_filter::{PostProcessFilter, PostProcessFilterBuilder}, PostProcessFilterId};
 
 pub struct PostProcessPipeline{
-    filters: Vec<PostProcessFilter>,
+    filters: HashMap<PostProcessFilterId,PostProcessFilter>,
     identity: PostProcessFilter,
 }
 
@@ -15,50 +25,37 @@ impl PostProcessPipeline {
         g_ctx: &GraphicsContext, pp_ctx: &PostProcessPipelineContext,
     ) -> Self {
         let identity = PostProcessFilterBuilder::identity().build(&g_ctx, &pp_ctx);
-        let filters = vec![];
+        let filters = HashMap::new(); 
         Self {  filters, identity }
-
     }
 
-    pub fn add_filters(&mut self, f: &mut Vec<PostProcessFilter>) {
-       self.filters.append(f);
+    pub fn set_filters(&mut self, fs: HashMap<PostProcessFilterId, PostProcessFilter>) {
+        self.filters = fs;
+    }
+
+    pub fn add_filter(&mut self, id: PostProcessFilterId, f: PostProcessFilter) {
+        self.filters.insert(id, f);
     }
 
     pub fn run(
         &mut self, g_ctx: &GraphicsContext, pp_ctx: &PostProcessPipelineContext,
-        texture_handle: &wgpu::Id<wgpu::Texture>,
+        filter_id: &PostProcessFilterId, texture_handle: &wgpu::Id<wgpu::Texture>
     ) -> Result<wgpu::Id<wgpu::Texture>,wgpu::SurfaceError> {
 
-        // Texture A contains the output
-        let texture_a = pp_ctx.request_texture_by_handle(&texture_handle).unwrap();
-        let texture_b = pp_ctx.request_other_texture_by_handle(&texture_handle).unwrap();
-        let bind_group_a = pp_ctx.request_bind_group_by_handle(&texture_handle).unwrap();
-        let bind_group_b = pp_ctx.request_other_bind_group_by_handle(&texture_handle).unwrap();
-        let index_format = pp_ctx.index_format;
+        let filter = self.filters.get_mut(&filter_id)
+            .expect("Requested post processing using nonexisting filter {filter_id}");
+        let source = pp_ctx.request_bind_group_by_handle(&texture_handle)
+            .expect("Target texture handle {texture_handle} does not belong to post process context");
+        let destination = pp_ctx.request_other_texture_by_handle(&texture_handle)
+            .expect("Target texture handle {texture_handle} does not belong to post process context");
 
-        // Ping pong between the two bind_groups
-        self.filters.iter_mut().enumerate().for_each(
-            |(i, f)| {
-                match i % 2 {
-                    0 => 
-                        f.render(g_ctx, &texture_b, &pp_ctx.vertex_buffer,
-                            &pp_ctx.index_buffer, &index_format, &bind_group_a).unwrap(),
-                    1 =>
-                        f.render(g_ctx, &texture_a, &pp_ctx.vertex_buffer,
-                            &pp_ctx.index_buffer, &index_format, &bind_group_b).unwrap(),
-                    _ => panic!("How did you get here?..."),
-                }
-            });
+        filter.render(&g_ctx, &destination, &pp_ctx.vertex_buffer, &pp_ctx.index_buffer,
+            &pp_ctx.index_format, source).unwrap();
         
-        // Return the texture id with the latest result
-        let output_texture = match self.filters.len() % 2 {
-            0 => pp_ctx.texture_a.global_id(),
-            1 => pp_ctx.texture_b.global_id(),
-            _ => panic!("How did you get here?..."),
-        };
-
-        Ok(output_texture)
+        // return the handle of the texture containing the filtered output
+        return Ok(pp_ctx.request_other_handle(&texture_handle).unwrap());
     }
+
 
     pub fn finalize(
         &mut self, g_ctx: &GraphicsContext, pp_ctx: &PostProcessPipelineContext,
@@ -168,6 +165,21 @@ impl PostProcessPipelineContext {
 
     pub fn request_texture_handle(&self) -> wgpu::Id<wgpu::Texture> {
         self.texture_a.global_id()
+    }
+
+    pub fn request_other_handle(
+        &self, handle: &wgpu::Id<wgpu::Texture>
+    ) -> Option<wgpu::Id<wgpu::Texture>> {
+        if *handle == self.texture_a.global_id() {
+            return Some(self.texture_b.global_id());
+        } else if *handle == self.texture_b.global_id() {
+            return Some(self.texture_a.global_id());
+        }
+        return None; 
+    }
+
+    pub fn contains_texture_handle(&self, handle: &wgpu::Id<wgpu::Texture>) -> bool {
+       *handle == self.texture_a.global_id() || *handle == self.texture_b.global_id() 
     }
 
     fn create_texture_bind_group(

@@ -228,6 +228,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
             render_engine_ctl_builder.font(f)
         } else { render_engine_ctl_builder };
 
+        
         let render_engine_ctl = render_engine_ctl_builder
             .bodies(bodies)
             .add_post_process_filters(&mut self.pp_filter)

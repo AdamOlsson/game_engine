@@ -9,11 +9,11 @@ use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use winit::dpi::PhysicalSize;
 
+use game_engine::engine::{PhysicsEngine, RenderEngine};
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
-use game_engine::engine::{PhysicsEngine, RenderEngine};
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::constraint::Constraint;
@@ -98,13 +98,10 @@ impl RenderEngine for DebugPhysicsEngine {
         engine_ctl.render_text(&target_texture_handle, text1, false).unwrap();
         engine_ctl.render_text(&target_texture_handle, text2, false).unwrap();
 
-        // engine_ctl.start_post_process();
-        // engine_ctl.run_post_process( <pp id>);
-        // engine_ctl.run_post_process( <pp id>);
-        // let post_process_texture = engine_ctl.end_post_process();
-        let final_texture_handle = engine_ctl.post_process(&target_texture_handle).unwrap();
-
-        let _ = engine_ctl.present(&final_texture_handle);
+        //let gray_texture_handle = engine_ctl.run_post_process_filter(
+        //    &PostProcessFilterId::Gray, &target_texture_handle).unwrap();
+        //let _ = engine_ctl.present(&gray_texture_handle);
+        engine_ctl.present(&target_texture_handle).unwrap();
     }
 }
 

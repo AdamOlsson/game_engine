@@ -91,6 +91,9 @@ impl RenderEngine for DebugPhysicsEngine {
 
         engine_ctl.render_rectangles(&target_texture_handle, &rect_instances, false).unwrap();
         engine_ctl.render_circles(&target_texture_handle, &circle_instances, false).unwrap();
+    
+        //let target_texture_handle = engine_ctl.run_post_process_filter(
+        //    &PostProcessFilterId::Tint, &target_texture_handle).unwrap();
 
         let text_size = 110.;
         let text1 = Writer::write("HELLO WORLD", &[-400.0, -100.0, 0.0], text_size);
@@ -98,10 +101,9 @@ impl RenderEngine for DebugPhysicsEngine {
         engine_ctl.render_text(&target_texture_handle, text1, false).unwrap();
         engine_ctl.render_text(&target_texture_handle, text2, false).unwrap();
 
-        //let gray_texture_handle = engine_ctl.run_post_process_filter(
+        //let target_texture_handle= engine_ctl.run_post_process_filter(
         //    &PostProcessFilterId::Gray, &target_texture_handle).unwrap();
-        //let _ = engine_ctl.present(&gray_texture_handle);
-        engine_ctl.present(&target_texture_handle).unwrap();
+        engine_ctl.present(&target_texture_handle).expect("Failed to present texture");
     }
 }
 
@@ -151,7 +153,7 @@ fn main() {
         .window_title("Debug Physics Engine".to_string())
         .engine(debug_engine)
         .font(font)
-        .add_post_process_filters(&mut vec![PostProcessFilterId::Gray])
+        .add_post_process_filters(&mut vec![PostProcessFilterId::Gray, PostProcessFilterId::Tint])
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)

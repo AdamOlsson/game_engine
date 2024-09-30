@@ -4,13 +4,15 @@ pub mod post_process_pipeline;
 #[derive(Eq, Hash, PartialEq, Copy, Clone)]
 pub enum PostProcessFilterId {
     Gray,
+    Tint,
 }
 
 
 impl std::fmt::Display for PostProcessFilterId{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PostProcessFilterId::Gray => write!(f, "PostProcessFilterId::Gray "),
+            PostProcessFilterId::Gray => write!(f, "PostProcessFilterId::Gray"),
+            PostProcessFilterId::Tint=> write!(f, "PostProcessFilterId::Tint"),
         }
     }
 }

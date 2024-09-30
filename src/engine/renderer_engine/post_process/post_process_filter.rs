@@ -62,7 +62,8 @@ impl PostProcessFilterBuilder {
 
     pub fn request_filter_builder(id: &PostProcessFilterId) -> PostProcessFilterBuilder {
         match id {
-            PostProcessFilterId::Gray => Self::gray()
+            PostProcessFilterId::Gray => Self::gray(),
+            PostProcessFilterId::Tint => Self::tint()
         }
     }
 
@@ -75,6 +76,12 @@ impl PostProcessFilterBuilder {
     pub fn gray() -> PostProcessFilterBuilder {
         let id = "Gray".to_string();
         let shader_path = include_str!("./gray/gray.wgsl").to_string();
+        Self { id, shader_path, }
+    }
+
+    pub fn tint() -> PostProcessFilterBuilder {
+        let id = "Tint".to_string();
+        let shader_path = include_str!("./tint/tint.wgsl").to_string();
         Self { id, shader_path, }
     }
 

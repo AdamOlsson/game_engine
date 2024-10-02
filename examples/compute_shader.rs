@@ -1,13 +1,11 @@
 extern crate game_engine;
 
-use std::num::{NonZeroU32, NonZeroU64};
 
 use game_engine::engine::renderer_engine::graphics_context::GraphicsContext;
 use game_engine::engine::renderer_engine::util;
-use game_engine::engine::Simulation;
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use winit::dpi::PhysicalSize;
+use game_engine::engine::PhysicsEngine;
+use wgpu::util::DeviceExt;
 use winit::event_loop::EventLoopBuilder;
 use winit::window::WindowBuilder;
 
@@ -23,7 +21,7 @@ impl MainSimulation{
     }
 }
 
-impl Simulation for MainSimulation {
+impl PhysicsEngine for MainSimulation {
 
     fn update(&mut self) {}
 

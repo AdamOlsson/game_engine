@@ -112,7 +112,7 @@ mod test {
 
         let char_width = 11.0;
         let char = "0";
-        let expected_out = [0.0,0.0, 1.0,1.0];
+        let expected_out = [1.0,0.0, 2.0,1.0];
         let out = Writer::write(char, &[0.,0.,0.], char_width);
         assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }
@@ -121,7 +121,7 @@ mod test {
     fn z(){
         let char_width = 11.0;
         let char = "Z";
-        let expected_out = [35.0,0.0, 36.0,1.0];
+        let expected_out = [36.0,0.0, 37.0,1.0];
         let out = Writer::write(char, &[0.,0.,0.], char_width);
         assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
     }

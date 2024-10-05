@@ -35,9 +35,7 @@ struct BoundingCircle {
     pub radius: f32,
 }
 
-pub struct SpatialSubdivision {
-    window_size: (f32, f32),
-}
+pub struct SpatialSubdivision {}
 
 const CONTROL_BIT_BOUNDING_VOLUME_1: u8 = 0b0000_0001;
 const CONTROL_BIT_BOUNDING_VOLUME_2: u8 = 0b0000_0010;
@@ -51,8 +49,8 @@ const BOUNDING_VOLUME_MASK: u8 = 0b0000_1111;
 const HOME_CELL_MASK: u8 = 0b1111_0000;
 
 impl SpatialSubdivision {
-    pub fn new(window_size: (f32, f32)) -> Self {
-        Self { window_size }
+    pub fn new() -> Self {
+        Self { }
     }
 
     fn get_control_bit_for_home_cell_id(cell_id: (u32,u32,u32)) -> u8 {
@@ -255,18 +253,13 @@ impl SpatialSubdivision {
         let home_cell_id_type_a: u8 = 1 << home_cell_id_a;
         let home_cell_id_type_b: u8 = 1 << home_cell_id_b;
 
-        println!("home_cell_id_a: {home_cell_id_a}, home_cell_id_b: {home_cell_id_b}");
-
         let bounding_volume_cell_a = object_id_a.control_bits & BOUNDING_VOLUME_MASK;
         let bounding_volume_cell_b = object_id_b.control_bits & BOUNDING_VOLUME_MASK;
         let common_bounding_volume_cells = bounding_volume_cell_a & bounding_volume_cell_b;
-        println!("common_bounding_volume_cells: {common_bounding_volume_cells }");
-        println!("home_cell_id_type_b: {home_cell_id_type_b}");
 
         let home_cell_a_among_common_cells = (home_cell_id_type_a & common_bounding_volume_cells) > 0;
         let home_cell_b_among_common_cells = (home_cell_id_type_b & common_bounding_volume_cells) > 0;
 
-        println!("home_cell_b_among_common_cells: {home_cell_b_among_common_cells}");
         let pred_a = (home_cell_id_a +1) < t && home_cell_a_among_common_cells;
         let pred_b = (home_cell_id_b +1) < t && home_cell_b_among_common_cells;
 
@@ -274,8 +267,8 @@ impl SpatialSubdivision {
     }
  }
 
-impl BroadPhase for SpatialSubdivision {
-    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates> {
+impl BroadPhase<Vec<Vec<CollisionCandidates>>> for SpatialSubdivision {
+    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<Vec<CollisionCandidates>> {
         
         let (mut bcircles, largest_radius, min_x, min_y) = bodies.par_iter()
             .filter_map(|b| match b.body_type {
@@ -378,13 +371,7 @@ impl BroadPhase for SpatialSubdivision {
             }
         );
 
-        //let pass1 = passes[0];
-        //let pass2 = passes[1];
-        //let pass3 = passes[2];
-        //let pass4 = passes[3];
-
-        // return passes
-        return vec![];
+        return vec![pass1, pass2, pass3, pass4];
     }
 }
 

@@ -2,6 +2,7 @@ extern crate game_engine;
 
 use cgmath::{ Vector3, Zero};
 use game_engine::engine::game_engine::GameEngineBuilder;
+use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
 use game_engine::engine::renderer_engine::asset::asset::Asset;
 use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
@@ -27,7 +28,7 @@ pub struct DebugPhysicsEngine {
     dt: f32,
     integrator: VerletIntegrator,
     constraint: Box<dyn Constraint>,
-    broadphase: Box<dyn BroadPhase>,
+    broadphase: Box<dyn BroadPhase<Vec<CollisionCandidates>>>,
     narrowphase: Box<dyn NarrowPhase>,
 }
 

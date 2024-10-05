@@ -50,7 +50,7 @@ impl BlockMap {
 
 }
 
-impl BroadPhase for BlockMap {
+impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
 
     fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates> {
         

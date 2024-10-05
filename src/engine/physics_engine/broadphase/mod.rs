@@ -6,4 +6,9 @@ pub mod spatial_subdivision;
 
 pub trait BroadPhase {
     fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates>;
+    //fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates>;
+}
+
+pub struct BroadPhaseResult<T> {
+    collision_candidates: T
 }

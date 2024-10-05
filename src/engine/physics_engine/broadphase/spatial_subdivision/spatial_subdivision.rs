@@ -331,8 +331,12 @@ impl BroadPhase for SpatialSubdivision {
                 }
             });
 
+        let mut pass1 = vec![];
+        let mut pass2 = vec![];
+        let mut pass3 = vec![];
+        let mut pass4 = vec![];
         let cell_index = Self::cumsum(&cell_id_array);
-        let collision_cells: Vec<(u8,Vec<usize>)> = cell_index.iter()
+        cell_index.iter()
             .filter(|(_, count)| *count > 1)
             .map(|(index, count)| {
                 let start = *index as usize;
@@ -364,72 +368,28 @@ impl BroadPhase for SpatialSubdivision {
                 }
             }
             return (pass_num, collision_set.into_iter().collect());
-        })
-        .collect();
+        }).for_each(|(pass_num, collisions)|
+            match pass_num {
+                1 => pass1.push(CollisionCandidates::new(collisions)),
+                2 => pass2.push(CollisionCandidates::new(collisions)),
+                3 => pass3.push(CollisionCandidates::new(collisions)),
+                4 => pass4.push(CollisionCandidates::new(collisions)),
+                _ => unreachable!(),
+            }
+        );
 
-        let passes = collision_cells 
-            .par_iter()
-            .map(|(pass_num, collisions)| {
-                // Add the values to the appropriate vector based on the u8 key
-                let index = (*pass_num as usize) -1;
-                debug_assert!(index < 4, "Expected pass number to be less than 4");
-                match index {
-                    0 => vec![collisions.to_vec(), vec![], vec![], vec![]],
-                    1 => vec![vec![], collisions.to_vec(), vec![], vec![]],
-                    2 => vec![vec![], vec![], collisions.to_vec(), vec![]],
-                    3 => vec![vec![], vec![], vec![], collisions.to_vec()],
-                    _ => unreachable!(),
-                }
-            })
-        // Combine the results from all threads by reducing the vectors
-        .reduce(
-            || vec![Vec::new(), Vec::new(), Vec::new(), Vec::new()],
-            |mut acc, local| {
-                // Merge the local results into the global result
-                for i in 0..4 {
-                    acc[i].extend(local[i].clone());
-                }
-                acc
-            },
-        ); 
-        
+        //let pass1 = passes[0];
+        //let pass2 = passes[1];
+        //let pass3 = passes[2];
+        //let pass4 = passes[3];
+
         // return passes
         return vec![];
     }
-
-   
 }
 
 #[cfg(test)]
 mod tests {
-    //#[allow(non_snake_case)]
-    //mod assign_cell_type {
-    //    use cgmath::Vector3;
-
-    //    use super::super::BoundingCircle;
-    //    use super::super::CellType;
-    //    use super::super::SpatialSubdivision;
-    //    macro_rules! assign_cell_type_tests {
-    //        ($($name:ident: $input:expr )*) => {
-    //            $(
-    //                #[test]
-    //                fn $name() {
-    //                    let (x,y, cell_width, expected_output) = $input;
-    //                    let bcircle = BoundingCircle { center: Vector3::new(x,y,0.0), radius: 0.1 };
-    //                    let cell_type = SpatialSubdivision::assign_cell_type(&bcircle, cell_width);
-    //                    assert_eq!(expected_output, cell_type, "Expected cell type {expected_output:?} but received {cell_type:?}");
-    //                }
-    //            )*
-    //        }
-    //    }
-
-    //    assign_cell_type_tests! {
-    //        given_center_0_0__0_0_when_cell_width_0_1_then_cell_type_one: (0.0, 0.0, 0.1, CellType::One)
-    //        given_center_0_05__0_0_when_cell_width_0_05_then_cell_type_two: (0.05, 0.0, 0.05, CellType::Two)
-    //        given_center_0_0__0_15_when_cell_width_0_05_then_cell_type_two: (0.0, 0.15, 0.05, CellType::Three)
-    //        given_center_0_015__0_15_when_cell_width_0_05_then_cell_type_two: (0.15, 0.15, 0.05, CellType::Four)
-    //    }
-    //}
 
     #[allow(non_snake_case)]
     mod compute_overlapping_cell_types {

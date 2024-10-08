@@ -136,7 +136,7 @@ pub struct GameEngineBuilder<T: PhysicsEngine + RenderEngine> {
     engine: Option<T>,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
-    window_size: PhysicalSize<u32>,
+    window_size: (u32,u32),
     target_fps: u32,
     target_tpf: u32,
     window_title: String,
@@ -146,7 +146,7 @@ pub struct GameEngineBuilder<T: PhysicsEngine + RenderEngine> {
 
 impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
     pub fn new() -> Self {
-        let window_size = PhysicalSize::new(800,600);
+        let window_size = (800,600);
         let target_fps = 60;
         let target_tpf = 1;
         Self { window_size, engine: None, sprite_sheet: None, target_tpf, target_fps,
@@ -169,7 +169,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         self
     }
 
-    pub fn window_size(mut self, window_size: PhysicalSize<u32>) -> Self {
+    pub fn window_size(mut self, window_size: (u32,u32)) -> Self {
         self.window_size = window_size;
         self
     }
@@ -201,6 +201,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
 
     pub fn build(mut self) -> GameEngine<'a, T> {
         let window_size = self.window_size;
+        let window_physical_size = PhysicalSize::new(window_size.0, window_size.1) ;
         let event_loop = EventLoopBuilder::<CustomEvent>::with_user_event()
             .build()
             .unwrap();
@@ -208,7 +209,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
             .with_title(self.window_title)
             .build(&event_loop).unwrap();
         let window_id = window.id();
-        let _ = window.request_inner_size(window_size);
+        let _ = window.request_inner_size(window_physical_size);
         let event_loop_proxy = event_loop.create_proxy();
         let ctx = GraphicsContext::new(window);
         let physics_engine = self.engine.unwrap();
@@ -232,7 +233,7 @@ impl <'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         let render_engine_ctl = render_engine_ctl_builder
             .bodies(bodies)
             .add_post_process_filters(&mut self.pp_filter)
-            .build(ctx, window_size);
+            .build(ctx, window_physical_size);
        
         let target_fps = self.target_fps;
         let target_tpf = self.target_tpf;

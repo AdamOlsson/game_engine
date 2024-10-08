@@ -8,7 +8,6 @@ use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
-use winit::dpi::PhysicalSize;
 
 use game_engine::engine::{PhysicsEngine, RenderEngine};
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
@@ -33,7 +32,7 @@ pub struct DebugPhysicsEngine {
 }
 
 impl DebugPhysicsEngine {
-    pub fn new(window_size: &winit::dpi::PhysicalSize<u32> ) -> Self {
+    pub fn new(window_size: &(u32,u32)) -> Self {
         let dt = 0.001;
         
         let velocities = vec![Vector3::new(-5., 0.5, 0.0),
@@ -69,9 +68,9 @@ impl DebugPhysicsEngine {
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
-        constraint.set_top_left(Vector3::new(-(window_size.width as f32), window_size.height as f32, 0.0));
-        constraint.set_bottom_right(Vector3::new(window_size.width as f32, -(window_size.height as f32), 0.0));
-        let broadphase = Box::new(BlockMap::new(window_size.width as f32));
+        constraint.set_top_left(Vector3::new(-(window_size.0 as f32), window_size.1 as f32, 0.0));
+        constraint.set_bottom_right(Vector3::new(window_size.0 as f32, -(window_size.1 as f32), 0.0));
+        let broadphase = Box::new(BlockMap::new(window_size.0 as f32));
         let narrowphase = Box::new(Naive::new(SimpleCollisionSolver::new()));
 
             
@@ -147,7 +146,7 @@ fn main() {
 
     let font = Font::new(include_bytes!("../src/engine/renderer_engine/asset/fonts/font.png"), 11, 11);
 
-    let window_size = PhysicalSize::new(1000, 800);
+    let window_size = (1000, 800);
     let debug_engine = DebugPhysicsEngine::new(&window_size);
 
     let engine = GameEngineBuilder::new()

@@ -1,31 +1,36 @@
 use core::panic;
 
 
-use crate::engine::physics_engine::collision::collision_body::CollisionBody;
+use cgmath::InnerSpace;
+
+use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
 use super::Constraint;
 
 
-pub struct CircleConstraint {}
-#[allow(unreachable_code, dead_code)]
+pub struct CircleConstraint {
+    radius: f32,
+}
+
 impl CircleConstraint{
-    fn new() -> Self {
-        panic!("Circle constraint is deprecated");
-        Self {}
+    pub fn new(radius: f32) -> Self {
+        Self {radius}
     }
 }
 
 impl Constraint for CircleConstraint {
-    fn apply_constraint(&self, _body: &mut CollisionBody) {
-//        let constraint_center = Vector3::new(0.0,0.0,0.0);
-//        let constraint_radius = &0.95;
-//    
-//        let diff = body.position - constraint_center;
-//        let dist = diff.magnitude();
-//        if dist > (constraint_radius - body.radius) {
-//            let correction_direction = diff / dist;
-//            body.position = constraint_center + correction_direction*(constraint_radius - body.radius);
-//        }
+    fn apply_constraint(&self, body: &mut CollisionBody) {
+        let object_radius = match body.body_type {
+            CollisionBodyType::Circle { radius } => radius,
+            _ => panic!("Cirlce constraint only supports circle shaped bodies for now"),
+        };
+
+        let constraint_radius = self.radius;  
+        let dist_to_center = body.position.magnitude(); 
+        if dist_to_center + object_radius > constraint_radius {
+            let excess_dist = dist_to_center + object_radius - constraint_radius;
+            let correction_direction = body.position.normalize();
+            body.position = correction_direction * (dist_to_center - excess_dist);
+        }
     }
-    
 }

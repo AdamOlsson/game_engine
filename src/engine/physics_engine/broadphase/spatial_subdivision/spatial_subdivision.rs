@@ -1,38 +1,25 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use cgmath::{MetricSpace, Vector3};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
-use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates};
+use crate::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
+use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
 
 use super::super::BroadPhase;
+use super::cell_id::{CellId, CellIdType};
+use super::object_id::ObjectId;
 
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
-enum CellIdType {
-    Home,
-    Phantom,
-}
-
-#[derive(PartialEq, Debug)]
-struct CellId {
-    pub cell_id: (u32,u32,u32),
-    pub cell_object_type: CellIdType,
-    pub object_id: usize,
-}
-
-impl CellId {
-    pub fn new(cell_id: (u32,u32,u32), cell_type:CellIdType, object_id: usize) -> Self {
-        Self {cell_id, cell_object_type: cell_type, object_id }
-    }
-}
-
-struct ObjectId {
-    control_bits: u8,
-}
-
+#[derive(Debug)]
 struct BoundingCircle {
     pub center: Vector3<f32>,
     pub radius: f32,
+}
+
+impl std::fmt::Display for BoundingCircle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "BoundingCircle{{ center: {:?}, radius: {} }}",self.center, self.radius)
+    }
 }
 
 pub struct SpatialSubdivision {}
@@ -61,7 +48,7 @@ impl SpatialSubdivision {
             (1, 0) => CONTROL_BIT_HOME_CELL_2, // Top-right cell
             (0, 1) => CONTROL_BIT_HOME_CELL_3, // Bottom-left cell
             (1, 1) => CONTROL_BIT_HOME_CELL_4, // Bottom-right cell
-            _ => unreachable!(), // This case should never occur
+            _ => unreachable!("Unknown home cell"), 
         }
     }
 
@@ -73,7 +60,7 @@ impl SpatialSubdivision {
             (1, 0) => CONTROL_BIT_BOUNDING_VOLUME_2, // Top-right cell
             (0, 1) => CONTROL_BIT_BOUNDING_VOLUME_3, // Bottom-left cell
             (1, 1) => CONTROL_BIT_BOUNDING_VOLUME_4, // Bottom-right cell
-            _ => unreachable!(), // This case should never occur
+            _ => unreachable!("Unknown bounding volume cell"), 
         }
     }
 
@@ -102,7 +89,22 @@ impl SpatialSubdivision {
         // Determine which quad of its cell the center belongs to
         let quad_x = x_norm - x_norm.floor();
         let quad_y = y_norm - y_norm.floor();
-       
+
+        debug_assert!({
+            let pred = (home_cell_x == 0 && r_norm >= quad_x) || 
+                (home_cell_y == 0 && r_norm >= quad_y);
+            if pred {
+                eprintln!("Expected that the object always be offset such it can't overlap the left or top cell if the home cell x or y value is 0.");
+                eprintln!("The offending object has id {object_id}");
+                eprintln!("Bounding Circle: {bcircle}");
+                eprintln!("cell_width: {cell_width}");
+                eprintln!("x_norm: {x_norm}, y_norm: {y_norm}, r_norm: {r_norm}");
+                eprintln!("quad_x: {quad_x}, quad_y: {quad_y}");
+                eprintln!("home_cell_x: {home_cell_x}, home_cell_y: {home_cell_y}")
+            }
+            !pred
+        }, "Object spaning over negative values cell x-values, see below for more detail");
+
         // Once we have determined the quad, we only need to check for overlap on 3
         // cells, sides and diagonal
         let mut cell_ids = vec![home_cell_id];
@@ -265,10 +267,11 @@ impl SpatialSubdivision {
 
         return pred_a || pred_b;
     }
- }
 
-impl BroadPhase<Vec<Vec<CollisionCandidates>>> for SpatialSubdivision {
-    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<Vec<CollisionCandidates>> {
+}
+
+impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
+    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> [Vec<CollisionCandidates>; 4] {
         
         let (mut bcircles, largest_radius, min_x, min_y) = bodies.par_iter()
             .filter_map(|b| match b.body_type {
@@ -280,11 +283,12 @@ impl BroadPhase<Vec<Vec<CollisionCandidates>>> for SpatialSubdivision {
             })
         .fold(
             || (Vec::new(), 0.0_f32, f32::MAX, f32::MAX),
+            // TODO: No need to open up radius, x and y. Can only use circle
             |mut acc, (circle, radius, x, y)| {
                 acc.0.push(circle);
                 acc.1 = acc.1.max(radius);
-                acc.2 = acc.2.min(x);
-                acc.3 = acc.3.min(y);
+                acc.2 = acc.2.min(x - radius);
+                acc.3 = acc.3.min(y - radius);
                 acc
             },
         )
@@ -298,13 +302,31 @@ impl BroadPhase<Vec<Vec<CollisionCandidates>>> for SpatialSubdivision {
                     acc1
                 },
             );
-
-        let offset = Vector3::new(min_x, min_y, 0.0);
+       
+        
+        // Handle floating point errors by rounding the offset to the larger or smaller number
+        let offset = Vector3::new(min_x.floor(), min_y.floor(), 0.0);
         bcircles.par_iter_mut().for_each(|b| {
             b.center -= offset;
         });
 
-        let cell_width = largest_radius *1.5;
+        debug_assert!({
+            let bad_bodies: Vec<(usize,&BoundingCircle, &CollisionBody)> = bcircles.iter().enumerate()
+                .filter(|(_,b)| (b.center.x-b.radius) < 0.0 || (b.center.y-b.radius) < 0.0 )
+                .map(|(i,b)| (i,b,&bodies[i]))
+                .collect();
+            let pred = bad_bodies.len() != 0;
+            if pred {
+                eprintln!("offset: {offset:?}");
+                eprintln!("Offending bodies:");
+                bad_bodies.iter().for_each(|(i, bc, cb)| {
+                    eprintln!("ID: {i}, {bc}, {cb}")
+                });
+            }
+            !pred
+        }, "Expected all objects to only overlap the positive x and y axis");
+        
+        let cell_width = largest_radius * 2.0 * 1.5;
         let (object_id_array, cell_id_array_nested): (Vec<ObjectId>, Vec<Vec<CellId>>) = bcircles.par_iter()
             .enumerate()
             .map(|(i, b)| Self::create_cell_object(&b, cell_width, i))
@@ -342,7 +364,7 @@ impl BroadPhase<Vec<Vec<CollisionCandidates>>> for SpatialSubdivision {
                 let cell_id = Self::hash(slice[0].cell_id);
                 slice.iter()
                     .fold(true, |acc, cell| (Self::hash(cell.cell_id) == cell_id) && acc)
-            });
+            }, "Expected all objects in slice to belong to the same home cell type: {slice:?}");
             let mut collision_set = HashSet::new(); 
             let pass_num = Self::get_control_bit_for_bounding_volume_cell_id(slice[0].cell_id);
             for i in 0..slice.len() {
@@ -360,19 +382,60 @@ impl BroadPhase<Vec<Vec<CollisionCandidates>>> for SpatialSubdivision {
                     }
                 }
             }
-            return (pass_num, collision_set.into_iter().collect());
-        }).for_each(|(pass_num, collisions)|
+            let collision_list: Vec<usize> = collision_set.into_iter().collect();
+            return (pass_num, collision_list);
+        })
+        .filter(|(_, collisions)| collisions.len() > 0)
+        .for_each(|(pass_num, collisions)|
             match pass_num {
-                1 => pass1.push(CollisionCandidates::new(collisions)),
-                2 => pass2.push(CollisionCandidates::new(collisions)),
-                3 => pass3.push(CollisionCandidates::new(collisions)),
-                4 => pass4.push(CollisionCandidates::new(collisions)),
-                _ => unreachable!(),
+                CONTROL_BIT_BOUNDING_VOLUME_1 => pass1.push(CollisionCandidates::new(collisions)),
+                CONTROL_BIT_BOUNDING_VOLUME_2 => pass2.push(CollisionCandidates::new(collisions)),
+                CONTROL_BIT_BOUNDING_VOLUME_3 => pass3.push(CollisionCandidates::new(collisions)),
+                CONTROL_BIT_BOUNDING_VOLUME_4 => pass4.push(CollisionCandidates::new(collisions)),
+                _ => unreachable!("Pass number should always be 1,2,4 or 8"),
             }
         );
 
-        return vec![pass1, pass2, pass3, pass4];
+        debug_assert!(pass1.iter().map(|cc| cc.indices.len() > 0).fold(true, |acc, b| acc && b), 
+            "Expected all entries in pass 1 to have non-zero lengths: {pass1:?}");
+        debug_assert!(pass2.iter().map(|cc| cc.indices.len() > 0).fold(true, |acc, b| acc && b), 
+            "Expected all entries in pass 2 to have non-zero lengths: {pass2:?}");
+        debug_assert!(pass3.iter().map(|cc| cc.indices.len() > 0).fold(true, |acc, b| acc && b), 
+            "Expected all entries in pass 3 to have non-zero lengths: {pass3:?}");
+        debug_assert!(pass4.iter().map(|cc| cc.indices.len() > 0).fold(true, |acc, b| acc && b), 
+            "Expected all entries in pass 4 to have non-zero lengths: {pass4:?}");
+
+        debug_assert!(
+            assert_object_id_in_candidate_list_exists_in_no_other_candidate_list(&pass1),
+            "Expected each object id to appear at most once within the same pass(1):\n{pass1:?}");
+        debug_assert!(
+            assert_object_id_in_candidate_list_exists_in_no_other_candidate_list(&pass2),
+            "Expected each object id to appear at most once within the same pass(2):\n{pass2:?}");
+        debug_assert!(
+            assert_object_id_in_candidate_list_exists_in_no_other_candidate_list(&pass3),
+            "Expected each object id to appear at most once within the same pass(3):\n{pass3:?}");
+        debug_assert!(
+            assert_object_id_in_candidate_list_exists_in_no_other_candidate_list(&pass3),
+            "Expected each object id to appear at most once within the same pass(4):\n{pass4:?}");
+
+        return [pass1, pass2, pass3, pass4];
     }
+}
+
+fn assert_object_id_in_candidate_list_exists_in_no_other_candidate_list(
+    pass: &Vec<CollisionCandidates>
+) -> bool {
+    let mut index_counts: HashMap<usize, usize> = HashMap::new();
+    for candidates in pass.iter() {
+        for &index in &candidates.indices {
+            *index_counts.entry(index).or_insert(0) += 1;
+        }
+    }
+    let count: Vec<usize> = index_counts
+        .into_iter()
+        .filter_map(|(index, count)| if count != 1 { Some(index) } else { None })
+        .collect();
+    count.len() == 0
 }
 
 #[cfg(test)]
@@ -393,7 +456,6 @@ mod tests {
                         let (x,y) = $xy;
                         let expected_output: Vec<CellId> = $expected_output;
                         let bcircle = BoundingCircle { center: Vector3::new(x,y,0.0), radius: $r};
-                        // TODO: Also test object_id control bits
                         let (_object_id, cell_ids) = SpatialSubdivision::create_cell_object(&bcircle, $cell_width, 0);
 
                         assert_eq!(expected_output.len(), cell_ids.len(), "Expected output length {} ({expected_output:?}) but found {} ({cell_ids:?})", expected_output.len(), cell_ids.len());
@@ -407,7 +469,7 @@ mod tests {
         }
 
         create_cell_object_tests! {
-            given_cell_id_1_0_0_when_center_is_top_left_quad_of_cell_expect_overlap_with__left:
+            given_cell_id_1_0_0_when_center_is_top_left_quad_of_cell_expect_overlap_with_left:
                 (0.11,0.025), 0.015, 0.1, vec![
                     CellId::new((1,0,0), CellIdType::Home, 0),
                     CellId::new((0,0,0), CellIdType::Phantom, 0),]

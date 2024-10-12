@@ -5,7 +5,6 @@ use crate::engine::physics_engine::collision::collision_body::{CollisionBody, Co
 
 use crate::engine::renderer_engine::post_process::PostProcessFilterId;
 use crate::engine::renderer_engine::post_process::post_process_filter::PostProcessFilterBuilder;
-use crate::engine::renderer_engine::post_process::post_process_filter::PostProcessFilter;
 use crate::engine::renderer_engine::post_process::post_process_pipeline::PostProcessPipelineContext;
 use crate::engine::renderer_engine::post_process::post_process_pipeline::PostProcessPipeline;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;

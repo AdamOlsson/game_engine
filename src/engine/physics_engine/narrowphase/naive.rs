@@ -3,17 +3,18 @@ use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, C
 
 use super::NarrowPhase;
 
-pub struct Naive {
-    solver: Box<dyn CollisionHandler + 'static>
+pub struct Naive<H>
+    where H: CollisionHandler
+{
+    solver: H,
 }
 
-impl Naive {
-    pub fn new<H>(solver: H) -> Self
-    where
-        H: CollisionHandler + 'static,
-    {
-        let s: Box<dyn CollisionHandler> = Box::new(solver);
-        Self { solver: s }
+impl <H> Naive <H>
+    where 
+        H: CollisionHandler,
+{
+    pub fn new(solver: H) -> Self {
+        Self { solver }
     }
 
     fn circle_rectangle_test_for_collision(
@@ -42,7 +43,10 @@ impl Naive {
     }
 }
 
-impl NarrowPhase for Naive {
+impl <H> NarrowPhase for Naive<H>
+    where
+        H: CollisionHandler,
+{
     fn collision_detection(&self, bodies: &mut Vec<CollisionBody>,
         candidates: &CollisionCandidates,
     ) -> CollisionGraph {

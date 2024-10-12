@@ -58,11 +58,9 @@ impl CollisionBody {
         }
     }
 
-
     pub fn set_sprite(&mut self, coord: SpriteCoordinate) {
         self.sprite_coord = coord;
     }
-
  }
 
 impl std::fmt::Display for CollisionBodyType {
@@ -78,7 +76,7 @@ impl std::fmt::Display for CollisionBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "id: {}, position: ({},{},{}), prev_pos: ({},{},{}), velocity: ({},{},{}), type: {}",
+            "CollisionBody{{ id: {}, position: ({},{},{}), prev_pos: ({},{},{}), velocity: ({},{},{}), type: {} }}",
             self.id,
             self.position.x, self.position.y, self.position.z,
             self.prev_position.x, self.prev_position.y, self.prev_position.z,

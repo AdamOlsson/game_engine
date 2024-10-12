@@ -1,5 +1,4 @@
 use cgmath::Vector3;
-use log::warn;
 use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates};
 
 use super::BroadPhase;
@@ -21,7 +20,6 @@ impl BlockMap {
                 CollisionBodyType::Circle { .. } => b.position,
                 CollisionBodyType::Rectangle { width, height } =>
                     b.position + Vector3::new(width/2.0, height/2.0, 0.0),
-                _ => panic!("Unkown object"),
             };
             // Add 1.0 to offset all coordinates between 0.0 and 2.0
             let x = ((center.x + 1.0)/cell_size) as u32;

@@ -68,9 +68,8 @@ impl <H> NarrowPhase for Naive<H>
                 let body_j = &bodies[idx_j];
 
                 let dist = body_i.position.distance(body_j.position);
-                if dist == 0.0 {
-                    panic!("Collision axis has zero length.");
-                }
+                debug_assert!(dist != 0.0, "Collision axis has zero length.");
+                
                 let (type_i, type_j) = (&body_i.body_type, &body_j.body_type);
                 match (type_i, type_j) {
                     (CollisionBodyType::Circle { radius: ri }, CollisionBodyType::Circle { radius: rj}) =>

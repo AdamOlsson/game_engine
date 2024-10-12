@@ -8,6 +8,7 @@ use game_engine::engine::physics_engine::collision::collision_handler::SimpleCol
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::elastic::ElasticConstraintResolver;
+use game_engine::engine::physics_engine::constraint::resolver::inelastic::InelasticConstraintResolver;
 use game_engine::engine::physics_engine::constraint::Constraint;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
@@ -20,13 +21,17 @@ use game_engine::engine::physics_engine::collision::collision_body::CollisionBod
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use rand::Rng;
 
+const NUM_ROWS: usize = 1;
+const NUM_COLS: usize = 1;
+const RADIUS: f32 = 80.0;
+
 fn spawn_bodies(
     radius: f32,
     acceleration: Vector3<f32>,
     columns: usize,
     rows: usize,
 ) -> Vec<CollisionBody> {
-    let spacing_dist = 10.0;
+    let spacing_dist = radius / 2.0;
     let color = Vector3::new(255.0, 0.0, 0.0);
     let velocity = Vector3::zero();
 
@@ -83,8 +88,7 @@ impl <C, B, N> Collision<C, B, N>
     pub fn new(constraint: C, broadphase: B, narrowphase: N) -> Self {
         let dt = 0.001;
         let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
-        let radius = 30.;
-        let bodies = spawn_bodies(radius, acceleration, 5, 5);
+        let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
             
         return Self { dt, integrator, constraint, broadphase,narrowphase}
@@ -137,7 +141,6 @@ where
         let bodies = self.get_bodies();
         let circle_instances = util::get_circle_instances(bodies);
 
-
         let texture_handle = engine_ctl.request_texture_handle();
         engine_ctl.render_circles(&texture_handle, &circle_instances, true)
             .expect("Failed to render circles");
@@ -148,7 +151,8 @@ where
 
 fn main() {
     let window_size = (800,800);
-    let mut constraint = BoxConstraint::new(ElasticConstraintResolver::new());
+    //let mut constraint = BoxConstraint::new(ElasticConstraintResolver::new());
+    let mut constraint = BoxConstraint::new(InelasticConstraintResolver::new());
     constraint.set_top_left(Vector3::new(-(window_size.0 as f32), window_size.1 as f32, 0.0));
     constraint.set_bottom_right(Vector3::new(window_size.0 as f32, -(window_size.1 as f32), 0.0));
     let broadphase = SpatialSubdivision::new();

@@ -91,8 +91,8 @@ impl SpatialSubdivision {
         let quad_y = y_norm - y_norm.floor();
 
         debug_assert!({
-            let pred = (home_cell_x == 0 && r_norm >= quad_x) || 
-                (home_cell_y == 0 && r_norm >= quad_y);
+            let pred = (home_cell_x == 0 && r_norm > quad_x) || 
+                (home_cell_y == 0 && r_norm > quad_y);
             if pred {
                 eprintln!("Expected that the object always be offset such it can't overlap the left or top cell if the home cell x or y value is 0.");
                 eprintln!("The offending object has id {object_id}");
@@ -272,7 +272,6 @@ impl SpatialSubdivision {
 
 impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
     fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> [Vec<CollisionCandidates>; 4] {
-        
         let (mut bcircles, largest_radius, min_x, min_y) = bodies.par_iter()
             .filter_map(|b| match b.body_type {
                 CollisionBodyType::Circle { radius } => {
@@ -280,7 +279,7 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
                 },
                 CollisionBodyType::Rectangle { width, height } => {
-                    let radius = width.max(height) / 2.0;
+                    let radius = (width.max(height) / 2.0)*1.41;
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
                 }
             })
@@ -306,7 +305,6 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
                 },
             );
        
-        
         // Handle floating point errors by rounding the offset to the larger or smaller number
         let offset = Vector3::new(min_x.floor(), min_y.floor(), 0.0);
         bcircles.par_iter_mut().for_each(|b| {
@@ -320,7 +318,7 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
                 .collect();
             let pred = bad_bodies.len() != 0;
             if pred {
-                eprintln!("offset: {offset:?}");
+                eprintln!("Offset: {offset:?}");
                 eprintln!("Offending bodies:");
                 bad_bodies.iter().for_each(|(i, bc, cb)| {
                     eprintln!("ID: {i}, {bc}, {cb}")
@@ -328,7 +326,7 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
             }
             !pred
         }, "Expected all objects to only overlap the positive x and y axis");
-        
+       
         let cell_width = largest_radius * 2.0 * 1.5;
         let (object_id_array, cell_id_array_nested): (Vec<ObjectId>, Vec<Vec<CellId>>) = bcircles.par_iter()
             .enumerate()
@@ -600,7 +598,7 @@ mod tests {
                     }
                 )*
             }
-        }    
+        } 
 
         can_we_skip_collision_test_tests! {
             given_two_objects_with_different_home_cells_but_share_all_bounding_cells_during_pass_1_expect_false: 

@@ -1,6 +1,11 @@
 use super::{physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
 
 pub mod log_performance;
+pub mod color;
+
+pub fn zero() -> [f32; 3] { 
+    [0.,0.,0.] 
+}
 
 
 pub fn get_circle_instances(bodies: &[CollisionBody]) -> Vec<CircleInstance> {

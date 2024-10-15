@@ -1,6 +1,6 @@
 extern crate game_engine;
 
-use cgmath::{ Vector3, Zero};
+use cgmath::Vector3;
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
 use game_engine::engine::renderer_engine::asset::asset::Asset;
@@ -9,6 +9,8 @@ use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 
+use game_engine::engine::util::zero;
+use game_engine::engine::util::color::{red, green, blue};
 use game_engine::engine::{PhysicsEngine, RenderEngine};
 use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
@@ -21,7 +23,6 @@ use game_engine::engine::physics_engine::constraint::resolver::elastic::ElasticC
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::broadphase::blockmap::BlockMap;
-use game_engine::engine::init_utils::create_grid_positions;
 
 pub struct DebugPhysicsEngine {
     dt: f32,
@@ -34,26 +35,11 @@ pub struct DebugPhysicsEngine {
 impl DebugPhysicsEngine {
     pub fn new(window_size: &(u32,u32)) -> Self {
         let dt = 0.001;
-        
-        let velocities = vec![Vector3::new(-5., 0.5, 0.0),
-                              Vector3::new(5., 0., 0.0),
-                              Vector3::new(0.1, 5., 0.0),];
-        let prev_positions = create_grid_positions(3, 1, 400.0, None);
-        let position = vec![prev_positions[0] + velocities[0],
-                            prev_positions[1] + velocities[1],
-                            prev_positions[2] + velocities[2]];
-        let colors = vec![
-            Vector3::new(255.0,0.0,0.0),
-            Vector3::new(0.0,255.0,0.0),
-            Vector3::new(0.0,0.0,255.0),
-            Vector3::new(0.0,0.0,255.0),
-        ];
-        let radius = vec![100.0, 100.0, 120.0];
         let mut bodies = vec![
-            CollisionBody::circle(0, Vector3::zero(), Vector3::zero(), prev_positions[0], position[0], radius[0], colors[0]),
-            CollisionBody::circle(1, Vector3::zero(), Vector3::zero(), prev_positions[1], position[1], radius[1], colors[1]),
-            CollisionBody::circle(2, Vector3::zero(), Vector3::zero(), prev_positions[2], position[2], radius[2], colors[2]),
-            CollisionBody::rectangle(3, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 200., 200., colors[3]),
+            CollisionBody::circle(0, [0.5,0.,0.], zero(), [-400.,0.,0.], red(), 100.),
+            CollisionBody::circle(1, [1. ,2.,0.], zero(), [400.,400.,0.], blue(), 100.),
+            CollisionBody::circle(2, [2.,1.5,0.], zero(), [350.,0.,0.], green(), 120.),
+            CollisionBody::rectangle(3, zero(),zero(), zero(), green(), 200., 200.),
             //CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
         ];
         
@@ -81,7 +67,6 @@ impl DebugPhysicsEngine {
 impl RenderEngine for DebugPhysicsEngine {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let bodies = self.integrator.get_bodies();
-
         let target_texture_handle = engine_ctl.request_texture_handle();
 
         let rect_instances = game_engine::engine::util::get_rectangle_instances(bodies);
@@ -116,6 +101,7 @@ impl PhysicsEngine for DebugPhysicsEngine {
         }
 
         let candidates = self.broadphase.collision_detection(bodies);
+
         let graphs: Vec<CollisionGraph> = candidates.iter()
             .map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();

@@ -78,6 +78,7 @@ impl <H> NarrowPhase for Naive<H>
                      CollisionBodyType::Circle { radius }) => 
                         if Self::circle_rectangle_test_for_collision(
                                 &body_j.position, *radius, &body_i.position, *width, *height) {
+                            self.solver.handle_circle_rect_collision(bodies, idx_j, idx_i);
                             collisions.push((idx_i, idx_j));
                         },
 
@@ -85,6 +86,7 @@ impl <H> NarrowPhase for Naive<H>
                      CollisionBodyType::Rectangle { width, height }) => 
                         if Self::circle_rectangle_test_for_collision(
                                 &body_i.position, *radius, &body_j.position, *width, *height) {
+                            self.solver.handle_circle_rect_collision(bodies, idx_i, idx_j);
                             collisions.push((idx_i, idx_j));
                         },
                     //(_, _) => panic!(),

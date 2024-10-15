@@ -32,10 +32,8 @@ impl Constraint for BoxConstraint {
         let shape = match body.body_type {
             CollisionBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
             CollisionBodyType::Rectangle { width, height } => {
-                //println!("Constraining rectangles are not yet supported.");
-                Vector3::new(width, height, 0.0) // FIXME
+                Vector3::new(width/2.0, height/2.0, 0.0)
             },            
-            //_ => panic!(),
         };
         // Left side
         if body.position.x - shape.x < self.top_left.x {

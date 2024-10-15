@@ -38,7 +38,7 @@ impl Default for SpriteSheet {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SpriteCoordinate {
     pub coordinate: [f32; 4],
 }

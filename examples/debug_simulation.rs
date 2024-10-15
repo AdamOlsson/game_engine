@@ -57,7 +57,6 @@ impl DebugPhysicsEngine {
             //CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
         ];
         
-
         bodies[0].set_sprite(SpriteCoordinate::new([2.,0.], [3.,1.]));
         bodies[3].set_sprite(SpriteCoordinate::new([1.,0.], [2.,1.]));
         
@@ -146,7 +145,7 @@ fn main() {
 
     let font = Font::new(include_bytes!("../src/engine/renderer_engine/asset/fonts/font.png"), 11, 11);
 
-    let window_size = (1000, 800);
+    let window_size = (800, 800);
     let debug_engine = DebugPhysicsEngine::new(&window_size);
 
     let engine = GameEngineBuilder::new()

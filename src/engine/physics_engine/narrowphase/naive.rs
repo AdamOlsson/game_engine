@@ -21,25 +21,11 @@ impl <H> Naive <H>
         circ_pos: &Vector3<f32>, circ_radius: f32, rect_pos: &Vector3<f32>,
         rect_width: f32, rect_height: f32
     ) -> bool {
-        
-        let test_edge_x = 
-            if circ_pos.x < rect_pos.x {
-                rect_pos.x
-            } else if circ_pos.x > rect_pos.x + rect_width {
-                rect_pos.x + rect_width
-            } else {
-                circ_pos.x
-            };
-        let test_edge_y = 
-            if circ_pos.y < rect_pos.y {
-                rect_pos.y
-            } else if circ_pos.y > rect_pos.y + rect_height {
-                rect_pos.y + rect_height
-            } else {
-                circ_pos.y
-            };
-        let dist = ((circ_pos.x - test_edge_x).powi(2) + (circ_pos.y - test_edge_y).powi(2)).sqrt();
-        return dist <= circ_radius;
+        let temp_circle_pos = circ_pos - rect_pos;
+        let closest_point_x = (-rect_width/2.0).max((rect_width/2.0).min(temp_circle_pos.x));
+        let closest_point_y = (-rect_height/2.0).max((rect_height/2.0).min(temp_circle_pos.y));
+        let closes_point = Vector3::new(closest_point_x, closest_point_y, 0.0);
+        return closes_point.distance2(temp_circle_pos) <= circ_radius.powi(2);
     }
 }
 
@@ -80,10 +66,10 @@ impl <H> NarrowPhase for Naive<H>
 
                     (CollisionBodyType::Rectangle { width: wi, height:hi },
                      CollisionBodyType::Rectangle { width: wj, height:hj }) => 
-                        if body_i.position.x + wi >= body_j.position.x &&
-                                body_i.position.x <= body_j.position.x + wj &&
-                                body_i.position.y + hi >= body_j.position.y &&
-                                body_i.position.y <= body_j.position.y + hj {
+                        if body_i.position.x + wi/2.0 >= body_j.position.x &&
+                                body_i.position.x <= body_j.position.x + wj/2.0 &&
+                                body_i.position.y + hi/2.0 >= body_j.position.y &&
+                                body_i.position.y <= body_j.position.y + hj/2.0 {
                             self.solver.handle_rect_rect_collision(bodies, idx_i, idx_j);
                             collisions.push((idx_i, idx_j));
                         },

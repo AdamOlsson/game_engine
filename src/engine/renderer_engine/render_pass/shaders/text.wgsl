@@ -23,7 +23,11 @@ struct VertexOutput {
 fn scale_one_font_coordinate(
     vs_position: vec2<f32>, target_top_left: vec2<f32>, target_bot_right: vec2<f32>
 ) -> vec2<f32> {
-    return target_top_left + (vs_position * (target_bot_right - target_top_left));
+    // Vertices are offset to positive x and y axis
+    let offset_vs_pos = vs_position + vec2<f32>(1.0,1.0);
+    // Normalize width and height from 2.0 to 1.0
+    let normalized_vs_pos = offset_vs_pos / 2.0;
+    return target_top_left + (normalized_vs_pos * (target_bot_right - target_top_left));
 }
 
 fn compute_font_coordinate(
@@ -47,7 +51,7 @@ fn vs_main(
 
     let scaled_object_width = instance.size/ window_size[0];
     let scaled_object_height = instance.size / window_size[1];
-    let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_width, scaled_object_height, 1.0);
+    let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_width/2.0, scaled_object_height/2.0, 1.0);
 
     out.clip_position = vec4<f32>(scaled_vertex_position, 1.0) + vec4<f32>(scaled_object_position, 0.0);
     out.tex_coord = compute_font_coordinate(vertex.position, font_info, instance.tex_coords);

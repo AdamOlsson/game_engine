@@ -1,4 +1,3 @@
-use cgmath::Vector3;
 use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates};
 
 use super::BroadPhase;
@@ -16,11 +15,7 @@ impl BlockMap {
        // Assign each circle to a cell
         let mut cells: Vec<Vec<usize>> = vec![Vec::new(); (grid_width*grid_width) as usize];
         for (i, b) in bodies.iter().enumerate() {
-            let center = match b.body_type {
-                CollisionBodyType::Circle { .. } => b.position,
-                CollisionBodyType::Rectangle { width, height } =>
-                    b.position + Vector3::new(width/2.0, height/2.0, 0.0),
-            };
+            let center =  b.position;
             // Add 1.0 to offset all coordinates between 0.0 and 2.0
             let x = ((center.x + 1.0)/cell_size) as u32;
             let y = ((center.y + 1.0)/cell_size) as u32;
@@ -60,7 +55,7 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
         let cell_size = bodies.iter().fold(0.0, |acc, b| {
             match b.body_type {
                 CollisionBodyType::Circle { radius } => f32::max(acc, radius),
-                CollisionBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)),
+                CollisionBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)) / 2.0,
             }
         })*2.0;
 
@@ -106,7 +101,7 @@ mod tests {
 
     #[test]
     fn rect_circle_are_possible_collision_candidates() {
-        let (window_width, window_height) = (1000.0,1000);
+        let (window_width, _window_height) = (1000.0,1000);
         let blockmap = BlockMap::new(window_width);
         let zero = Vector3::zero();
         let circ = CollisionBody::circle(0, zero, zero, zero, zero, 50.0, zero);

@@ -8,7 +8,7 @@ pub struct Rectangle {}
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Debug)]
 pub struct RectangleInstance {
     pub color: [f32; 3],
-    pub position: [f32; 3], // bottom left corner
+    pub position: [f32; 3], // TODO: rename to center (also for circle)
     pub width: f32,
     pub height: f32,
     pub sprite_coord: [f32; 4],
@@ -17,7 +17,7 @@ pub struct RectangleInstance {
 impl Default for RectangleInstance {
     fn default() -> Self {
         RectangleInstance {
-            color: [255.0,0.0,0.0], position: [0.0,0.0,0.0], width: 0.0, height: 0.0,
+            color: [255.0,0.0,0.0], position: [0.0,0.0,0.0], width: 10.0, height: 10.0,
             sprite_coord: [0.0,0.0,1.0,1.0],
         }
     }
@@ -30,10 +30,10 @@ impl Shape for Rectangle {
 
     fn compute_vertices() -> Vec<Vertex> {
         vec![
-            Vertex { position: [0.0, 1.0, 0.0] }, // top left 
-            Vertex { position: [0.0, 0.0, 0.0] }, // bot left 
-            Vertex { position: [1.0, 1.0, 0.0] }, // top right 
-            Vertex { position: [1.0, 0.0, 0.0] }, // bot right 
+            Vertex { position: [-1.0,  1.0, 0.0] }, // top left 
+            Vertex { position: [-1.0, -1.0, 0.0] }, // bot left 
+            Vertex { position: [ 1.0,  1.0, 0.0] }, // top right 
+            Vertex { position: [ 1.0, -1.0, 0.0] }, // bot right 
         ]
     }
 

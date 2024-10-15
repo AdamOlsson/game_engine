@@ -279,7 +279,10 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
                     let radius = radius * 1.41;
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
                 },
-                _ => None,
+                CollisionBodyType::Rectangle { width, height } => {
+                    let radius = width.max(height) / 2.0;
+                    Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
+                }
             })
         .fold(
             || (Vec::new(), 0.0_f32, f32::MAX, f32::MAX),

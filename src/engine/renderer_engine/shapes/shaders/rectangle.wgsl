@@ -25,37 +25,21 @@ struct VertexOutput {
 fn scale_one_sprite_coordinate(
     curr: vec2<f32>, target_top_left: vec2<f32>, target_bot_right: vec2<f32>
 ) -> vec2<f32> {
-    return target_top_left + (curr * (target_bot_right - target_top_left));
+    // Vertices are offset to positive x and y axis
+    let offset_curr = curr + vec2<f32>(1.0,1.0);
+    // Normalize width and height from 2.0 to 1.0
+    let normalized_curr = offset_curr / 2.0;
+    return target_top_left + (normalized_curr * (target_bot_right - target_top_left));
 }
 
-fn compute_sprite_coordinates(
-    sprite_data: vec4<f32>, sprite_coords: vec4<f32>
-) -> array<vec2<f32>, 6> {
-    let cell_dims = sprite_data.zw / sprite_data.xy; // Normalized
-    
-    // TODO: Redo this using the vertex position, look at text shader.
-    let top_left = vec2<f32>(0.0,0.0); 
-    let bot_left = vec2<f32>(0.0,1.0); 
-    let top_right = vec2<f32>(1.0,0.0); 
-    let bot_right =  vec2<f32>(1.0,1.0); 
-
-    let target_top_left = sprite_coords.xy;
-    let target_bot_right = sprite_coords.zw;
-   
-    let scaled_top_left  = scale_one_sprite_coordinate(top_left, target_top_left, target_bot_right);
-    let scaled_bot_left  = scale_one_sprite_coordinate(bot_left, target_top_left, target_bot_right);
-    let scaled_top_right = scale_one_sprite_coordinate(top_right, target_top_left, target_bot_right);
-    let scaled_bot_right = scale_one_sprite_coordinate(bot_right, target_top_left, target_bot_right);
-
-    let offset_top_left = scaled_top_left*cell_dims;
-    let offset_bot_left = scaled_bot_left*cell_dims;
-    let offset_top_right = scaled_top_right*cell_dims;
-    let offset_bot_right = scaled_bot_right*cell_dims;
-
-    return array<vec2<f32>, 6>(
-       offset_top_left, offset_bot_left, offset_top_right,
-       offset_bot_right, offset_bot_left, offset_top_right
-    );
+fn compute_sprite_coordinate(
+    vertex_position: vec3<f32>, sprite_data: vec4<f32>, sprite_bbox: vec4<f32>
+) -> vec2<f32> {
+    let norm_cell_dim = sprite_data.zw / sprite_data.xy;
+    let font_coordinate_upside_down = scale_one_sprite_coordinate(vertex_position.xy, sprite_bbox.xy, sprite_bbox.zw);
+    let font_coordinate = abs(font_coordinate_upside_down - vec2<f32>(0.0,1.0));
+    let norm_font_coordinate = font_coordinate*norm_cell_dim;
+    return norm_font_coordinate;
 }
 
 @vertex
@@ -71,15 +55,14 @@ fn vs_main(
     
     let scaled_object_width = instance.width / window_size[0];
     let scaled_object_height = instance.height / window_size[1];
-    let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_width, scaled_object_height, 1.0);
+    let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_width/2.0, scaled_object_height/2.0, 1.0);
 
     out.clip_position = vec4<f32>(scaled_vertex_position, 1.0) + vec4<f32>(scaled_object_position, 0.0);
     let none = vec4<f32>(-1.0,0.0,0.0,0.0);
     if (instance.sprite_coords.x == none.x) {
         out.tex_coord = vec2<f32>(-1.0,-1.0);
     } else {
-        var sprite_coordinates = compute_sprite_coordinates(sprite_info, instance.sprite_coords);
-        out.tex_coord = sprite_coordinates[in_vertex_index];
+        out.tex_coord = compute_sprite_coordinate(vertex.position, sprite_info, instance.sprite_coords);
     }
 
     return out;

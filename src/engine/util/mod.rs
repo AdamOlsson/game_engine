@@ -31,6 +31,7 @@ pub fn get_rectangle_instances(bodies: &[RigidBody]) -> Vec<RectangleInstance> {
                 RigidBodyType::Rectangle{ width, height } => 
                     Some(RectangleInstance{
                         color: body.color.into(), 
+                        rotation: body.rotation,
                         position: body.position.into(),
                         width,height,
                         sprite_coord: body.sprite_coord.coordinate,

@@ -1,4 +1,6 @@
 
+use core::f32;
+
 use cgmath::Vector3;
 use game_engine::engine::physics_engine::broadphase::spatial_subdivision::spatial_subdivision::SpatialSubdivision;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
@@ -91,8 +93,6 @@ impl <C, B, N> Collision<C, B, N>
         //let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
         //let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         // TODO:
-        // - Add rotation and mass variables to RigidBody
-        // - Render rotations of rigidbody
         // - RectRect collision
         // - Refactor CircleCircle collision using techniques in RectCircle and RectRect
         // - For RectCircle collision (and probably RectRect and CircleCircle) we perform the collision 
@@ -102,6 +102,8 @@ impl <C, B, N> Collision<C, B, N>
             RigidBody::circle(0, [10.,0.,0.], zero(), [-400.,0.,0.], red(), 50.0),
             RigidBody::rectangle(1, zero(), zero(), zero(), blue(), 100.0, 100.0),
         ];
+        
+        //bodies[1].rotation = f32::consts::PI / 4.0;
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
             

@@ -16,6 +16,7 @@ pub struct RigidBody {
     pub prev_position: Vector3<f32>,
     pub position: Vector3<f32>,
     pub body_type: RigidBodyType,
+    pub mass: f32,
 
     // Render data
     pub color: Vector3<f32>,
@@ -29,7 +30,8 @@ impl RigidBody {
         color: [f32;3], radius: f32 
     ) -> Self {
         let body_type = RigidBodyType::Circle { radius };
-        Self::new(id, velocity, acceleration, position, body_type, color)
+        let mass = 1.0;
+        Self::new(id, velocity, acceleration, position, body_type, mass, color)
     }
 
     pub fn rectangle(
@@ -37,12 +39,13 @@ impl RigidBody {
         color: [f32;3], width: f32, height: f32,
     ) -> Self {
         let body_type = RigidBodyType::Rectangle { width, height };
-        Self::new(id, velocity, acceleration, position, body_type, color)
+        let mass = 1.0;
+        Self::new(id, velocity, acceleration, position, body_type, mass, color)
     }
 
     fn new(
         id: usize, velocity: [f32;3], acceleration: [f32;3],
-        position: [f32;3], body_type: RigidBodyType,
+        position: [f32;3], body_type: RigidBodyType, mass: f32,
         color: [f32;3]
     ) -> RigidBody {
         let velocity = Vector3::from(velocity);
@@ -52,7 +55,7 @@ impl RigidBody {
         let color = Vector3::from(color);
         let sprite_coord = SpriteCoordinate::none();
         Self {id, velocity, position, acceleration, color, body_type,
-            prev_position, sprite_coord,
+            prev_position, sprite_coord, mass,
         }
 
 

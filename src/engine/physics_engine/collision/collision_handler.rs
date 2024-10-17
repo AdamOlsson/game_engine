@@ -96,8 +96,8 @@ impl CollisionHandler for SimpleCollisionSolver {
         
         let relative_vel = temp_circle_vel - rect.velocity;
         let relative_vel_along_norm = relative_vel.dot(collision_normal_unit);
-        let mass_circle = 1.0;
-        let mass_rect = 1.0;
+        let mass_circle = circle.mass;
+        let mass_rect = rect.mass;
         let c_r = 1.0;
         let impulse_magnitude = impulse_magnitude(relative_vel_along_norm, mass_circle, mass_rect, c_r);
 

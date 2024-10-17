@@ -10,9 +10,9 @@ use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 
 use game_engine::engine::util::zero;
-use game_engine::engine::util::color::{red, green, blue};
+use game_engine::engine::util::color::{green, blue};
 use game_engine::engine::{PhysicsEngine, RenderEngine};
-use game_engine::engine::physics_engine::collision::rigid_body::RigidBody;
+use game_engine::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyBuilder, RigidBodyType};
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
@@ -35,20 +35,21 @@ pub struct DebugPhysicsEngine {
 impl DebugPhysicsEngine {
     pub fn new(window_size: &(u32,u32)) -> Self {
         let dt = 0.001;
-        let mut bodies = vec![
-            RigidBody::circle(0, [0.5,0.,0.], zero(), [-400.,0.,0.], red(), 100.),
-            RigidBody::circle(1, [1. ,2.,0.], zero(), [400.,400.,0.], blue(), 100.),
-            RigidBody::circle(2, [2.,1.5,0.], zero(), [350.,0.,0.], green(), 120.),
-            RigidBody::rectangle(3, zero(),zero(), zero(), green(), 200., 200.),
-            //RigidBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
+        let bodies = vec![
+            RigidBodyBuilder::default().id(0).velocity([2.,0.,0.]).position([-400.,0.,0.])
+                .sprite_coord(SpriteCoordinate::new([2.,0.], [3.,1.]))
+                .body_type(RigidBodyType::Circle { radius: 100.}).build(),
+            
+            RigidBodyBuilder::default().id(1).velocity([1.,2.,0.]).position([400.,400.,0.])
+                .color(blue()).body_type(RigidBodyType::Circle { radius: 100.}).build(),
+
+            RigidBodyBuilder::default().id(2).velocity([2.,1.5,0.]).position([350.,0.,0.])
+                .color(green()).body_type(RigidBodyType::Circle { radius: 120.}).build(),
+
+            RigidBodyBuilder::default().id(3).velocity(zero()).position(zero())
+                .sprite_coord(SpriteCoordinate::new([1.,0.], [2.,1.]))
+                .body_type(RigidBodyType::Rectangle { width: 200., height: 200. }).build(),
         ];
-        
-        bodies[0].set_sprite(SpriteCoordinate::new([2.,0.], [3.,1.]));
-        bodies[3].set_sprite(SpriteCoordinate::new([1.,0.], [2.,1.]));
-        
-        //bodies[4].prev_position = Vector3::new(-500., -200., 0.0);
-        //bodies[4].position = Vector3::new(-500., -200., 0.0);
-        //bodies[4].set_sprite(SpriteCoordinate::new([0.,0.], [2.,1.]));
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
         

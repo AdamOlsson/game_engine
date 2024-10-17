@@ -95,7 +95,7 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
 mod tests {
 
     use crate::engine::physics_engine::broadphase::BroadPhase;
-    use crate::engine::physics_engine::collision::rigid_body::RigidBody;
+    use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyBuilder, RigidBodyType};
     use crate::engine::util::zero;
 
     use super::BlockMap;
@@ -104,9 +104,16 @@ mod tests {
     fn rect_circle_are_possible_collision_candidates() {
         let (window_width, _window_height) = (1000.0,1000);
         let blockmap = BlockMap::new(window_width);
-
-        let circ = RigidBody::circle(0, zero(), zero(), zero(), zero(), 50.0);
-        let rect = RigidBody::rectangle(1, zero(), zero(), zero(), zero(), 50.0, 50.0);
+        let circ = RigidBodyBuilder::default()
+            .id(0)
+            .position(zero())
+            .body_type(RigidBodyType::Circle { radius: 50.0 })
+            .build();
+        let rect = RigidBodyBuilder::default()
+            .id(1)
+            .position(zero())
+            .body_type(RigidBodyType::Rectangle{ width: 50.0, height: 50.0})
+            .build();
         
         let candidates = blockmap.collision_detection(&vec![circ, rect]);
         assert_eq!(1, candidates.len());

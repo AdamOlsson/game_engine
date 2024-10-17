@@ -6,6 +6,8 @@ use game_engine::engine::physics_engine::broadphase::spatial_subdivision::spatia
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
+use game_engine::engine::physics_engine::collision::rigid_body::RigidBodyBuilder;
+use game_engine::engine::physics_engine::collision::rigid_body::RigidBodyType;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::inelastic::InelasticConstraintResolver;
@@ -93,18 +95,20 @@ impl <C, B, N> Collision<C, B, N>
         //let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
         //let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         // TODO:
+        // - Refactor CircleRect collision to handle rotation
         // - RectRect collision
         // - Refactor CircleCircle collision using techniques in RectCircle and RectRect
         // - For RectCircle collision (and probably RectRect and CircleCircle) we perform the collision 
         //      detection twice. Refactor this
         // - Add rotation to CircleCircle, CircleRect and RectRect collisions
         let bodies = vec![
-            RigidBody::circle(0, [10.,0.,0.], zero(), [-400.,0.,0.], red(), 50.0),
-            RigidBody::rectangle(1, zero(), zero(), zero(), blue(), 100.0, 100.0),
+            RigidBodyBuilder::default().id(0).velocity([10.,0.,0.]).position([-400.0,0.,0.])
+                .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
+            RigidBodyBuilder::default().id(1).velocity(zero()).position(zero())
+                .color(blue()).body_type(RigidBodyType::Rectangle { width: 100., height: 100.0 })
+                .build(),
         ];
         
-        //bodies[1].rotation = f32::consts::PI / 4.0;
-
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
             
         return Self { dt, integrator, constraint, broadphase,narrowphase}

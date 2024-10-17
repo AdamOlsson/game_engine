@@ -1,6 +1,6 @@
 use cgmath::Vector3;
 
-use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
+use crate::engine::{renderer_engine::asset::sprite_sheet::SpriteCoordinate, util::{color::blue, zero}};
 
 #[derive(Clone)]
 pub enum RigidBodyType {
@@ -19,53 +19,15 @@ pub struct RigidBody {
     pub mass: f32,
     pub rotation: f32,
 
+    pub rotational_velocity: Vector3<f32>,
+    pub inertia: f32,
+
     // Render data
     pub color: Vector3<f32>,
     pub sprite_coord: SpriteCoordinate,
 }
 
-impl RigidBody {
-
-    pub fn circle(
-        id: usize, velocity: [f32;3], acceleration: [f32;3], position: [f32; 3],
-        color: [f32;3], radius: f32 
-    ) -> Self {
-        let body_type = RigidBodyType::Circle { radius };
-        let mass = 1.0;
-        let rotation = 0.0;
-        Self::new(id, velocity, acceleration, position, body_type, mass, rotation, color)
-    }
-
-    pub fn rectangle(
-        id: usize, velocity: [f32;3], acceleration: [f32;3], position: [f32; 3],
-        color: [f32;3], width: f32, height: f32,
-    ) -> Self {
-        let body_type = RigidBodyType::Rectangle { width, height };
-        let mass = 1.0;
-        let rotation = 0.0;
-        Self::new(id, velocity, acceleration, position, body_type, mass, rotation, color)
-    }
-
-    fn new(
-        id: usize, velocity: [f32;3], acceleration: [f32;3],
-        position: [f32;3], body_type: RigidBodyType, mass: f32, rotation: f32,
-        color: [f32;3]
-    ) -> RigidBody {
-        let velocity = Vector3::from(velocity);
-        let position = Vector3::from(position);
-        let prev_position = position - velocity;
-        let acceleration = Vector3::from(acceleration);
-        let color = Vector3::from(color);
-        let sprite_coord = SpriteCoordinate::none();
-        Self {id, velocity, position, acceleration, color, body_type,
-            prev_position, sprite_coord, mass, rotation
-        }
-    }
-
-    pub fn set_sprite(&mut self, coord: SpriteCoordinate) {
-        self.sprite_coord = coord;
-    }
- }
+impl RigidBody {}
 
 impl std::fmt::Display for RigidBodyType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -89,4 +51,122 @@ impl std::fmt::Display for RigidBody {
     }
 }
 
+pub struct RigidBodyBuilder {
+    pub id: Option<usize>,
+    pub velocity: Vector3<f32>,
+    pub acceleration: Vector3<f32>,
+    pub prev_position: Option<Vector3<f32>>,
+    pub position: Vector3<f32>,
+    pub body_type: RigidBodyType,
+    pub mass: f32,
+    pub rotational_velocity: Vector3<f32>,
+    pub rotation: f32,
+    pub inertia: f32,
+    // Render data
+    pub color: Vector3<f32>,
+    pub sprite_coord: SpriteCoordinate,
+}
 
+impl std::default::Default for RigidBodyBuilder {
+    fn default() -> Self {
+        let id = None;
+        let velocity = zero();
+        let rotational_velocity = zero();
+        let acceleration = zero();
+        let prev_position = None;
+        let position = zero();
+        let body_type = RigidBodyType::Circle { radius: 80.0 };
+        let mass = 1.0;
+        let rotation = 0.0;
+        let inertia = 0.0;
+        let color = blue();
+        let sprite_coord = SpriteCoordinate::none();
+        Self { velocity: velocity.into(), rotational_velocity: rotational_velocity.into(),
+            id, acceleration: acceleration.into(), prev_position,
+            position: position.into(), body_type,mass,rotation,inertia,
+            color: color.into(),sprite_coord,
+        }
+    }
+}
+
+impl RigidBodyBuilder {
+   
+    pub fn id(mut self, id: usize) -> Self {
+        self.id = Some(id);
+        self
+    }
+
+    pub fn velocity(mut self, velocity: [f32;3]) -> Self {
+        self.velocity = velocity.into();
+        self
+    }
+
+    pub fn acceleration(mut self, acceleration: [f32;3]) -> Self {
+        self.acceleration = acceleration.into();
+        self
+     }
+
+    pub fn prev_position(mut self, prev_position: [f32;3]) -> Self {
+        self.prev_position = Some(prev_position.into());
+        self
+    }
+
+    pub fn position(mut self, position: [f32;3]) -> Self {
+        self.position = position.into();
+        self
+    }
+
+    pub fn body_type(mut self, body_type: RigidBodyType) -> Self {
+        self.body_type = body_type;
+        self
+    } 
+
+    pub fn mass(mut self, mass: f32) -> Self {
+        self.mass = mass;
+        self
+    }
+
+    pub fn rotational_velocity(mut self, rotational_velocity: [f32;3]) -> Self {
+        self.rotational_velocity = rotational_velocity.into();
+        self
+    }
+   
+    pub fn rotation(mut self, rotation: f32) -> Self {
+        self.rotation = rotation;
+        self
+    }
+
+    pub fn inertia(mut self, inertia: f32) -> Self {
+        self.inertia = inertia;
+        self
+    }
+
+    pub fn color(mut self, color: [f32;3]) -> Self {
+        self.color = color.into();
+        self
+    }
+
+    pub fn sprite_coord(mut self, sprite_coord: SpriteCoordinate) -> Self {
+        self.sprite_coord = sprite_coord;
+        self
+    }
+ 
+    pub fn build(self) -> RigidBody {
+        let id = match self.id {
+            Some(id) => id,
+            None => panic!("RigidBody id needs to be set"),
+        };
+
+        let prev_position = match self.prev_position {
+            Some(pp) => pp,
+            None => self.position - self.velocity,
+        };
+
+        RigidBody { id, velocity: self.velocity, acceleration: self.acceleration, 
+            prev_position, position: self.position,
+            body_type: self.body_type, mass: self.mass, rotation: self.rotation,
+            color: self.color, sprite_coord: self.sprite_coord, inertia: self.inertia,
+            rotational_velocity: self.rotational_velocity,
+        }
+    }
+}

@@ -208,7 +208,9 @@ mod tests {
     }
     mod circle_rect_collision {
 
-        use crate::engine::{physics_engine::collision::{rigid_body::RigidBody, collision_handler::SimpleCollisionSolver}, util::{color::red, zero}};
+        use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
+        use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
+        use crate::engine::util::zero;
         use super::super::CollisionHandler;
 
         macro_rules! handle_circle_rect_collision_tests {
@@ -241,20 +243,66 @@ mod tests {
 
         handle_circle_rect_collision_tests! {
             given_distance_between_bodies_is_zero_expect_no_collision_resolution:
-                vec![RigidBody::circle(0, [10.,0.,0.], zero(), [-100.,0.,0.], red(), 50.),
-                    RigidBody::rectangle(1, zero(), zero(), zero(), red(), 100.,100.),],
-                vec![RigidBody::circle(0, [10.,0.,0.], zero(), [-100.,0.,0.], red(), 50.),
-                    RigidBody::rectangle(1, zero(), zero(), zero(), red(), 100.,100.),]
+                vec![
+                    RigidBodyBuilder::default().id(0).velocity([10.,0.,0.])
+                        .position([-100.0,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).velocity(zero())
+                        .position(zero())
+                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
+                        .build(),],
+                vec![
+                    RigidBodyBuilder::default().id(0).velocity([10.,0.,0.])
+                        .position([-100.0,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).velocity(zero())
+                        .position(zero())
+                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
+                        .build(),]
+
             given_objects_have_collided_when_distance_is_zero_expect_each_object_move_half_penetration_depth:
-                vec![RigidBody::circle(0, zero(), zero(), [-50.,0.,0.], red(), 50.),
-                    RigidBody::rectangle(1, zero(), zero(), zero(), red(), 80., 80.),],
-                vec![RigidBody::circle(0, zero(), zero(), [-70.,0.,0.], red(), 50.),
-                    RigidBody::rectangle(1, zero(), zero(), [20.0,0.,0.], red(), 100.,100.),]
+                vec![
+                    RigidBodyBuilder::default().id(0).velocity(zero())
+                        .position([-50.0,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).velocity(zero())
+                        .position(zero())
+                        .body_type(RigidBodyType::Rectangle{ width: 80., height: 80.})
+                        .build(),],
+                vec![
+                    RigidBodyBuilder::default().id(0).velocity(zero())
+                        .position([-70.0,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).velocity(zero())
+                        .position([20.,0.,0.])
+                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
+                        .build(),]
+
+
             given_objects_collide_when_mass_is_equal_and_an_elastic_collision_expect_velocity_swap:
-                vec![RigidBody::circle(0, [100.,0.,0.], zero(), [-50.,0.,0.], red(), 50.),
-                    RigidBody::rectangle(1, [0.,0.,0.], zero(), zero(), red(), 80., 80.),],
-                vec![RigidBody::circle(0, [0.,0.,0.], zero(), [-70.,0.,0.], red(), 50.),
-                    RigidBody::rectangle(1, [100.,0.,0.], zero(), [20.0,0.,0.], red(), 100.,100.),]
+                vec![
+                    RigidBodyBuilder::default().id(0).velocity([100.,0.,0.])
+                        .position([-50.0,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).velocity(zero())
+                        .position(zero())
+                        .body_type(RigidBodyType::Rectangle{ width: 80., height: 80.})
+                        .build(),],
+                vec![
+                    RigidBodyBuilder::default().id(0).velocity(zero())
+                        .position([-70.0,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).velocity([100.,0.,0.])
+                        .position([20.,0.,0.])
+                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
+                        .build(),]
+
 
         }
     }

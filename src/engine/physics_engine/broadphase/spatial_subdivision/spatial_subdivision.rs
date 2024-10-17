@@ -4,7 +4,7 @@ use cgmath::{MetricSpace, Vector3};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 use crate::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
-use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
+use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
 
 use super::super::BroadPhase;
 use super::cell_id::{CellId, CellIdType};
@@ -271,14 +271,14 @@ impl SpatialSubdivision {
 }
 
 impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
-    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> [Vec<CollisionCandidates>; 4] {
+    fn collision_detection(&self, bodies: &Vec<RigidBody>) -> [Vec<CollisionCandidates>; 4] {
         let (mut bcircles, largest_radius, min_x, min_y) = bodies.par_iter()
             .filter_map(|b| match b.body_type {
-                CollisionBodyType::Circle { radius } => {
+                RigidBodyType::Circle { radius } => {
                     let radius = radius * 1.41;
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
                 },
-                CollisionBodyType::Rectangle { width, height } => {
+                RigidBodyType::Rectangle { width, height } => {
                     let radius = (width.max(height) / 2.0)*1.41;
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
                 }
@@ -312,7 +312,7 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
         });
 
         debug_assert!({
-            let bad_bodies: Vec<(usize,&BoundingCircle, &CollisionBody)> = bcircles.iter().enumerate()
+            let bad_bodies: Vec<(usize,&BoundingCircle, &RigidBody)> = bcircles.iter().enumerate()
                 .filter(|(_,b)| (b.center.x-b.radius) < 0.0 || (b.center.y-b.radius) < 0.0 )
                 .map(|(i,b)| (i,b,&bodies[i]))
                 .collect();

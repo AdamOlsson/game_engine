@@ -1,6 +1,6 @@
 //extern crate game_engine;
 //
-//use crate::engine::{physics_engine::{collision::collision_body::CollisionBodyType, constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::{circle::Circle, Shape}, util::log_performance::LogPerformance};
+//use crate::engine::{physics_engine::{collision::rigid_body::RigidBodyType, constraint::resolver::elastic::ElasticConstraintResolver, integrator::verlet::VerletIntegrator, narrowphase::{naive::Naive, NarrowPhase}}, renderer_engine::shapes::{circle::Circle, Shape}, util::log_performance::LogPerformance};
 //
 //use std::iter::zip;
 //use cgmath::{MetricSpace, Vector3, Zero};
@@ -9,7 +9,7 @@
 //use crate::engine::physics_engine::constraint::Constraint;
 //use crate::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 //use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
-//use crate::engine::physics_engine::collision::collision_body::CollisionBody;
+//use crate::engine::physics_engine::collision::rigid_body::RigidBody;
 //use crate::engine::physics_engine::broadphase::BroadPhase;
 //use crate::engine::physics_engine::broadphase::blockmap::BlockMap;
 //use crate::engine::init_utils::{create_grid_positions, generate_random_radii};
@@ -54,9 +54,9 @@
 //        let positions = prev_positions.clone();
 //        let acceleration = vec![Vector3::new(0.0, -150.0, 0.0); target_num_instances as usize];
 //
-//        let bodies: Vec<CollisionBody> = zip(zip(prev_positions, acceleration), zip(positions, radii))
+//        let bodies: Vec<RigidBody> = zip(zip(prev_positions, acceleration), zip(positions, radii))
 //            .enumerate()
-//            .map(|(i, ((pp,a), (p, r)))| CollisionBody::circle(i, Vector3::zero(), a, pp, p, r,Vector3::zero()))
+//            .map(|(i, ((pp,a), (p, r)))| RigidBody::circle(i, Vector3::zero(), a, pp, p, r,Vector3::zero()))
 //            .collect();
 //
 //        let temperatures = vec![0.0; target_num_instances as usize];
@@ -72,10 +72,10 @@
 //}
 //
 //impl State for FireState {
-//    fn get_bodies(&self) -> &Vec<CollisionBody> {
+//    fn get_bodies(&self) -> &Vec<RigidBody> {
 //        self.integrator.get_bodies()
 //    }
-//    fn get_bodies_mut(&mut self) -> &mut Vec<CollisionBody> {
+//    fn get_bodies_mut(&mut self) -> &mut Vec<RigidBody> {
 //        self.integrator.get_bodies_mut()
 //    }
 //}
@@ -164,13 +164,13 @@
 //
 //
 //    fn heat_transfer(
-//        bodies: &Vec<CollisionBody>, temperatures: &Vec<f32>,
+//        bodies: &Vec<RigidBody>, temperatures: &Vec<f32>,
 //        broadphase: &Box<dyn BroadPhase>) -> Vec<f32> 
 //    {
 //        let candidates = broadphase.collision_detection(&bodies);
 //        let mut thermal_delta = vec![0.0; bodies.len()];
 //
-//        let candidate_bodies: Vec<Vec<CollisionBody>> = candidates.iter().map(| cs | {
+//        let candidate_bodies: Vec<Vec<RigidBody>> = candidates.iter().map(| cs | {
 //            cs.indices.iter().map(| idx | (bodies[*idx].clone())).collect()
 //        }).collect();
 //
@@ -203,14 +203,14 @@
 //    /// Calculate the heat transfer due to convection between bodies
 //    #[allow(non_snake_case)]
 //    fn local_heat_transfer(
-//        bodies: &Vec<CollisionBody>, temperatures: &Vec<f32>) -> Vec<f32> 
+//        bodies: &Vec<RigidBody>, temperatures: &Vec<f32>) -> Vec<f32> 
 //    {
 //        let num_instances = bodies.len();
 //        let mut thermal_delta = vec![0.0; num_instances ];
 //
 //        for i in 0..num_instances {
 //            let radius = match bodies[i].body_type {
-//                CollisionBodyType::Circle { radius } => radius,
+//                RigidBodyType::Circle { radius } => radius,
 //                _ => panic!(),
 //            };
 //            // Bottom of the screen heats the objects
@@ -229,7 +229,7 @@
 //                let (type_i, type_j) = (&bodies[i].body_type, &bodies[j].body_type);
 //                match (type_i, type_j) {
 //               
-//                    (CollisionBodyType::Circle { radius: ri }, CollisionBodyType::Circle { radius: rj }) =>
+//                    (RigidBodyType::Circle { radius: ri }, RigidBodyType::Circle { radius: rj }) =>
 //                        if dist_sq -0.01 <= (ri + rj).powi(2) {
 //                            let (temp_delta_i, temp_delta_j) = Self::heat_conduction(temperatures[i], temperatures[j], ri + rj);
 //                            thermal_delta[i] += temp_delta_i;
@@ -280,7 +280,7 @@
 //        }
 //    }
 //
-//    fn get_bodies(&self) -> &Vec<CollisionBody> {
+//    fn get_bodies(&self) -> &Vec<RigidBody> {
 //        self.state.get_bodies()
 //    }
 //}

@@ -1,5 +1,5 @@
 use cgmath::Vector3;
-use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
+use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
 use super::{resolver::ConstraintResolver, Constraint};
 
 
@@ -28,10 +28,10 @@ impl BoxConstraint {
 }
 
 impl Constraint for BoxConstraint {
-    fn apply_constraint(&self, body: &mut CollisionBody) {
+    fn apply_constraint(&self, body: &mut RigidBody) {
         let shape = match body.body_type {
-            CollisionBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
-            CollisionBodyType::Rectangle { width, height } => {
+            RigidBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
+            RigidBodyType::Rectangle { width, height } => {
                 Vector3::new(width/2.0, height/2.0, 0.0)
             },            
         };

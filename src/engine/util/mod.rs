@@ -1,4 +1,4 @@
-use super::{physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
+use super::{physics_engine::collision::rigid_body::{RigidBody, RigidBodyType}, renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance}};
 
 pub mod log_performance;
 pub mod color;
@@ -8,11 +8,11 @@ pub fn zero() -> [f32; 3] {
 }
 
 
-pub fn get_circle_instances(bodies: &[CollisionBody]) -> Vec<CircleInstance> {
+pub fn get_circle_instances(bodies: &[RigidBody]) -> Vec<CircleInstance> {
     bodies.iter().filter_map(
         |body| {
             match body.body_type { 
-                CollisionBodyType::Circle { radius } => 
+                RigidBodyType::Circle { radius } => 
                     Some(CircleInstance {
                         position: body.position.into(), 
                         color: body.color.into(), 
@@ -24,11 +24,11 @@ pub fn get_circle_instances(bodies: &[CollisionBody]) -> Vec<CircleInstance> {
         }).collect::<Vec<_>>()
 }
 
-pub fn get_rectangle_instances(bodies: &[CollisionBody]) -> Vec<RectangleInstance> {
+pub fn get_rectangle_instances(bodies: &[RigidBody]) -> Vec<RectangleInstance> {
     bodies.iter().filter_map(
         |body| {
             match body.body_type { 
-                CollisionBodyType::Rectangle{ width, height } => 
+                RigidBodyType::Rectangle{ width, height } => 
                     Some(RectangleInstance{
                         color: body.color.into(), 
                         position: body.position.into(),

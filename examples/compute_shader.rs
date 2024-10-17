@@ -3,7 +3,7 @@ extern crate game_engine;
 
 use game_engine::engine::renderer_engine::graphics_context::GraphicsContext;
 use game_engine::engine::renderer_engine::util;
-use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
+use game_engine::engine::physics_engine::collision::rigid_body::RigidBody;
 use game_engine::engine::PhysicsEngine;
 use wgpu::util::DeviceExt;
 use winit::event_loop::EventLoopBuilder;
@@ -11,7 +11,7 @@ use winit::window::WindowBuilder;
 
 
 pub struct MainSimulation {
-    bodies: Vec<CollisionBody>,
+    bodies: Vec<RigidBody>,
 }
 
 impl MainSimulation{
@@ -25,7 +25,7 @@ impl PhysicsEngine for MainSimulation {
 
     fn update(&mut self) {}
 
-    fn get_bodies(&self) -> &Vec<CollisionBody> {
+    fn get_bodies(&self) -> &Vec<RigidBody> {
         &self.bodies
     }
 } 

@@ -1,4 +1,4 @@
-use crate::engine::physics_engine::{collision::collision_body::CollisionBody, util::equations::inelastic_collision_1d};
+use crate::engine::physics_engine::{collision::rigid_body::RigidBody, util::equations::inelastic_collision_1d};
 
 use super::ConstraintResolver;
 
@@ -11,11 +11,11 @@ impl InelasticConstraintResolver {
 }
 
 impl ConstraintResolver for InelasticConstraintResolver {
-    fn resolve_vertical(&self, diff: f32, body: &mut CollisionBody) {
+    fn resolve_vertical(&self, diff: f32, body: &mut RigidBody) {
         let mass_body = 1.0;
         let vel_y_body = body.velocity.y;
 
-        let c_r = 0.8;
+        let c_r = 1.0;
         let mass_wall: f32 = 1_000_000_000.0;
         let vel_y_wall: f32 = 0.0;
         let (_,new_vel_y_body) = inelastic_collision_1d(
@@ -25,7 +25,7 @@ impl ConstraintResolver for InelasticConstraintResolver {
         body.prev_position = body.position - body.velocity;
     }
 
-    fn resolve_horizontal(&self, diff: f32, body: &mut CollisionBody) {
+    fn resolve_horizontal(&self, diff: f32, body: &mut RigidBody) {
         let mass_body = 1.0;
         let vel_x_body = body.velocity.x;
 

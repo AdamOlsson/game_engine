@@ -3,32 +3,32 @@ use cgmath::Vector3;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 
 #[derive(Clone)]
-pub enum CollisionBodyType {
+pub enum RigidBodyType {
     Circle { radius: f32 },
     Rectangle { width: f32, height: f32 },
 }
 
 #[derive(Clone)]
-pub struct CollisionBody {
+pub struct RigidBody {
     pub id: usize,
     pub velocity: Vector3<f32>,
     pub acceleration: Vector3<f32>,
     pub prev_position: Vector3<f32>,
     pub position: Vector3<f32>,
-    pub body_type: CollisionBodyType,
+    pub body_type: RigidBodyType,
 
     // Render data
     pub color: Vector3<f32>,
     pub sprite_coord: SpriteCoordinate,
 }
 
-impl CollisionBody {
+impl RigidBody {
 
     pub fn circle(
         id: usize, velocity: [f32;3], acceleration: [f32;3], position: [f32; 3],
         color: [f32;3], radius: f32 
     ) -> Self {
-        let body_type = CollisionBodyType::Circle { radius };
+        let body_type = RigidBodyType::Circle { radius };
         Self::new(id, velocity, acceleration, position, body_type, color)
     }
 
@@ -36,15 +36,15 @@ impl CollisionBody {
         id: usize, velocity: [f32;3], acceleration: [f32;3], position: [f32; 3],
         color: [f32;3], width: f32, height: f32,
     ) -> Self {
-        let body_type = CollisionBodyType::Rectangle { width, height };
+        let body_type = RigidBodyType::Rectangle { width, height };
         Self::new(id, velocity, acceleration, position, body_type, color)
     }
 
     fn new(
         id: usize, velocity: [f32;3], acceleration: [f32;3],
-        position: [f32;3], body_type: CollisionBodyType,
+        position: [f32;3], body_type: RigidBodyType,
         color: [f32;3]
-    ) -> CollisionBody {
+    ) -> RigidBody {
         let velocity = Vector3::from(velocity);
         let position = Vector3::from(position);
         let prev_position = position - velocity;
@@ -63,20 +63,20 @@ impl CollisionBody {
     }
  }
 
-impl std::fmt::Display for CollisionBodyType {
+impl std::fmt::Display for RigidBodyType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CollisionBodyType::Circle { radius } => write!(f, "Circle({})", radius),
-            CollisionBodyType::Rectangle { width, height } => write!(f, "Rectangle({},{})", width, height),
+            RigidBodyType::Circle { radius } => write!(f, "Circle({})", radius),
+            RigidBodyType::Rectangle { width, height } => write!(f, "Rectangle({},{})", width, height),
         }
     }
 }
 
-impl std::fmt::Display for CollisionBody {
+impl std::fmt::Display for RigidBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "CollisionBody{{ id: {}, position: ({},{},{}), prev_pos: ({},{},{}), velocity: ({},{},{}), type: {} }}",
+            "RigidBody{{ id: {}, position: ({},{},{}), prev_pos: ({},{},{}), velocity: ({},{},{}), type: {} }}",
             self.id,
             self.position.x, self.position.y, self.position.z,
             self.prev_position.x, self.prev_position.y, self.prev_position.z,

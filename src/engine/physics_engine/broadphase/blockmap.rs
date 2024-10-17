@@ -1,4 +1,4 @@
-use crate::engine::physics_engine::collision::{collision_body::{CollisionBody, CollisionBodyType}, collision_candidates::CollisionCandidates};
+use crate::engine::physics_engine::collision::{rigid_body::{RigidBody, RigidBodyType}, collision_candidates::CollisionCandidates};
 
 use super::BroadPhase;
 
@@ -11,7 +11,7 @@ impl BlockMap {
         Self { width: window_width }
     }
 
-    fn assign_object_to_cell(&self, bodies: &Vec<CollisionBody>, cell_size: f32, grid_width: u32) -> Vec<Vec<usize>> {
+    fn assign_object_to_cell(&self, bodies: &Vec<RigidBody>, cell_size: f32, grid_width: u32) -> Vec<Vec<usize>> {
        // Assign each circle to a cell
         let mut cells: Vec<Vec<usize>> = vec![Vec::new(); (grid_width*grid_width) as usize];
         for (i, b) in bodies.iter().enumerate() {
@@ -45,7 +45,7 @@ impl BlockMap {
 
 impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
 
-    fn collision_detection(&self, bodies: &Vec<CollisionBody>) -> Vec<CollisionCandidates> {
+    fn collision_detection(&self, bodies: &Vec<RigidBody>) -> Vec<CollisionCandidates> {
         
         if bodies.len() == 0 {
             return vec![]; 
@@ -54,8 +54,8 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
         // FIXME: Allow for width and height of cell to unequal
         let cell_size = bodies.iter().fold(0.0, |acc, b| {
             match b.body_type {
-                CollisionBodyType::Circle { radius } => f32::max(acc, radius),
-                CollisionBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)) / 2.0,
+                RigidBodyType::Circle { radius } => f32::max(acc, radius),
+                RigidBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)) / 2.0,
             }
         })*2.0;
 
@@ -95,7 +95,7 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
 mod tests {
 
     use crate::engine::physics_engine::broadphase::BroadPhase;
-    use crate::engine::physics_engine::collision::collision_body::CollisionBody;
+    use crate::engine::physics_engine::collision::rigid_body::RigidBody;
     use crate::engine::util::zero;
 
     use super::BlockMap;
@@ -105,8 +105,8 @@ mod tests {
         let (window_width, _window_height) = (1000.0,1000);
         let blockmap = BlockMap::new(window_width);
 
-        let circ = CollisionBody::circle(0, zero(), zero(), zero(), zero(), 50.0);
-        let rect = CollisionBody::rectangle(1, zero(), zero(), zero(), zero(), 50.0, 50.0);
+        let circ = RigidBody::circle(0, zero(), zero(), zero(), zero(), 50.0);
+        let rect = RigidBody::rectangle(1, zero(), zero(), zero(), zero(), 50.0, 50.0);
         
         let candidates = blockmap.collision_detection(&vec![circ, rect]);
         assert_eq!(1, candidates.len());

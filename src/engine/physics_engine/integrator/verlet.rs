@@ -1,14 +1,14 @@
 use cgmath::InnerSpace;
-use crate::engine::physics_engine::collision::collision_body::CollisionBody;
+use crate::engine::physics_engine::collision::rigid_body::RigidBody;
 
 pub struct VerletIntegrator {
     velocity_cap: f32,
-    bodies: Vec<CollisionBody>,
+    bodies: Vec<RigidBody>,
 }
 
 impl VerletIntegrator {
     pub fn new(
-        velocity_cap: f32, bodies: Vec<CollisionBody>
+        velocity_cap: f32, bodies: Vec<RigidBody>
     ) -> Self {
         Self { velocity_cap, bodies}
     }
@@ -44,21 +44,21 @@ impl VerletIntegrator {
         self.bodies[idx].acceleration.y = new;
     }
 
-    pub fn set_position_x(bodies: &mut Vec<CollisionBody>, idx: usize, new: f32) {
+    pub fn set_position_x(bodies: &mut Vec<RigidBody>, idx: usize, new: f32) {
         bodies[idx].position.x = new;
         bodies[idx].prev_position.x = new - bodies[idx].velocity.x;
     }
     
-    pub fn set_position_y(bodies: &mut Vec<CollisionBody>, idx: usize, new: f32) {
+    pub fn set_position_y(bodies: &mut Vec<RigidBody>, idx: usize, new: f32) {
         bodies[idx].position.y = new;
         bodies[idx].prev_position.y = new - bodies[idx].velocity.y;
     }
 
-    pub fn get_bodies(&self) -> &Vec<CollisionBody> {
+    pub fn get_bodies(&self) -> &Vec<RigidBody> {
         &self.bodies
     }
 
-    pub fn get_bodies_mut(&mut self) -> &mut Vec<CollisionBody> {
+    pub fn get_bodies_mut(&mut self) -> &mut Vec<RigidBody> {
         &mut self.bodies
     }
 

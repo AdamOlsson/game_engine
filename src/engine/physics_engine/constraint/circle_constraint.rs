@@ -3,7 +3,7 @@ use core::panic;
 
 use cgmath::InnerSpace;
 
-use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
+use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
 
 use super::Constraint;
 
@@ -19,9 +19,9 @@ impl CircleConstraint{
 }
 
 impl Constraint for CircleConstraint {
-    fn apply_constraint(&self, body: &mut CollisionBody) {
+    fn apply_constraint(&self, body: &mut RigidBody) {
         let object_radius = match body.body_type {
-            CollisionBodyType::Circle { radius } => radius,
+            RigidBodyType::Circle { radius } => radius,
             _ => panic!("Cirlce constraint only supports circle shaped bodies for now"),
         };
 

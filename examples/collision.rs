@@ -18,7 +18,7 @@ use game_engine::engine::util::zero;
 use game_engine::engine::PhysicsEngine;
 use game_engine::engine::RenderEngine;
 use game_engine::engine::game_engine::GameEngineBuilder;
-use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
+use game_engine::engine::physics_engine::collision::rigid_body::RigidBody;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use rand::Rng;
 
@@ -31,7 +31,7 @@ const RADIUS: f32 = 80.0;
 //    acceleration: Vector3<f32>,
 //    columns: usize,
 //    rows: usize,
-//) -> Vec<CollisionBody> {
+//) -> Vec<RigidBody> {
 //    let spacing_dist = radius / 2.0;
 //    let color = Vector3::new(255.0, 0.0, 0.0);
 //    let velocity = Vector3::zero();
@@ -50,7 +50,7 @@ const RADIUS: f32 = 80.0;
 //            
 //            let position = Vector3::new(base_x + variance_x, base_y + variance_y, 0.0);
 //            
-//            let body = CollisionBody::circle(
+//            let body = RigidBody::circle(
 //                row * columns + col, 
 //                velocity,
 //                acceleration,
@@ -91,7 +91,6 @@ impl <C, B, N> Collision<C, B, N>
         //let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
         //let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         // TODO:
-        // - Raname CollisionBody to RigidBody
         // - Add rotation and mass variables to RigidBody
         // - Render rotations of rigidbody
         // - RectRect collision
@@ -100,8 +99,8 @@ impl <C, B, N> Collision<C, B, N>
         //      detection twice. Refactor this
         // - Add rotation to CircleCircle, CircleRect and RectRect collisions
         let bodies = vec![
-            CollisionBody::circle(0, [10.,0.,0.], zero(), [-400.,0.,0.], red(), 50.0),
-            CollisionBody::rectangle(1, zero(), zero(), zero(), blue(), 100.0, 100.0),
+            RigidBody::circle(0, [10.,0.,0.], zero(), [-400.,0.,0.], red(), 50.0),
+            RigidBody::rectangle(1, zero(), zero(), zero(), blue(), 100.0, 100.0),
         ];
 
         let integrator = VerletIntegrator::new(f32::MAX, bodies);
@@ -118,7 +117,7 @@ where
 {
     fn update(&mut self) {
         self.integrator.update(self.dt);
-        let bodies: &mut Vec<CollisionBody> = self.integrator.get_bodies_mut();
+        let bodies: &mut Vec<RigidBody> = self.integrator.get_bodies_mut();
         bodies.iter_mut().for_each(|b| self.constraint.apply_constraint(b));
 
         let candidates = self.broadphase.collision_detection(&bodies);
@@ -143,7 +142,7 @@ where
 
     }
 
-    fn get_bodies(&self) -> &Vec<CollisionBody> {
+    fn get_bodies(&self) -> &Vec<RigidBody> {
         self.integrator.get_bodies()
     }
 }

@@ -1,12 +1,12 @@
 use crate::engine::physics_engine::util::equations::impulse_magnitude;
 
-use super::collision_body::{CollisionBody, CollisionBodyType};
+use super::rigid_body::{RigidBody, RigidBodyType};
 use cgmath::{InnerSpace, MetricSpace, Vector3};
 
 pub trait CollisionHandler {
-    fn handle_circle_circle_collision(&self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize);
-    fn handle_circle_rect_collision(&self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize);
-    fn handle_rect_rect_collision(&self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize);
+    fn handle_circle_circle_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize);
+    fn handle_circle_rect_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize);
+    fn handle_rect_rect_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize);
 }
 
 pub struct IdentityCollisionSolver{}
@@ -15,9 +15,9 @@ impl IdentityCollisionSolver {
 }
 
 impl CollisionHandler for IdentityCollisionSolver {
-    fn handle_rect_rect_collision(&self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize) {}
-    fn handle_circle_rect_collision(&self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize) {}
-    fn handle_circle_circle_collision(&self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize) {}
+    fn handle_rect_rect_collision(&self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) {}
+    fn handle_circle_rect_collision(&self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) {}
+    fn handle_circle_circle_collision(&self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) {}
 }
 
 pub struct SimpleCollisionSolver {}
@@ -29,12 +29,12 @@ impl SimpleCollisionSolver {
 
 impl CollisionHandler for SimpleCollisionSolver {
     fn handle_circle_circle_collision(
-        &self, bodies: &mut Vec<CollisionBody>, idx_i: usize, idx_j: usize
+        &self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize
     ) {
         let body_i = &bodies[idx_i];
         let body_j = &bodies[idx_j];
         let (radius_i, radius_j) = match (&body_i.body_type, &body_j.body_type) {
-            (CollisionBodyType::Circle { radius: ri }, CollisionBodyType::Circle { radius: rj}) =>
+            (RigidBodyType::Circle { radius: ri }, RigidBodyType::Circle { radius: rj}) =>
                 (ri, rj),
             (_, _) => panic!()
         };
@@ -56,17 +56,17 @@ impl CollisionHandler for SimpleCollisionSolver {
     }
 
     fn handle_circle_rect_collision(
-        &self, bodies: &mut Vec<CollisionBody>, circ_idx: usize, rect_idx: usize
+        &self, bodies: &mut Vec<RigidBody>, circ_idx: usize, rect_idx: usize
     ) {
         let circle = &bodies[circ_idx];
         let radius = match circle.body_type {
-            CollisionBodyType::Circle { radius } => radius,
+            RigidBodyType::Circle { radius } => radius,
             _ => unreachable!(""),
         };
 
         let rect = &bodies[rect_idx];
         let (width, height) = match rect.body_type {
-            CollisionBodyType::Rectangle { width, height } => (width, height),
+            RigidBodyType::Rectangle { width, height } => (width, height),
             _ => unreachable!(""),
         };
 
@@ -125,13 +125,13 @@ impl CollisionHandler for SimpleCollisionSolver {
     }
 
     fn handle_rect_rect_collision(
-        &self, _bodies: &mut Vec<CollisionBody>, _idx_i: usize, _idx_j: usize
+        &self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize
     ) {
         //let body_i = &bodies[idx_i];
         //let body_j = &bodies[idx_j];
         //let ((wi,hi), (wj, hj)) = match (&body_i.body_type, &body_j.body_type) {
-        //    (CollisionBodyType::Rectangle { width: wi, height:hi },
-        //     CollisionBodyType::Rectangle { width: wj, height:hj }) => ((wi, hi), (wj,hj)), 
+        //    (RigidBodyType::Rectangle { width: wi, height:hi },
+        //     RigidBodyType::Rectangle { width: wj, height:hj }) => ((wi, hi), (wj,hj)), 
         //    (_, _) => panic!()
         //};   
         //let collision_axis = body_i.position - body_j.position;
@@ -176,7 +176,7 @@ mod tests {
     mod rect_rect {
         //use cgmath::Vector3;
         //use cgmath::Zero;
-        //use crate::engine::physics_engine::collision::collision_body::CollisionBody;
+        //use crate::engine::physics_engine::collision::rigid_body::RigidBody;
         //use crate::engine::physics_engine::collision::collision_handler::CollisionHandler;
         //use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 
@@ -184,10 +184,10 @@ mod tests {
         //#[test]
         //fn horizontal_movement() {
         //    let mut bodies = vec![
-        //        CollisionBody::rectangle(0, Vector3::new(25.0,0.0,0.0), Vector3::zero(),
+        //        RigidBody::rectangle(0, Vector3::new(25.0,0.0,0.0), Vector3::zero(),
         //            Vector3::zero(), Vector3::new(25.0,0.0,0.0), 100., 100.),
 
-        //        CollisionBody::rectangle(1, Vector3::zero(), Vector3::zero(),
+        //        RigidBody::rectangle(1, Vector3::zero(), Vector3::zero(),
         //            Vector3::new(100.0,0.0,0.0), Vector3::new(100.0,0.0,0.0), 100., 100.),
         //    ]; 
         //    let solver = SimpleCollisionSolver::new();
@@ -208,7 +208,7 @@ mod tests {
     }
     mod circle_rect_collision {
 
-        use crate::engine::{physics_engine::collision::{collision_body::CollisionBody, collision_handler::SimpleCollisionSolver}, util::{color::red, zero}};
+        use crate::engine::{physics_engine::collision::{rigid_body::RigidBody, collision_handler::SimpleCollisionSolver}, util::{color::red, zero}};
         use super::super::CollisionHandler;
 
         macro_rules! handle_circle_rect_collision_tests {
@@ -241,20 +241,20 @@ mod tests {
 
         handle_circle_rect_collision_tests! {
             given_distance_between_bodies_is_zero_expect_no_collision_resolution:
-                vec![CollisionBody::circle(0, [10.,0.,0.], zero(), [-100.,0.,0.], red(), 50.),
-                    CollisionBody::rectangle(1, zero(), zero(), zero(), red(), 100.,100.),],
-                vec![CollisionBody::circle(0, [10.,0.,0.], zero(), [-100.,0.,0.], red(), 50.),
-                    CollisionBody::rectangle(1, zero(), zero(), zero(), red(), 100.,100.),]
+                vec![RigidBody::circle(0, [10.,0.,0.], zero(), [-100.,0.,0.], red(), 50.),
+                    RigidBody::rectangle(1, zero(), zero(), zero(), red(), 100.,100.),],
+                vec![RigidBody::circle(0, [10.,0.,0.], zero(), [-100.,0.,0.], red(), 50.),
+                    RigidBody::rectangle(1, zero(), zero(), zero(), red(), 100.,100.),]
             given_objects_have_collided_when_distance_is_zero_expect_each_object_move_half_penetration_depth:
-                vec![CollisionBody::circle(0, zero(), zero(), [-50.,0.,0.], red(), 50.),
-                    CollisionBody::rectangle(1, zero(), zero(), zero(), red(), 80., 80.),],
-                vec![CollisionBody::circle(0, zero(), zero(), [-70.,0.,0.], red(), 50.),
-                    CollisionBody::rectangle(1, zero(), zero(), [20.0,0.,0.], red(), 100.,100.),]
+                vec![RigidBody::circle(0, zero(), zero(), [-50.,0.,0.], red(), 50.),
+                    RigidBody::rectangle(1, zero(), zero(), zero(), red(), 80., 80.),],
+                vec![RigidBody::circle(0, zero(), zero(), [-70.,0.,0.], red(), 50.),
+                    RigidBody::rectangle(1, zero(), zero(), [20.0,0.,0.], red(), 100.,100.),]
             given_objects_collide_when_mass_is_equal_and_an_elastic_collision_expect_velocity_swap:
-                vec![CollisionBody::circle(0, [100.,0.,0.], zero(), [-50.,0.,0.], red(), 50.),
-                    CollisionBody::rectangle(1, [0.,0.,0.], zero(), zero(), red(), 80., 80.),],
-                vec![CollisionBody::circle(0, [0.,0.,0.], zero(), [-70.,0.,0.], red(), 50.),
-                    CollisionBody::rectangle(1, [100.,0.,0.], zero(), [20.0,0.,0.], red(), 100.,100.),]
+                vec![RigidBody::circle(0, [100.,0.,0.], zero(), [-50.,0.,0.], red(), 50.),
+                    RigidBody::rectangle(1, [0.,0.,0.], zero(), zero(), red(), 80., 80.),],
+                vec![RigidBody::circle(0, [0.,0.,0.], zero(), [-70.,0.,0.], red(), 50.),
+                    RigidBody::rectangle(1, [100.,0.,0.], zero(), [20.0,0.,0.], red(), 100.,100.),]
 
         }
     }

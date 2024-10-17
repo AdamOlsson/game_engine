@@ -12,7 +12,7 @@ use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use game_engine::engine::util::zero;
 use game_engine::engine::util::color::{red, green, blue};
 use game_engine::engine::{PhysicsEngine, RenderEngine};
-use game_engine::engine::physics_engine::collision::collision_body::CollisionBody;
+use game_engine::engine::physics_engine::collision::rigid_body::RigidBody;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
@@ -36,11 +36,11 @@ impl DebugPhysicsEngine {
     pub fn new(window_size: &(u32,u32)) -> Self {
         let dt = 0.001;
         let mut bodies = vec![
-            CollisionBody::circle(0, [0.5,0.,0.], zero(), [-400.,0.,0.], red(), 100.),
-            CollisionBody::circle(1, [1. ,2.,0.], zero(), [400.,400.,0.], blue(), 100.),
-            CollisionBody::circle(2, [2.,1.5,0.], zero(), [350.,0.,0.], green(), 120.),
-            CollisionBody::rectangle(3, zero(),zero(), zero(), green(), 200., 200.),
-            //CollisionBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
+            RigidBody::circle(0, [0.5,0.,0.], zero(), [-400.,0.,0.], red(), 100.),
+            RigidBody::circle(1, [1. ,2.,0.], zero(), [400.,400.,0.], blue(), 100.),
+            RigidBody::circle(2, [2.,1.5,0.], zero(), [350.,0.,0.], green(), 120.),
+            RigidBody::rectangle(3, zero(),zero(), zero(), green(), 200., 200.),
+            //RigidBody::rectangle(4, Vector3::zero(),Vector3::zero(), Vector3::zero(), Vector3::zero(), 400., 200., colors[3]),
         ];
         
         bodies[0].set_sprite(SpriteCoordinate::new([2.,0.], [3.,1.]));
@@ -117,7 +117,7 @@ impl PhysicsEngine for DebugPhysicsEngine {
         }
     }
 
-    fn get_bodies(&self) -> &Vec<CollisionBody> {
+    fn get_bodies(&self) -> &Vec<RigidBody> {
         &self.integrator.get_bodies()
     }
 }

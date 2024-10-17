@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use winit::dpi::PhysicalSize;
-use crate::engine::physics_engine::collision::collision_body::{CollisionBody, CollisionBodyType};
+use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
 
 use crate::engine::renderer_engine::post_process::PostProcessFilterId;
 use crate::engine::renderer_engine::post_process::post_process_filter::PostProcessFilterBuilder;
@@ -152,10 +152,10 @@ impl <'a> RenderEngineControlBuilder {
 }
     }
 
-    pub fn bodies(mut self, bodies: &Vec<CollisionBody>) -> Self {
+    pub fn bodies(mut self, bodies: &Vec<RigidBody>) -> Self {
         let circle_count: u32 = bodies.iter()
             .fold(0, |acc, b| match b.body_type {
-                CollisionBodyType::Circle{ .. } => acc + 1,
+                RigidBodyType::Circle{ .. } => acc + 1,
                 _ => acc,
             }); 
         let default_circle = CircleInstance::default();
@@ -164,7 +164,7 @@ impl <'a> RenderEngineControlBuilder {
 
         let rect_count: u32 = bodies.iter()
             .fold(0, |acc, b| match b.body_type {
-                CollisionBodyType::Rectangle{ .. } => acc + 1,
+                RigidBodyType::Rectangle{ .. } => acc + 1,
                 _ => acc,
             }); 
         let default_rect = RectangleInstance::default();

@@ -74,9 +74,12 @@ impl<'a, T: PhysicsEngine + RenderEngine> GameEngine<'a, T> {
                         num_renders += 1;
 
                         if now.duration_since(statistics_timer_last_print) > statistics_interval {
-                            let avg_fps = 1000 / (total_render_time.as_millis().max(1) / num_renders).max(1);
-                            let avg_tps = 1000 / (total_tick_time.as_millis().max(1) / num_ticks).max(1);
-                            println!("{}FPS, {}TPS", avg_fps, avg_tps);
+                            let actual_avg_fps = num_renders / statistics_interval.as_secs().max(1) as u128;
+                            let actual_avg_tps = num_ticks / statistics_interval.as_secs().max(1) as u128;
+                            let theoretical_avg_fps = 1000 / (total_render_time.as_millis().max(1) / num_renders).max(1);
+                            let theoretical_avg_tps = 1000 / (total_tick_time.as_millis().max(1) / num_ticks).max(1);
+                            println!("Actual: {}FPS, {}TPS | Theoretical: {}FPS, {}TPS",
+                                actual_avg_fps, actual_avg_tps, theoretical_avg_fps, theoretical_avg_tps);
                             statistics_timer_last_print = now;
                             
                             num_ticks = 0;

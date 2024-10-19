@@ -30,6 +30,8 @@ pub struct DebugPhysicsEngine {
     constraint: Box<dyn Constraint>,
     broadphase: Box<dyn BroadPhase<Vec<CollisionCandidates>>>,
     narrowphase: Box<dyn NarrowPhase>,
+
+    bodies: Vec<RigidBody>,
 }
 
 impl DebugPhysicsEngine {
@@ -51,7 +53,7 @@ impl DebugPhysicsEngine {
                 .body_type(RigidBodyType::Rectangle { width: 200., height: 200. }).build(),
         ];
 
-        let integrator = VerletIntegrator::new(f32::MAX, bodies);
+        let integrator = VerletIntegrator::new(f32::MAX);
         
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
         constraint.set_top_left(Vector3::new(-(window_size.0 as f32), window_size.1 as f32, 0.0));
@@ -59,15 +61,14 @@ impl DebugPhysicsEngine {
         let broadphase = Box::new(BlockMap::new(window_size.0 as f32));
         let narrowphase = Box::new(Naive::new(SimpleCollisionSolver::new()));
 
-            
         Self { 
-            dt, integrator, constraint, broadphase, narrowphase, }
+            dt, integrator, constraint, broadphase, narrowphase, bodies }
     }
 }
 
 impl RenderEngine for DebugPhysicsEngine {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
-        let bodies = self.integrator.get_bodies();
+        let bodies = &self.bodies; 
         let target_texture_handle = engine_ctl.request_texture_handle();
 
         let rect_instances = game_engine::engine::util::get_rectangle_instances(bodies);
@@ -94,8 +95,8 @@ impl RenderEngine for DebugPhysicsEngine {
 
 impl PhysicsEngine for DebugPhysicsEngine {
     fn update(&mut self) {
-        self.integrator.update(self.dt);
-        let bodies = self.integrator.get_bodies_mut();
+        let mut bodies = &mut self.bodies;
+        self.integrator.update(&mut bodies, self.dt);
 
         for b in bodies.iter_mut() {
             self.constraint.apply_constraint(b);
@@ -119,7 +120,7 @@ impl PhysicsEngine for DebugPhysicsEngine {
     }
 
     fn get_bodies(&self) -> &Vec<RigidBody> {
-        &self.integrator.get_bodies()
+        &self.bodies
     }
 }
 

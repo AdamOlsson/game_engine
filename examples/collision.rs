@@ -82,6 +82,7 @@ struct Collision <C, B, N>
     constraint: C,
     broadphase: B,
     narrowphase: N,
+    bodies: Vec<RigidBody>
 }
 
 impl <C, B, N> Collision<C, B, N>
@@ -109,9 +110,9 @@ impl <C, B, N> Collision<C, B, N>
                 .build(),
         ];
         
-        let integrator = VerletIntegrator::new(f32::MAX, bodies);
+        let integrator = VerletIntegrator::new(f32::MAX);
             
-        return Self { dt, integrator, constraint, broadphase,narrowphase}
+        return Self { dt, integrator, constraint, broadphase,narrowphase, bodies}
     }
 }
 
@@ -122,8 +123,8 @@ where
     N: NarrowPhase + Sync
 {
     fn update(&mut self) {
-        self.integrator.update(self.dt);
-        let bodies: &mut Vec<RigidBody> = self.integrator.get_bodies_mut();
+        let mut bodies = &mut self.bodies;
+        self.integrator.update(&mut bodies, self.dt);
         bodies.iter_mut().for_each(|b| self.constraint.apply_constraint(b));
 
         let candidates = self.broadphase.collision_detection(&bodies);
@@ -149,7 +150,7 @@ where
     }
 
     fn get_bodies(&self) -> &Vec<RigidBody> {
-        self.integrator.get_bodies()
+        &self.bodies
     }
 }
 

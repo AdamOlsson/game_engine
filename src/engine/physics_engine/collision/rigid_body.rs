@@ -1,6 +1,10 @@
 use cgmath::Vector3;
 
-use crate::engine::{physics_engine::util::equations, renderer_engine::asset::sprite_sheet::SpriteCoordinate, util::{color::blue, zero}};
+use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
+use crate::engine::util::color::blue;
+use crate::engine::util::fixed_float::fixed_float::FixedFloat;
+use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
+use crate::engine::util::zero;
 
 #[derive(Clone)]
 pub enum RigidBodyType {
@@ -35,19 +39,23 @@ impl RigidBody {
             RigidBodyType::Rectangle { width, height } => (width, height),
             _ => panic!("Self is not a rectangle"),
         };
-        let local_circle_center = Vector3::from(equations::rotate_z(
-                &(other_point - rectangle.position).into(), -rectangle.rotation));
+        
+        let width_ff = FixedFloat::from(width);
+        let height_ff = FixedFloat::from(height);
+        let rectangle_pos_ff = FixedFloatVector::from(rectangle.position);
+        let other_point_ff = FixedFloatVector::from(other_point);
+        let rect_rotation_ff = FixedFloat::from(rectangle.rotation);
+        let local_circle_center_ff = (&other_point_ff - &rectangle_pos_ff).rotate_z(&-rect_rotation_ff);
 
-        let local_closest_point_on_rect_x = (-width/2.0).max(local_circle_center.x.min(width/2.0));
-        let local_closest_point_on_rect_y = (-height/2.0).max(local_circle_center.y.min(height/2.0));
-        let transformed_local_closest_point = [
-            local_closest_point_on_rect_x + rectangle.position.x,
-            local_closest_point_on_rect_y + rectangle.position.y,
-            0.0,
-        ]; 
-        let closest_point_on_rect = Vector3::from(equations::rotate_z(
-                &transformed_local_closest_point, rectangle.rotation));
-        return closest_point_on_rect;
+        let local_closest_point_on_rect_x = (-width_ff/2.0).max(&local_circle_center_ff.x.min(&(width_ff/2.0)));
+        let local_closest_point_on_rect_y = (-height_ff/2.0).max(&local_circle_center_ff.y.min(&(height_ff/2.0)));
+        let local_closest_point_on_rect = FixedFloatVector::new(
+            local_closest_point_on_rect_x, local_closest_point_on_rect_y, FixedFloat::from(0.0));
+        
+        let transformed_local_closest_point = local_closest_point_on_rect + rectangle_pos_ff;
+        let closest_point_on_rect = transformed_local_closest_point.rotate_z(&rect_rotation_ff);
+
+        return closest_point_on_rect.into();
     }
 }
 
@@ -195,9 +203,7 @@ impl RigidBodyBuilder {
 }
 
 #[cfg(test)]
-mod tests {
-    
-
+mod rigid_body_tests {
     mod closest_point_on_rectangle {
         use super::super::{RigidBody, RigidBodyBuilder, RigidBodyType};
         use cgmath::Vector3;
@@ -218,18 +224,54 @@ mod tests {
 
 
         closest_point_on_rectangle_tests! {
-            given_other_point_is_axis_aligned_when_no_rotation_expect_closest_point_to_be_axis_aligned:
+            given_other_point_is_x_axis_aligned_when_no_rotation_expect_closest_point_to_be_axis_aligned:
                 RigidBodyBuilder::default().id(0).position([0.,0.,0.])
                     .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
                     .build(),
                 Vector3::new(-15., 0., 0.), Vector3::new(-5., 0., 0.)
 
-            given_other_point_is_axis_aligned_when_rect_rotated_90_degrees_expect_closest_point_to_be_axis_aligned:
+            given_other_point_is_x_axis_aligned_when_rect_rotated_90_degrees_expect_closest_point_to_be_axis_aligned:
                 RigidBodyBuilder::default().id(0).position([0.,0.,0.])
                     .rotation(std::f32::consts::PI/2.0)
                     .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
                     .build(),
                 Vector3::new(-15., 0., 0.), Vector3::new(-5., 0., 0.)
+
+
+            given_other_point_is_y_axis_aligned_when_no_rotation_expect_closest_point_to_be_axis_aligned:
+                RigidBodyBuilder::default().id(0).position([0.,0.,0.])
+                    .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
+                    .build(),
+                Vector3::new(0., 15., 0.), Vector3::new(0., 5., 0.)
+
+
+            given_other_point_is_y_axis_aligned_when_rect_rotated_90_degrees_expect_closest_point_to_be_axis_aligned:
+                RigidBodyBuilder::default().id(0).position([0.,0.,0.])
+                    .rotation(std::f32::consts::PI/2.0)
+                    .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
+                    .build(),
+                Vector3::new(0., 15., 0.), Vector3::new(0., 5., 0.)
+
+            given_other_point_is_diagonally_when_no_rotation_expect_closest_point_to_be_corner:
+                RigidBodyBuilder::default().id(0).position([0.,0.,0.])
+                    .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
+                    .build(),
+                Vector3::new(-15., 15., 0.), Vector3::new(-5., 5.0, 0.)
+            
+            given_other_point_is_diagonally_when_rect_rotated_neg_90_expect_closest_point_to_be_corner:
+                RigidBodyBuilder::default().id(0).position([0.,0.,0.])
+                    .rotation(-std::f32::consts::PI/2.0)
+                    .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
+                    .build(),
+                Vector3::new(-15., 15., 0.), Vector3::new(-5., 5.0, 0.)
+
+            given_other_point_is_diagonally_when_rect_rotated_45_degrees_expect_closest_point_to_be_on_diag:
+                RigidBodyBuilder::default().id(0).position([0.,0.,0.])
+                    .rotation(-std::f32::consts::PI/4.0)
+                    .body_type(RigidBodyType::Rectangle {width: 20., height: 20.,})
+                    .build(),
+                Vector3::new(-30., 30., 0.), Vector3::new(-7.071, 7.071, 0.)
+
         }
     }
 }

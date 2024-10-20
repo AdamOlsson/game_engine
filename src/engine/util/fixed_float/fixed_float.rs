@@ -1,11 +1,29 @@
+use std::ops::{Add, Div, Mul, Neg, Sub};
+
 
 const PRECISION: i32 = 3;
 
+#[derive(Debug, Copy, Clone)]
 pub struct FixedFloat {
     n: f32,
 }
 
 impl FixedFloat {
+    pub fn from_array(arr: &[f32; 3]) -> [FixedFloat; 3] {
+        [
+            FixedFloat::from(arr[0]),
+            FixedFloat::from(arr[1]),
+            FixedFloat::from(arr[2]),
+        ] 
+    }
+
+    pub fn from_cgmath_vector3(arr: &cgmath::Vector3<f32>) -> [FixedFloat; 3] {
+        [
+            FixedFloat::from(arr.x),
+            FixedFloat::from(arr.y),
+            FixedFloat::from(arr.z),
+        ] 
+    }
 
     pub fn cos(&self) -> Self {
         Self::from(self.n.cos())
@@ -15,6 +33,13 @@ impl FixedFloat {
         Self::from(self.n.sin())
     }
 
+    pub fn min(&self, other: &FixedFloat) -> Self {
+        FixedFloat::from(self.n.min(other.n))
+    }
+
+    pub fn max(&self, other: &FixedFloat) -> Self {
+        FixedFloat::from(self.n.max(other.n))
+    }
 }
 
 impl From<f32> for FixedFloat {
@@ -26,6 +51,55 @@ impl From<f32> for FixedFloat {
 impl Into<f32> for FixedFloat {
     fn into(self) -> f32 {
         (self.n * 10.0_f32.powi(PRECISION)).round()  / 10.0_f32.powi(PRECISION)
+    }
+}
+
+impl Mul<Self> for FixedFloat {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        Self::from(self.n * rhs.n)
+    }
+}
+
+impl Sub<Self> for FixedFloat {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self {
+        Self::from(self.n - other.n)
+    }
+}
+
+impl Add<Self> for FixedFloat {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self::from(self.n + other.n)
+    }
+}
+
+impl Div<Self> for FixedFloat {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self {
+        Self::from(self.n / rhs.n)
+    }
+}
+
+impl Div<f32> for FixedFloat {
+    type Output = Self;
+    fn div(self, rhs: f32) -> Self {
+        Self::from(self.n / rhs)
+    }
+}
+
+impl Neg for FixedFloat {
+    type Output = Self;
+    fn neg(self) -> Self {
+        FixedFloat::from(-self.n)
+    }
+}
+
+impl std::fmt::Display for FixedFloat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let float: f32 = self.n.into();
+        write!(f, "{float}")
     }
 }
 

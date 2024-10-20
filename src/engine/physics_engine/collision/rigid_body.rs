@@ -40,11 +40,13 @@ impl RigidBody {
             _ => panic!("Self is not a rectangle"),
         };
         
+        // TODO: Input args should eventually be FixedFloatVector
         let width_ff = FixedFloat::from(width);
         let height_ff = FixedFloat::from(height);
         let rectangle_pos_ff = FixedFloatVector::from(rectangle.position);
         let other_point_ff = FixedFloatVector::from(other_point);
         let rect_rotation_ff = FixedFloat::from(rectangle.rotation);
+
         let local_circle_center_ff = (&other_point_ff - &rectangle_pos_ff).rotate_z(&-rect_rotation_ff);
 
         let local_closest_point_on_rect_x = (-width_ff/2.0).max(&local_circle_center_ff.x.min(&(width_ff/2.0)));

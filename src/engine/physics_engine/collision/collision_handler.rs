@@ -77,22 +77,26 @@ impl CollisionHandler for SimpleCollisionSolver {
         };
 
         let rect = &bodies[rect_idx];
-        let (width, height) = match rect.body_type {
-            RigidBodyType::Rectangle { width, height } => (width, height),
-            _ => unreachable!(""),
-        };
+        //let (width, height) = match rect.body_type {
+        //    RigidBodyType::Rectangle { width, height } => (width, height),
+        //    _ => unreachable!(""),
+        //};
         
-        let local_circle_center = Vector3::from(equations::rotate_z(
-                &(circle.position - rect.position).into(), -rect.rotation));
+        //let local_circle_center = Vector3::from(equations::rotate_z(
+        //        &(circle.position - rect.position).into(), -rect.rotation));
 
-        let local_closest_point_on_rect_x = (-width/2.0).max(local_circle_center.x.min(width/2.0));
-        let local_closest_point_on_rect_y = (-height/2.0).max(local_circle_center.y.min(height/2.0));
-        let local_closest_point_on_rect = Vector3::new(local_closest_point_on_rect_x, local_closest_point_on_rect_y, 0.0);
+        //let local_closest_point_on_rect_x = (-width/2.0).max(local_circle_center.x.min(width/2.0));
+        //let local_closest_point_on_rect_y = (-height/2.0).max(local_circle_center.y.min(height/2.0));
+        //let local_closest_point_on_rect = Vector3::new(local_closest_point_on_rect_x, local_closest_point_on_rect_y, 0.0);
         
-        println!("local_closest_point_on_rect: {local_closest_point_on_rect:?}");
+        let closest_point_on_rect = rect.closest_point_on_rectangle(circle.position);
+
+        //println!("local_closest_point_on_rect: {local_closest_point_on_rect:?}");
+        println!("closest_point_on_rect: {closest_point_on_rect:?}");
         println!("circle: {circle}");
         println!("rect: {rect}");
-        let distance2 = local_closest_point_on_rect.distance2(local_circle_center);
+        //let distance2 = local_closest_point_on_rect.distance2(local_circle_center);
+        let distance2 = closest_point_on_rect.distance2(circle.position);
         println!("distance: {}", distance2.sqrt());
         // Note: there is a corner case where the penetration depth is equal to the
         // radius of the circle. This will not cause an error but any computations
@@ -106,8 +110,8 @@ impl CollisionHandler for SimpleCollisionSolver {
 
         println!("penetration_depth: {penetration_depth}");
 
-        let closest_point_on_rect = Vector3::from(equations::rotate_z(
-                &(local_closest_point_on_rect + rect.position).into(), rect.rotation));
+        //let closest_point_on_rect = Vector3::from(equations::rotate_z(
+        //        &(local_closest_point_on_rect + rect.position).into(), rect.rotation));
 
         println!("closest_point_on_rect: {closest_point_on_rect:?}");
 
@@ -441,11 +445,11 @@ mod tests {
                         .build()],
                 vec![
                     RigidBodyBuilder::default().id(0)
-                        .position( [-7.035534, 7.035534, 0.0])
+                        .position( [-7.035767, 7.035767, 0.0])
                         .velocity([0.,0.,0.])
                         .build(),
                     RigidBodyBuilder::default().id(1)
-                        .position([0.035533838, -0.035533838, 0.0])
+                        .position([0.035766996, -0.035766996, 0.0])
                         .velocity([5.,-5.,0.])
                         .build()],
                 1e-6

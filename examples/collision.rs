@@ -96,6 +96,7 @@ impl <C, B, N> Collision<C, B, N>
         //let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
         //let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         // TODO:
+        // - Integrate FixedFloatVector into RigidBody
         // - Refactor CircleRect collision to handle rotation
         // - RectRect collision
         // - Refactor CircleCircle collision using techniques in RectCircle and RectRect

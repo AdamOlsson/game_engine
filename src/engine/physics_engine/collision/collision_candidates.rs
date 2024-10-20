@@ -18,4 +18,9 @@ impl CollisionCandidates {
 }
 
 
-
+impl std::fmt::Display for CollisionCandidates {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = format!("{:?}", self.indices);
+        write!(f, "CollisionCandidates {{ {s} }}")
+    }
+}

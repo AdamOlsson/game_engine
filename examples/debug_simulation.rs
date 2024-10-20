@@ -105,7 +105,7 @@ impl PhysicsEngine for DebugPhysicsEngine {
         let candidates = self.broadphase.collision_detection(bodies);
 
         let graphs: Vec<CollisionGraph> = candidates.iter()
-            .map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();
 
         let rect_id = 3;

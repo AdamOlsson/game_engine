@@ -31,9 +31,8 @@ impl Constraint for BoxConstraint {
     fn apply_constraint(&self, body: &mut RigidBody) {
         let shape = match body.body_type {
             RigidBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
-            RigidBodyType::Rectangle { width, height } => {
-                Vector3::new(width/2.0, height/2.0, 0.0)
-            },            
+            RigidBodyType::Rectangle { width, height } => Vector3::new(width/2.0, height/2.0, 0.0),
+            _ => panic!("Invalid body type {}", body.body_type),
         };
         // Left side
         if body.position.x - shape.x < self.top_left.x {

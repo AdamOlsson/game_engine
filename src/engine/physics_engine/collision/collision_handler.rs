@@ -1,12 +1,12 @@
-use crate::engine::physics_engine::util::equations::impulse_magnitude;
+use crate::engine::physics_engine::util::equations::{self, impulse_magnitude};
 
 use super::rigid_body::{RigidBody, RigidBodyType};
 use cgmath::{InnerSpace, MetricSpace, Vector3};
 
 pub trait CollisionHandler {
-    fn handle_circle_circle_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize);
-    fn handle_circle_rect_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize);
-    fn handle_rect_rect_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize);
+    fn handle_circle_circle_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize) -> bool;
+    fn handle_circle_rect_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize) -> bool;
+    fn handle_rect_rect_collision(&self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize) -> bool;
 }
 
 pub struct IdentityCollisionSolver{}
@@ -15,9 +15,12 @@ impl IdentityCollisionSolver {
 }
 
 impl CollisionHandler for IdentityCollisionSolver {
-    fn handle_rect_rect_collision(&self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) {}
-    fn handle_circle_rect_collision(&self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) {}
-    fn handle_circle_circle_collision(&self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) {}
+    fn handle_circle_circle_collision(
+        &self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) -> bool { false }
+    fn handle_circle_rect_collision(
+        &self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) -> bool { false }
+    fn handle_rect_rect_collision(
+        &self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize) -> bool { false }
 }
 
 pub struct SimpleCollisionSolver {}
@@ -30,14 +33,21 @@ impl SimpleCollisionSolver {
 impl CollisionHandler for SimpleCollisionSolver {
     fn handle_circle_circle_collision(
         &self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize
-    ) {
+    ) -> bool {
         let body_i = &bodies[idx_i];
         let body_j = &bodies[idx_j];
+
         let (radius_i, radius_j) = match (&body_i.body_type, &body_j.body_type) {
-            (RigidBodyType::Circle { radius: ri }, RigidBodyType::Circle { radius: rj}) =>
+            (RigidBodyType::Circle { radius: ri }, RigidBodyType::Circle { radius: rj} ) =>
                 (ri, rj),
-            (_, _) => panic!()
+            (_, _) => unreachable!()
         };
+
+        let dist = body_i.position.distance(body_j.position);
+        if dist >= (radius_i + radius_j) {
+            return false;
+        }
+
         let collision_axis = body_i.position - body_j.position;
         let collision_normal = collision_axis.normalize();
         let dist = collision_axis.magnitude();
@@ -53,11 +63,13 @@ impl CollisionHandler for SimpleCollisionSolver {
 
         bodies[idx_i].prev_position = bodies[idx_i].position - bodies[idx_i].velocity;
         bodies[idx_j].prev_position = bodies[idx_j].position - bodies[idx_j].velocity;
+
+        return true;
     }
 
     fn handle_circle_rect_collision(
         &self, bodies: &mut Vec<RigidBody>, circ_idx: usize, rect_idx: usize
-    ) {
+    ) -> bool {
         let circle = &bodies[circ_idx];
         let radius = match circle.body_type {
             RigidBodyType::Circle { radius } => radius,
@@ -69,71 +81,99 @@ impl CollisionHandler for SimpleCollisionSolver {
             RigidBodyType::Rectangle { width, height } => (width, height),
             _ => unreachable!(""),
         };
-
-        let translated_circle_center = circle.position - rect.position; 
-        //let rotated_circle_center = ... // TODO: Rotate circle center such rect is axis aligned
-        // TODO: This should be rotated_circle_center instead of translated
-        let temp_circle_center = translated_circle_center;
-        let closest_point_on_rect_x = (-width/2.0).max(temp_circle_center.x.min(width/2.0));
-        let closest_point_on_rect_y = (-height/2.0).max(temp_circle_center.y.min(height/2.0));
-        let closest_point_on_rect = Vector3::new(closest_point_on_rect_x, closest_point_on_rect_y, 0.0);
         
-        let distance2 = closest_point_on_rect.distance2(temp_circle_center);
+        let local_circle_center = Vector3::from(equations::rotate_z(
+                &(circle.position - rect.position).into(), -rect.rotation));
+
+        let local_closest_point_on_rect_x = (-width/2.0).max(local_circle_center.x.min(width/2.0));
+        let local_closest_point_on_rect_y = (-height/2.0).max(local_circle_center.y.min(height/2.0));
+        let local_closest_point_on_rect = Vector3::new(local_closest_point_on_rect_x, local_closest_point_on_rect_y, 0.0);
+        
+        println!("local_closest_point_on_rect: {local_closest_point_on_rect:?}");
+        println!("circle: {circle}");
+        println!("rect: {rect}");
+        let distance2 = local_closest_point_on_rect.distance2(local_circle_center);
+        println!("distance: {}", distance2.sqrt());
         // Note: there is a corner case where the penetration depth is equal to the
         // radius of the circle. This will not cause an error but any computations
         // afterward are invalid.
-        if distance2 >= radius.powi(2) {
-            return;
+        if distance2 >= (radius.powi(2) - 1e-3) {
+            return false;
         }
-        debug_assert!(radius - distance2.sqrt() != 0.0,
-            "Penetration depth equal to the radius the circle causes undefined behavior");
         let penetration_depth = radius - distance2.sqrt();
+        debug_assert!(penetration_depth >= 0.0,
+            "Penetration depth less than or equal to the radius the circle causes undefined behavior");
 
-        let collision_normal_unit = (temp_circle_center - closest_point_on_rect).normalize();
-        
-        // TODO: Rotate the velocity to rectangle local space
-        let temp_circle_vel = circle.velocity;
-        
-        let relative_vel = temp_circle_vel - rect.velocity;
+        println!("penetration_depth: {penetration_depth}");
+
+        let closest_point_on_rect = Vector3::from(equations::rotate_z(
+                &(local_closest_point_on_rect + rect.position).into(), rect.rotation));
+
+        println!("closest_point_on_rect: {closest_point_on_rect:?}");
+
+        let collision_normal_unit = (closest_point_on_rect - circle.position).normalize();
+        println!("collision_normal_unit: {collision_normal_unit:?}"); 
+
+        let relative_vel = circle.velocity - rect.velocity;
         let relative_vel_along_norm = relative_vel.dot(collision_normal_unit);
         let mass_circle = circle.mass;
         let mass_rect = rect.mass;
         let c_r = 1.0;
         let impulse_magnitude = impulse_magnitude(relative_vel_along_norm, mass_circle, mass_rect, c_r);
-
+        println!("relative_vel: {relative_vel:?}");
+        println!("relative_vel_along_norm: {relative_vel_along_norm}");
+        println!("impulse_magnitude: {impulse_magnitude}");
+            
         // resolve new velocities
-        let new_temp_circle_vel = temp_circle_vel + (impulse_magnitude/mass_circle)*collision_normal_unit;
-        let new_rect_vel = rect.velocity - (impulse_magnitude/mass_rect)*collision_normal_unit;
-        // resolve penetration
-        let new_temp_circle_center = temp_circle_center + ((penetration_depth*mass_rect)/(mass_circle+mass_rect))*collision_normal_unit; 
-        let new_rect_center = rect.position - ((penetration_depth*mass_circle)/(mass_circle+mass_rect))*collision_normal_unit; 
+        let new_circle_velocity = circle.velocity + (impulse_magnitude/mass_circle)*collision_normal_unit;
+        let new_rect_velocity = rect.velocity - (impulse_magnitude/mass_rect)*collision_normal_unit;
 
+        // TODO: Current theory is that correction is not large enough causing the next 
+        // iteration to still collide which double corrects the velocity
+        // resolve penetration
+        let circle_correction = (penetration_depth/(mass_circle+mass_rect))*mass_rect*-collision_normal_unit;
+        let rect_correction = (penetration_depth/(mass_circle+mass_rect))*mass_circle*collision_normal_unit;
+        let new_circle_center = circle.position + circle_correction; 
+        let new_rect_center = rect.position + rect_correction; 
+
+        println!("circle_correction: {circle_correction:?}");
+        println!("rect_correction: {rect_correction:?}");
+        
+        println!("new_circle_center: {new_circle_center:?}");
+        println!("new_rect_center: {new_rect_center:?}");
+        println!("");
         // TODO: Handle rotation (and maybe friction)
 
-        // TODO: Rotate back to world space
-        let new_circle_vel = new_temp_circle_vel;
-        let new_circle_center = new_temp_circle_center + rect.position;
-    
         bodies[circ_idx].position = new_circle_center;
         bodies[rect_idx].position = new_rect_center;
 
-        bodies[circ_idx].velocity = new_circle_vel;
-        bodies[rect_idx].velocity = new_rect_vel;
+        bodies[circ_idx].velocity = new_circle_velocity;
+        bodies[rect_idx].velocity = new_rect_velocity;
 
         bodies[circ_idx].prev_position = bodies[circ_idx].position - bodies[circ_idx].velocity;
         bodies[rect_idx].prev_position = bodies[rect_idx].position - bodies[rect_idx].velocity;
+
+        return true;
     }
 
     fn handle_rect_rect_collision(
-        &self, _bodies: &mut Vec<RigidBody>, _idx_i: usize, _idx_j: usize
-    ) {
-        //let body_i = &bodies[idx_i];
-        //let body_j = &bodies[idx_j];
-        //let ((wi,hi), (wj, hj)) = match (&body_i.body_type, &body_j.body_type) {
-        //    (RigidBodyType::Rectangle { width: wi, height:hi },
-        //     RigidBodyType::Rectangle { width: wj, height:hj }) => ((wi, hi), (wj,hj)), 
-        //    (_, _) => panic!()
-        //};   
+        &self, bodies: &mut Vec<RigidBody>, idx_i: usize, idx_j: usize
+    ) -> bool {
+        let body_i = &bodies[idx_i];
+        let body_j = &bodies[idx_j];
+        let ((wi,hi), (wj, hj)) = match (&body_i.body_type, &body_j.body_type) {
+            (RigidBodyType::Rectangle { width: wi, height:hi },
+             RigidBodyType::Rectangle { width: wj, height:hj }) => ((wi, hi), (wj,hj)), 
+            (_, _) => unreachable!()
+        };   
+       
+        if body_i.position.x + wi/2.0 >= body_j.position.x &&
+                                body_i.position.x <= body_j.position.x + wj/2.0 &&
+                                body_i.position.y + hi/2.0 >= body_j.position.y &&
+                                body_i.position.y <= body_j.position.y + hj/2.0 {
+            return false;
+        }
+        return true;
         //let collision_axis = body_i.position - body_j.position;
         //let collision_normal = collision_axis.normalize();
         //let dist = collision_axis.magnitude();
@@ -173,6 +213,16 @@ impl CollisionHandler for SimpleCollisionSolver {
 
 #[cfg(test)]
 mod tests {
+    macro_rules! assert_slice_almost_eq {
+        ($expected:expr, $output:expr, $epsilon:expr, $error_text: expr) => {{
+            $expected.iter().enumerate().for_each(|(i, e)| {
+                let o = $output[i];
+                assert!((e - o).abs() < $epsilon, $error_text);
+            })
+        }};
+    }
+
+
     mod rect_rect {
         //use cgmath::Vector3;
         //use cgmath::Zero;
@@ -214,7 +264,7 @@ mod tests {
         use super::super::CollisionHandler;
 
         macro_rules! handle_circle_rect_collision_tests {
-            ($($name:ident: $bodies: expr, $expected_output: expr)*) => {
+            ($($name:ident: $bodies: expr, $expected_output: expr, $epsilon: expr)*) => {
                 $(
                     #[test]
                     fn $name() {
@@ -223,19 +273,34 @@ mod tests {
                         let ch = SimpleCollisionSolver::new();
                         ch.handle_circle_rect_collision(&mut bodies, 0, 1);
 
-                        assert_eq!(expected_output[0].position, bodies[0].position,
-                            "Expected circle position {:?} but found {:?}", 
-                            expected_output[0].position, bodies[0].position);
-                        assert_eq!(expected_output[1].position, bodies[1].position,
-                            "Expected rectangle position {:?} but found {:?}", 
-                            expected_output[1].position, bodies[1].position);
+                        let expected_output_circ = &expected_output[0];
+                        let expected_output_rect = &expected_output[1];
+                        let output_circ = &bodies[0];
+                        let output_rect = &bodies[1];
 
-                        assert_eq!(expected_output[0].velocity, bodies[0].velocity,
-                            "Expected circle velocity {:?} but found {:?}", 
-                            expected_output[0].velocity, bodies[0].velocity);
-                        assert_eq!(expected_output[1].velocity, bodies[1].velocity,
-                            "Expected rectangle velocity {:?} but found {:?}", 
-                            expected_output[1].velocity, bodies[1].velocity);
+                        let expected_output_0_pos: [f32; 3] = expected_output_circ.position.into();
+                        let output_0_pos: [f32; 3] = output_circ.position.into();
+                        assert_slice_almost_eq!(
+                            expected_output_0_pos, output_0_pos, $epsilon,
+                            "Expected circle position {expected_output_0_pos:?} but found {output_0_pos:?}");
+
+                        let expected_output_1_pos: [f32; 3] = expected_output_rect.position.into();
+                        let output_1_pos: [f32; 3] = output_rect.position.into();
+                        assert_slice_almost_eq!(
+                            expected_output_1_pos, output_1_pos, $epsilon,
+                            "Expected rectangle position {expected_output_1_pos:?} but found {output_1_pos:?}");
+
+                        let expected_output_0_vel: [f32; 3] = expected_output_circ.velocity.into();
+                        let output_0_vel: [f32; 3] = output_circ.velocity.into();
+                        assert_slice_almost_eq!(
+                            expected_output_0_vel, output_0_vel, $epsilon,
+                            "Expected circle velocity {expected_output_0_vel:?} but found {output_0_vel:?}");
+                        
+                        let expected_output_1_vel: [f32; 3] = expected_output_rect.velocity.into();
+                        let output_1_vel: [f32; 3] = output_rect.velocity.into();
+                        assert_slice_almost_eq!(
+                            expected_output_1_vel, output_1_vel, $epsilon,
+                            "Expected rectangle velocity {expected_output_1_vel:?} but found {output_1_vel:?}");
                     }
                 )*
             }
@@ -254,13 +319,10 @@ mod tests {
                         .build(),],
                 vec![
                     RigidBodyBuilder::default().id(0).velocity([10.,0.,0.])
-                        .position([-100.0,0.,0.])
-                        .body_type(RigidBodyType::Circle { radius: 50. })
-                        .build(),
+                        .position([-100.0,0.,0.]).build(),
                     RigidBodyBuilder::default().id(1).velocity(zero())
-                        .position(zero())
-                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
-                        .build(),]
+                        .position(zero()).build(),],
+                1e-6
 
             given_objects_have_collided_when_distance_is_zero_expect_each_object_move_half_penetration_depth:
                 vec![
@@ -274,14 +336,10 @@ mod tests {
                         .build(),],
                 vec![
                     RigidBodyBuilder::default().id(0).velocity(zero())
-                        .position([-70.0,0.,0.])
-                        .body_type(RigidBodyType::Circle { radius: 50. })
-                        .build(),
+                        .position([-70.0,0.,0.]).build(),
                     RigidBodyBuilder::default().id(1).velocity(zero())
-                        .position([20.,0.,0.])
-                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
-                        .build(),]
-
+                        .position([20.,0.,0.]).build(),],
+                1e-6
 
             given_objects_collide_when_mass_is_equal_and_an_elastic_collision_expect_velocity_swap:
                 vec![
@@ -295,14 +353,102 @@ mod tests {
                         .build(),],
                 vec![
                     RigidBodyBuilder::default().id(0).velocity(zero())
-                        .position([-70.0,0.,0.])
-                        .body_type(RigidBodyType::Circle { radius: 50. })
-                        .build(),
+                        .position([-70.0,0.,0.]).build(),
                     RigidBodyBuilder::default().id(1).velocity([100.,0.,0.])
-                        .position([20.,0.,0.])
-                        .body_type(RigidBodyType::Rectangle{ width: 100., height: 100.})
-                        .build(),]
+                        .position([20.,0.,0.]).build(),],
+                1e-6
 
+            given_objects_collide_when_circle_is_at_origo_and_moves_diagonally_towards_aabb_rect_expect_bounce:
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([0.,0.,0.])
+                        .velocity([10.0,-10.0,0.])
+                        .body_type(RigidBodyType::Circle { radius: 5.0 })
+                        .mass(1.0)
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([10.,0.,0.])
+                        .velocity([0.,0.,0.])
+                        .body_type(RigidBodyType::Rectangle { width: 15., height: 100.})
+                        .mass(1.0)
+                        .build()],
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([-1.25,0.,0.])
+                        .velocity([0.,-10.,0.])
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([11.25,0.,0.])
+                        .velocity([10.,0.,0.])
+                        .build()],
+                1e-6
+
+            given_objects_collide_when_rect_is_at_origo_and_circle_moves_diagonally_towards_aabb_rect_expect_bounce:
+                vec![
+                    RigidBodyBuilder::default().id(0).position([-10.,0.,0.])
+                        .velocity([10.0,-10.0,0.]).mass(1.0)
+                        .body_type(RigidBodyType::Circle { radius: 5.0 })
+                        .build(),
+                    RigidBodyBuilder::default().id(1).position([0.,0.,0.])
+                        .velocity([0.,0.,0.]).mass(1.0)
+                        .body_type(RigidBodyType::Rectangle { width: 15., height: 100.})
+                        .build()],
+                vec![
+                    RigidBodyBuilder::default().id(0).position([-11.25,0.,0.])
+                        .velocity([0.,-10.,0.]).build(),
+                    RigidBodyBuilder::default().id(1).position([1.25,0.,0.])
+                        .velocity([10.,0.,0.]).build(),],
+                1e-6
+
+            given_object_collide_when_rect_is_rotated_90_degrees_expect_bounce:
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([-7.5,0.,0.])
+                        .velocity([10.0, 0.0,0.])
+                        .body_type(RigidBodyType::Circle { radius: 5.0 })
+                        .mass(1.0)
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([0.,0.,0.])
+                        .velocity([0.,0.,0.])
+                        .rotation(std::f32::consts::PI/2.0)
+                        .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                        .mass(1.0)
+                        .build()],
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([-8.75,0.,0.])
+                        .velocity([0.,0.,0.])
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([1.25, 0.,0.])
+                        .velocity([10.,0.,0.])
+                        .build()],
+                1e-6
+
+            given_object_collide_when_rect_is_rotated_45_degrees_and_circle_moves_perpendicular_towards_rect_expect_full_velocity_transfer:
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([-7.,7.,0.])
+                        .velocity([5.0,-5.0,0.])
+                        .body_type(RigidBodyType::Circle { radius: 5.0 })
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([0.,0.,0.])
+                        .velocity([0.,0.,0.])
+                        .rotation(std::f32::consts::PI/4.0)
+                        .body_type(RigidBodyType::Rectangle { width: 30., height: 10.})
+                        .build()],
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position( [-7.035534, 7.035534, 0.0])
+                        .velocity([0.,0.,0.])
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([0.035533838, -0.035533838, 0.0])
+                        .velocity([5.,-5.,0.])
+                        .build()],
+                1e-6
 
         }
     }

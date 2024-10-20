@@ -103,10 +103,12 @@ impl <C, B, N> Collision<C, B, N>
         //      detection twice. Refactor this
         // - Add rotation to CircleCircle, CircleRect and RectRect collisions
         let bodies = vec![
-            RigidBodyBuilder::default().id(0).velocity([10.,0.,0.]).position([-400.0,0.,0.])
+            RigidBodyBuilder::default().id(0).velocity([4., 0.,0.]).position([-400.,0.,0.])
                 .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
-            RigidBodyBuilder::default().id(1).velocity(zero()).position(zero())
-                .color(blue()).body_type(RigidBodyType::Rectangle { width: 100., height: 100.0 })
+            RigidBodyBuilder::default().id(1).velocity(zero()).position([0.,-150.,0.0])
+                .color(blue()).body_type(RigidBodyType::Rectangle { width: 500., height: 100.0 })
+                .rotation(std::f32::consts::PI/2.0)
+                //.rotational_velocity((std::f32::consts::PI/4.0)/(60.*dt))
                 .build(),
         ];
         
@@ -133,20 +135,34 @@ where
         let pass2 = &candidates[1];
         let pass3 = &candidates[2];
         let pass4 = &candidates[3];
+        
+        println!("pass1: {pass1:?}");
+        println!("pass2: {pass2:?}");
+        println!("pass3: {pass3:?}");
+        println!("pass4: {pass4:?}");
+        println!("");
 
         let _graphs_1: Vec<CollisionGraph> = pass1.iter()
-            .map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();
         let _graphs_2: Vec<CollisionGraph> = pass2.iter()
-            .map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();
         let _graphs_3: Vec<CollisionGraph> = pass3.iter()
-            .map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();
         let _graphs_4: Vec<CollisionGraph> = pass4.iter()
-            .map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();
+        
+        println!("graph1: {_graphs_1:?}");
+        println!("graph2: {_graphs_2:?}");
+        println!("graph3: {_graphs_3:?}");
+        println!("graph4: {_graphs_4:?}");
 
+        if _graphs_1.len() != 0 || _graphs_2.len() != 0 || _graphs_3.len() != 0 || _graphs_3.len() != 0 {
+            panic!();
+        }
     }
 
     fn get_bodies(&self) -> &Vec<RigidBody> {

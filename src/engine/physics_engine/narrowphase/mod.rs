@@ -3,5 +3,5 @@ use super::collision::{rigid_body::RigidBody, collision_candidates::CollisionCan
 
 pub trait NarrowPhase {
     fn collision_detection(&self, bodies: &mut Vec<RigidBody>,
-        candidates: &CollisionCandidates,) -> CollisionGraph;
+        candidates: &CollisionCandidates,) -> Option<CollisionGraph>;
 }

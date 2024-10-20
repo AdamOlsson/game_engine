@@ -59,8 +59,8 @@ fn vs_main(
     let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_width/2.0, scaled_object_height/2.0, 1.0);
 
     let rotation_matrix = mat2x2<f32>(
-            vec2<f32>(cos(instance.rotation), -sin(instance.rotation)),
-            vec2<f32>(sin(instance.rotation),  cos(instance.rotation)));
+            vec2<f32>(cos(-instance.rotation), -sin(-instance.rotation)),
+            vec2<f32>(sin(-instance.rotation),  cos(-instance.rotation)));
     let rotated_vertex_position = rotation_matrix * scaled_vertex_position.xy;
 
     out.clip_position = vec4<f32>(rotated_vertex_position, 0.0, 1.0) + vec4<f32>(scaled_object_center, 0.0);

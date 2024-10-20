@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use cgmath::{MetricSpace, Vector3};
+use cgmath::{InnerSpace, MetricSpace, Vector3};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 use crate::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
@@ -279,9 +279,11 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
                 },
                 RigidBodyType::Rectangle { width, height } => {
-                    let radius = (width.max(height) / 2.0)*1.41;
+                    let radius = Vector3::new(width/2.0, height/2.0, 0.0).magnitude()*1.41;
+                    //let radius = (width.max(height) / 2.0)*1.41;
                     Some((BoundingCircle { center: b.position, radius }, radius, b.position.x, b.position.y))
-                }
+                },
+                _ => panic!("Unkown body type {}", b.body_type),
             })
         .fold(
             || (Vec::new(), 0.0_f32, f32::MAX, f32::MAX),

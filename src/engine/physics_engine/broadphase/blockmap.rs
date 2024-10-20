@@ -56,6 +56,7 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
             match b.body_type {
                 RigidBodyType::Circle { radius } => f32::max(acc, radius),
                 RigidBodyType::Rectangle { width, height } => f32::max(acc, f32::max(width, height)) / 2.0,
+                _ => panic!("Unkown body type {}", b.body_type),
             }
         })*2.0;
 

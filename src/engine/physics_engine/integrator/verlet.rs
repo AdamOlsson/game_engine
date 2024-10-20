@@ -1,6 +1,6 @@
 use cgmath::InnerSpace;
 use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
-use crate::engine::physics_engine::collision::rigid_body::RigidBody;
+use crate::engine::{physics_engine::collision::rigid_body::RigidBody, util::fixed_float::fixed_float::FixedFloat};
 
 pub struct VerletIntegrator {
     velocity_cap: f32,
@@ -58,10 +58,10 @@ impl VerletIntegrator {
     }
 
     pub fn set_rotation(bodies: &mut Vec<RigidBody>, idx: usize, new: f32) {
-        bodies[idx].rotation = new;
+        bodies[idx].rotation = FixedFloat::from(new);
     }
 
     pub fn set_rotational_velocity(bodies: &mut Vec<RigidBody>, idx: usize, new: f32) {
-        bodies[idx].rotational_velocity = new;
+        bodies[idx].rotational_velocity = FixedFloat::from(new);
     }
 }

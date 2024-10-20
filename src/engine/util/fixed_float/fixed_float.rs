@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 
 const PRECISION: i32 = 3;
@@ -54,10 +54,15 @@ impl Into<f32> for FixedFloat {
     }
 }
 
-impl Mul<Self> for FixedFloat {
+impl<T> Mul<T> for FixedFloat
+where
+    T: Into<FixedFloat>,
+{
     type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-        Self::from(self.n * rhs.n)
+
+    fn mul(self, rhs: T) -> Self {
+        let rhs_fixed = rhs.into();
+        Self::from(self.n * rhs_fixed.n)
     }
 }
 
@@ -68,10 +73,22 @@ impl Sub<Self> for FixedFloat {
     }
 }
 
+impl SubAssign for FixedFloat {
+    fn sub_assign(&mut self, other: Self) {
+        *self = Self { n : self.n - other.n };
+    }
+}
+
 impl Add<Self> for FixedFloat {
     type Output = Self;
     fn add(self, other: Self) -> Self {
         Self::from(self.n + other.n)
+    }
+}
+
+impl AddAssign for FixedFloat {
+    fn add_assign(&mut self, other: Self) {
+        *self = Self { n : self.n + other.n };
     }
 }
 

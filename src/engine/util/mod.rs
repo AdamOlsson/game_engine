@@ -8,7 +8,6 @@ pub fn zero() -> [f32; 3] {
     [0.,0.,0.] 
 }
 
-
 pub fn get_circle_instances(bodies: &[RigidBody]) -> Vec<CircleInstance> {
     bodies.iter().filter_map(
         |body| {
@@ -32,7 +31,7 @@ pub fn get_rectangle_instances(bodies: &[RigidBody]) -> Vec<RectangleInstance> {
                 RigidBodyType::Rectangle{ width, height } => 
                     Some(RectangleInstance{
                         color: body.color.into(), 
-                        rotation: body.rotation,
+                        rotation: body.rotation.into(),
                         position: body.position.into(),
                         width,height,
                         sprite_coord: body.sprite_coord.coordinate,

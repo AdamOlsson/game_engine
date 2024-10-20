@@ -2,6 +2,7 @@ use super::{physics_engine::collision::rigid_body::{RigidBody, RigidBodyType}, r
 
 pub mod log_performance;
 pub mod color;
+pub mod fixed_float;
 
 pub fn zero() -> [f32; 3] { 
     [0.,0.,0.] 

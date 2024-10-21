@@ -1,4 +1,6 @@
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
+
+use super::fixed_float_vector::FixedFloatVector;
 
 
 const PRECISION: i32 = 3;
@@ -23,6 +25,14 @@ impl FixedFloat {
             FixedFloat::from(arr.y),
             FixedFloat::from(arr.z),
         ] 
+    }
+
+    pub fn powi(&self, exp: i32) -> Self {
+        Self::from(self.n.powi(exp))
+    }
+
+    pub fn sqrt(&self) -> Self {
+        Self::from(self.n.sqrt())
     }
 
     pub fn cos(&self) -> Self {
@@ -54,22 +64,61 @@ impl Into<f32> for FixedFloat {
     }
 }
 
+
 impl<T> Mul<T> for FixedFloat
 where
     T: Into<FixedFloat>,
 {
     type Output = Self;
-
     fn mul(self, rhs: T) -> Self {
         let rhs_fixed = rhs.into();
         Self::from(self.n * rhs_fixed.n)
     }
 }
 
-impl Sub<Self> for FixedFloat {
+impl Mul<FixedFloat> for f32 {
+    type Output = FixedFloat;
+    fn mul(self, rhs: FixedFloat) -> FixedFloat {
+        FixedFloat { n: self * rhs.n }
+    }
+}
+
+impl Mul<FixedFloatVector> for FixedFloat {
+    type Output = FixedFloatVector;
+    fn mul(self, rhs: FixedFloatVector) -> FixedFloatVector {
+        FixedFloatVector {
+            x: self * rhs.x,
+            y: self * rhs.y,
+            z: self * rhs.y,
+        }
+    }
+}
+
+impl<T> MulAssign<T> for FixedFloat
+where
+    T: Into<FixedFloat>,
+{
+    fn mul_assign(&mut self, rhs: T) {
+        let rhs_fixed = rhs.into();
+        *self = Self { n : self.n * rhs_fixed.n };
+    }
+}
+
+impl<T> Sub<T> for FixedFloat
+where
+    T: Into<FixedFloat>,
+{
     type Output = Self;
-    fn sub(self, other: Self) -> Self {
-        Self::from(self.n - other.n)
+    fn sub(self, rhs: T) -> Self {
+        let rhs_fixed = rhs.into();
+        Self::from(self.n - rhs_fixed.n)
+    }
+}
+
+impl Sub<FixedFloat> for f32 {
+    type Output = FixedFloat;
+    fn sub(self, rhs: FixedFloat) -> FixedFloat {
+        FixedFloat { n: self - rhs.n }
     }
 }
 
@@ -86,23 +135,50 @@ impl Add<Self> for FixedFloat {
     }
 }
 
+impl<'a, 'b> Add<&'b FixedFloat> for &'a FixedFloat {
+    type Output = FixedFloat;
+
+    fn add(self, other: &'b FixedFloat) -> FixedFloat {
+        FixedFloat::from(self.n + other.n)
+    }
+}
+
+impl Add<FixedFloat> for f32 {
+    type Output = FixedFloat;
+    fn add(self, other: FixedFloat) -> FixedFloat {
+         FixedFloat { n: self + other.n }
+    }
+}
+
 impl AddAssign for FixedFloat {
     fn add_assign(&mut self, other: Self) {
         *self = Self { n : self.n + other.n };
     }
 }
 
-impl Div<Self> for FixedFloat {
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self {
-        Self::from(self.n / rhs.n)
+impl<T> Div<T> for FixedFloat 
+where
+    T: Into<FixedFloat>,
+{
+    type Output = FixedFloat;
+
+    fn div(self, rhs: T) -> FixedFloat {
+        let rhs = rhs.into();
+        FixedFloat { n: self.n / rhs.n }
     }
 }
 
-impl Div<f32> for FixedFloat {
-    type Output = Self;
-    fn div(self, rhs: f32) -> Self {
-        Self::from(self.n / rhs)
+impl Div<FixedFloat> for f32 {
+    type Output = FixedFloat;
+    fn div(self, other: FixedFloat) -> FixedFloat {
+         FixedFloat { n: self / other.n }
+    }
+}
+
+impl<'a> Div<f32> for &'a FixedFloat {
+    type Output = FixedFloat;
+    fn div(self, rhs: f32) -> FixedFloat {
+        FixedFloat::new(self.n / rhs)
     }
 }
 
@@ -117,6 +193,66 @@ impl std::fmt::Display for FixedFloat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let float: f32 = self.n.into();
         write!(f, "{float}")
+    }
+}
+
+impl PartialEq for FixedFloat {
+    fn eq(&self, other: &Self) -> bool {
+        (self.n - other.n).abs() < f32::EPSILON // Allow for floating-point precision errors
+    }
+}
+
+impl PartialOrd for FixedFloat {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.n.partial_cmp(&other.n)
+    }
+
+    fn lt(&self, other: &Self) -> bool {
+        self.n < other.n
+    }
+
+    fn le(&self, other: &Self) -> bool {
+        self.n <= other.n
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        self.n > other.n
+    }
+
+    fn ge(&self, other: &Self) -> bool {
+        self.n >= other.n
+    }
+}
+
+impl PartialOrd<f32> for FixedFloat {
+    fn partial_cmp(&self, other: &f32) -> Option<std::cmp::Ordering> {
+        self.n.partial_cmp(other)
+    }
+
+    fn lt(&self, other: &f32) -> bool {
+        self.n < *other
+    }
+
+    fn le(&self, other: &f32) -> bool {
+        self.n <= *other
+    }
+
+    fn gt(&self, other: &f32) -> bool {
+        self.n > *other
+    }
+
+    fn ge(&self, other: &f32) -> bool {
+        self.n >= *other
+    }
+}
+
+impl PartialEq<f32> for FixedFloat {
+    fn eq(&self, other: &f32) -> bool {
+        self.n == *other
+    }
+
+    fn ne(&self, other: &f32) -> bool {
+        self.n != *other
     }
 }
 

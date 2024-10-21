@@ -178,7 +178,7 @@ impl Div<FixedFloat> for f32 {
 impl<'a> Div<f32> for &'a FixedFloat {
     type Output = FixedFloat;
     fn div(self, rhs: f32) -> FixedFloat {
-        FixedFloat::new(self.n / rhs)
+        FixedFloat::from(self.n / rhs)
     }
 }
 

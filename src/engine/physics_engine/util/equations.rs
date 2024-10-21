@@ -1,3 +1,5 @@
+use crate::engine::util::fixed_float::fixed_float::FixedFloat;
+
 
 pub fn inelastic_collision_1d(
     m_a: f32,  // mass of the first object
@@ -21,9 +23,9 @@ pub fn rotate_z(v: &[f32; 3], theta: f32) -> [f32; 3] {
     let sin_theta = theta.sin();
     let cos_theta = theta.cos();
     [
-        v[0] * cos_theta - v[1] * sin_theta,
-        v[0] * sin_theta + v[1] * cos_theta,
-        v[2], // z remains unchanged
+        FixedFloat::from(v[0] * cos_theta - v[1] * sin_theta).into(),
+        FixedFloat::from(v[0] * sin_theta + v[1] * cos_theta).into(),
+        FixedFloat::from(v[2]).into(), // z remains unchanged
     ]
 }
 
@@ -31,24 +33,14 @@ pub fn rotate_z(v: &[f32; 3], theta: f32) -> [f32; 3] {
 
 #[cfg(test)]
 mod test {
-    macro_rules! assert_slice_almost_eq {
-        ($expected:expr, $output:expr, $epsilon:expr) => {{
-            assert_eq!($expected.len(), $output.len(), "Expected length {} found length {}",
-                $expected.len(), $output.len());
-            $expected.iter().enumerate().for_each(|(i, e)| {
-                let o = $output[i];
-                assert!((e - o).abs() < $epsilon, 
-                    "Expected {e} but found {o} at index {i}");
-            })
-        }};
-    }
-
     macro_rules! rotate_z_tests {
-        ($($name:ident: $expected: expr, $output: expr, $max_diff: expr)*) => {
+        ($($name:ident: $expected: expr, $output: expr)*) => {
             $(
                 #[test]
                 fn $name() {
-                    assert_slice_almost_eq!($expected, $output, $max_diff) 
+                    let e = $expected;
+                    let o = $output;
+                    assert_eq!($expected, $output, "Expected {e:?} found {o:?}"); 
                 }
             )*
         }
@@ -59,15 +51,15 @@ mod test {
 
     rotate_z_tests! {
         given_x_unit_vector_direction_when_rotated_90_degrees_expect_y_unit_vector:
-            [0.0,1.0,0.0], rotate_z(&[1.0,0.0,0.0], PI/2.0), 1e-6
+            [0.0,1.0,0.0], rotate_z(&[1.0,0.0,0.0], PI/2.0)
         given_y_unit_vector_direction_when_rotated_90_degrees_expect_negative_x_unit_vector:
-            [-1.0,0.0,0.0], rotate_z(&[0.0,1.0,0.0], PI/2.0), 1e-6
+            [-1.0,0.0,0.0], rotate_z(&[0.0,1.0,0.0], PI/2.0)
         given_negative_x_unit_vector_direction_when_rotated_90_degrees_expect_negative_y_unit_vector:
-            [0.0,-1.0,0.0], rotate_z(&[-1.0,0.0,0.0], PI/2.0), 1e-6
+            [0.0,-1.0,0.0], rotate_z(&[-1.0,0.0,0.0], PI/2.0)
         given_negative_y_unit_vector_direction_when_rotated_90_degrees_expect_x_unit_vector:
-            [1.0,0.0,0.0], rotate_z(&[0.0,-1.0,0.0], PI/2.0), 1e-6
+            [1.0,0.0,0.0], rotate_z(&[0.0,-1.0,0.0], PI/2.0)
         given_x_unit_vector_when_rotated_45_degrees_expect_vector_rotated:
-            [0.707106,0.707106,0.0], rotate_z(&[1.0,0.0,0.0], PI/4.0), 1e-6
+            [0.707,0.707,0.0], rotate_z(&[1.0,0.0,0.0], PI/4.0)
 
     }
 }

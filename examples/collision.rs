@@ -96,7 +96,6 @@ impl <C, B, N> Collision<C, B, N>
         //let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
         //let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         // TODO:
-        // - Integrate FixedFloatVector into RigidBody
         // - Refactor CircleRect collision to handle rotation
         // - RectRect collision
         // - Refactor CircleCircle collision using techniques in RectCircle and RectRect
@@ -104,11 +103,11 @@ impl <C, B, N> Collision<C, B, N>
         //      detection twice. Refactor this
         // - Add rotation to CircleCircle, CircleRect and RectRect collisions
         let bodies = vec![
-            RigidBodyBuilder::default().id(0).velocity([4., 0.,0.]).position([-400.,0.,0.])
+            RigidBodyBuilder::default().id(0).velocity([4., -4.,0.]).position([-400.,400.,0.])
                 .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
-            RigidBodyBuilder::default().id(1).velocity(zero()).position([0.,-150.,0.0])
+            RigidBodyBuilder::default().id(1).velocity(zero()).position([0.,150.,0.0])
                 .color(blue()).body_type(RigidBodyType::Rectangle { width: 500., height: 100.0 })
-                .rotation(std::f32::consts::PI/2.0)
+                .rotation(std::f32::consts::PI/4.0)
                 //.rotational_velocity((std::f32::consts::PI/4.0)/(60.*dt))
                 .build(),
         ];
@@ -160,9 +159,10 @@ where
         println!("graph2: {_graphs_2:?}");
         println!("graph3: {_graphs_3:?}");
         println!("graph4: {_graphs_4:?}");
-
+        
+        //panic!();
         if _graphs_1.len() != 0 || _graphs_2.len() != 0 || _graphs_3.len() != 0 || _graphs_3.len() != 0 {
-            panic!();
+            //panic!();
         }
     }
 

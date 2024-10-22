@@ -60,6 +60,8 @@ mod test {
             [1.0,0.0,0.0], rotate_z(&[0.0,-1.0,0.0], PI/2.0)
         given_x_unit_vector_when_rotated_45_degrees_expect_vector_rotated:
             [0.707,0.707,0.0], rotate_z(&[1.0,0.0,0.0], PI/4.0)
+        given_vector_90_degrees_counter_clockwise_expect_vector_rotated:
+            [-75.0,-220.0,0.0], rotate_z(&[220.0,-75.0,0.0], -PI/2.0)
 
     }
 }

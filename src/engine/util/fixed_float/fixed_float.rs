@@ -64,7 +64,6 @@ impl Into<f32> for FixedFloat {
     }
 }
 
-
 impl<T> Mul<T> for FixedFloat
 where
     T: Into<FixedFloat>,

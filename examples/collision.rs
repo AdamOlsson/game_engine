@@ -103,11 +103,11 @@ impl <C, B, N> Collision<C, B, N>
         //      detection twice. Refactor this
         // - Add rotation to CircleCircle, CircleRect and RectRect collisions
         let bodies = vec![
-            RigidBodyBuilder::default().id(0).velocity([4., -4.,0.]).position([-400.,200.,0.])
+            RigidBodyBuilder::default().id(0).velocity([0., 0.,0.]).position([-150.,-100.,0.])
                 .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
-            RigidBodyBuilder::default().id(1).velocity(zero()).position([0.,150.,0.0])
+            RigidBodyBuilder::default().id(1).velocity([-5.,-5.,0.]).position([150.,100.,0.0])
                 .color(blue()).body_type(RigidBodyType::Rectangle { width: 500., height: 100.0 })
-                .rotation(std::f32::consts::PI/4.0)
+                .rotation(-std::f32::consts::PI - std::f32::consts::PI/4.0)
                 //.rotational_velocity((std::f32::consts::PI/4.0)/(60.*dt))
                 .build(),
         ];

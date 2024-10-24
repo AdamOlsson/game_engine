@@ -3,7 +3,6 @@ use cgmath::Vector3;
 use crate::engine::physics_engine::util::equations;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use crate::engine::util::color::blue;
-use crate::engine::util::fixed_float::fixed_float::FixedFloat;
 use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 use crate::engine::util::zero;
 
@@ -44,23 +43,17 @@ impl RigidBody {
         let transformed_other_point = other_point - rectangle.position;
         let local_circle_center = equations ::rotate_z(
             &transformed_other_point.into(), -rectangle.rotation);
-        println!("transformed_other_point: {transformed_other_point:?}");
-        println!("local_circle_center: {local_circle_center:?}");
 
         let local_closest_point_on_rect_x = (-width/2.0).max(local_circle_center[0].min(width/2.0));
         let local_closest_point_on_rect_y = (-height/2.0).max(local_circle_center[1].min(height/2.0));
         let local_closest_point_on_rect = Vector3::new(
                 local_closest_point_on_rect_x, local_closest_point_on_rect_y, 0.0);
        
-        println!("local_closest_point_on_rect: {local_closest_point_on_rect:?}");     
-
         let local_rotated_closest_point_on_rect_ = equations::rotate_z(
             &local_closest_point_on_rect.into(), rectangle.rotation);
 
         let local_rotated_closest_point_on_rect: Vector3<f32> = 
             FixedFloatVector::from(local_rotated_closest_point_on_rect_).into();
-
-        println!("local_rotated_closest_point_on_rect: {local_rotated_closest_point_on_rect:?}");
 
         let closest_point_on_rect = 
             local_rotated_closest_point_on_rect + rectangle.position;

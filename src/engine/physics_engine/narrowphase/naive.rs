@@ -32,10 +32,7 @@ impl <H> NarrowPhase for Naive<H>
         }
 
         for i in 0..num_candidates as usize {
-            for j in 0..num_candidates as usize {
-                if i == j {
-                    continue;
-                }
+            for j in (i+1)..num_candidates as usize {
                 let idx_i = candidates.indices[i];
                 let idx_j = candidates.indices[j];
                 let body_i = &bodies[idx_i];

@@ -1,5 +1,6 @@
 use cgmath::Vector3;
 use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
+use crate::engine::physics_engine::util::{circle_equations, rectangle_equations};
 use super::{resolver::ConstraintResolver, Constraint};
 
 
@@ -29,29 +30,37 @@ impl BoxConstraint {
 
 impl Constraint for BoxConstraint {
     fn apply_constraint(&self, body: &mut RigidBody) {
-        let shape = match body.body_type {
-            RigidBodyType::Circle { radius } => Vector3::new(radius, radius, radius),
-            RigidBodyType::Rectangle { width, height } => Vector3::new(width/2.0, height/2.0, 0.0),
+        let cardinals = match body.body_type {
+            RigidBodyType::Circle { radius } => 
+                circle_equations::cardinals(body.position.into(), radius),
+            RigidBodyType::Rectangle { width, height } =>
+                rectangle_equations::cardinals(body.position.into(), width, height, body.rotation),
             _ => panic!("Invalid body type {}", body.body_type),
         };
+
+        let left_most = cardinals[0];
+        let right_most = cardinals[1];
+        let top_most = cardinals[2];
+        let bot_most = cardinals[3];
+
         // Left side
-        if body.position.x - shape.x < self.top_left.x {
-            let diff = body.position.x - shape.x - self.top_left.x;
+        if left_most[0] < self.top_left.x {
+            let diff = left_most[0] - self.top_left.x;
             self.resolver.resolve_horizontal(diff, body);
         }
         // Right side
-        if body.position.x + shape.x > self.bottom_right.x {
-            let diff = body.position.x + shape.x - self.bottom_right.x; 
+        if right_most[0] > self.bottom_right.x {
+            let diff = right_most[0] - self.bottom_right.x; 
             self.resolver.resolve_horizontal(diff, body);
         }
         // Bottom side
-        if body.position.y - shape.y < self.bottom_right.y {
-            let diff = body.position.y - shape.y - self.bottom_right.y;
+        if bot_most[1] < self.bottom_right.y {
+            let diff = bot_most[1] - self.bottom_right.y;
             self.resolver.resolve_vertical(diff, body);
         }
         // Top side
-        if body.position.y + shape.y > self.top_left.y {
-            let diff = body.position.y + shape.y - self.top_left.y;
+        if top_most[1] > self.top_left.y {
+            let diff = top_most[1] - self.top_left.y;
             self.resolver.resolve_vertical(diff, body);
         }
     }

@@ -60,6 +60,15 @@ impl RigidBody {
 
         return closest_point_on_rect;
     }
+
+
+    pub fn cardinals(&self) {
+        match self.body_type {
+            RigidBodyType::Rectangle { width, height } => (),
+            RigidBodyType::Circle { radius } => (),
+            _ => panic!("Unkown body type"),
+        }
+    }
 }
 
 impl std::fmt::Display for RigidBodyType {

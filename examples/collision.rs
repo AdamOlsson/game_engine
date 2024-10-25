@@ -136,11 +136,11 @@ where
         let pass3 = &candidates[2];
         let pass4 = &candidates[3];
         
-        println!("pass1: {pass1:?}");
-        println!("pass2: {pass2:?}");
-        println!("pass3: {pass3:?}");
-        println!("pass4: {pass4:?}");
-        println!("");
+        //println!("pass1: {pass1:?}");
+        //println!("pass2: {pass2:?}");
+        //println!("pass3: {pass3:?}");
+        //println!("pass4: {pass4:?}");
+        //println!("");
 
         let _graphs_1: Vec<CollisionGraph> = pass1.iter()
             .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
@@ -155,10 +155,10 @@ where
             .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
             .collect();
         
-        println!("graph1: {_graphs_1:?}");
-        println!("graph2: {_graphs_2:?}");
-        println!("graph3: {_graphs_3:?}");
-        println!("graph4: {_graphs_4:?}");
+        //println!("graph1: {_graphs_1:?}");
+        //println!("graph2: {_graphs_2:?}");
+        //println!("graph3: {_graphs_3:?}");
+        //println!("graph4: {_graphs_4:?}");
         
         //panic!();
         if _graphs_1.len() != 0 || _graphs_2.len() != 0 || _graphs_3.len() != 0 || _graphs_3.len() != 0 {

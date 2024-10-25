@@ -67,7 +67,11 @@ impl From<cgmath::Vector3<f32>> for FixedFloatVector {
     } 
 }
 
-
+impl Into<[f32; 3]> for FixedFloatVector {
+    fn into(self) -> [f32;3] {
+        [self.x.into(), self.y.into(), self.z.into()]
+    }
+}
 
 impl Into<cgmath::Vector3<f32>> for FixedFloatVector {
     fn into(self) -> cgmath::Vector3<f32> {

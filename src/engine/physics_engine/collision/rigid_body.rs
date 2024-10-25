@@ -1,6 +1,6 @@
 use cgmath::Vector3;
 
-use crate::engine::physics_engine::util::equations;
+use crate::engine::physics_engine::util::{circle_equations, equations, rectangle_equations};
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use crate::engine::util::color::blue;
 use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
@@ -62,10 +62,12 @@ impl RigidBody {
     }
 
 
-    pub fn cardinals(&self) {
+    pub fn cardinals(&self) -> [[f32;3];4]{
         match self.body_type {
-            RigidBodyType::Rectangle { width, height } => (),
-            RigidBodyType::Circle { radius } => (),
+            RigidBodyType::Rectangle { width, height } => 
+                rectangle_equations::cardinals(self.position.into(), width, height, self.rotation),
+            RigidBodyType::Circle { radius } => 
+                circle_equations::cardinals(self.position.into(), radius),
             _ => panic!("Unkown body type"),
         }
     }

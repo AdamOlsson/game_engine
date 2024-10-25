@@ -1,6 +1,5 @@
 use cgmath::Vector3;
-use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
-use crate::engine::physics_engine::util::{circle_equations, rectangle_equations};
+use crate::engine::physics_engine::collision::rigid_body::RigidBody;
 use super::{resolver::ConstraintResolver, Constraint};
 
 
@@ -30,13 +29,7 @@ impl BoxConstraint {
 
 impl Constraint for BoxConstraint {
     fn apply_constraint(&self, body: &mut RigidBody) {
-        let cardinals = match body.body_type {
-            RigidBodyType::Circle { radius } => 
-                circle_equations::cardinals(body.position.into(), radius),
-            RigidBodyType::Rectangle { width, height } =>
-                rectangle_equations::cardinals(body.position.into(), width, height, body.rotation),
-            _ => panic!("Invalid body type {}", body.body_type),
-        };
+        let cardinals = body.cardinals();
 
         let left_most = cardinals[0];
         let right_most = cardinals[1];

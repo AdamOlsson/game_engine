@@ -2,8 +2,13 @@ use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 
 use super::equations;
 
+/// Returns the moment of inertia for a solid rectangle rotating around its center
+pub fn inertia(height:f32, width:f32, mass:f32) -> f32 {
+    (mass/12.0)*(height.powi(2) + width.powi(2))
+}
+
 /// Returns the left-, right-, top- and bottom-most points of a rotated rectangle
-pub fn cardinals(center: [f32;3], width: f32, height:f32, rotation: f32) -> [[f32;3];4]{
+pub fn cardinals(center: &[f32;3], width: f32, height:f32, rotation: f32) -> [[f32;3];4]{
     let top_left  = [-width/2.0,  height/2.0, 0.0];
     let top_right = [ width/2.0,  height/2.0, 0.0];
     let bot_right = [ width/2.0, -height/2.0, 0.0];
@@ -63,17 +68,17 @@ mod rectangle_equations_test {
     
         cardinals_test! {
             given_rect_when_aabb_and_no_rotation_expect_corners:
-                [0.,0.,0.], 2.0, 2.0, 0.0,
+                &[0.,0.,0.], 2.0, 2.0, 0.0,
                 [-1.0,1.0,0.0],[1.0,-1.0,0.0],[1.0,1.0,0.0],[1.0,-1.0,0.0]
             given_rect_when_aabb_and_90_degrees_rotation_expect_corners:
-                [0.,0.,0.], 2.0, 2.0, std::f32::consts::PI/2.0,
+                &[0.,0.,0.], 2.0, 2.0, std::f32::consts::PI/2.0,
                 [-1.0,-1.0,0.0],[1.0,-1.0,0.0],[1.0,1.0,0.0],[-1.0,-1.0,0.0]
             given_rect_when_aabb_and_30_degrees_rotation_expect_corners:
-                [0.,0.,0.], 2.0, 2.0, std::f32::consts::PI/6.,
+                &[0.,0.,0.], 2.0, 2.0, std::f32::consts::PI/6.,
                 [-1.366,0.366,0.0],[1.366,-0.366,0.0],[0.366,1.366,0.0],[-0.366,-1.366,0.0]
             
             given_rect_when_aabb_and_30_degrees_rotation_and_offset_expect_corners:
-                [1.,0.,0.], 2.0, 2.0, std::f32::consts::PI/6.,
+                &[1.,0.,0.], 2.0, 2.0, std::f32::consts::PI/6.,
                 [-0.366,0.366,0.0],[2.366,-0.366,0.0],[1.366,1.366,0.0],[0.634,-1.366,0.0]
 
         }

@@ -61,11 +61,20 @@ impl RigidBody {
         return closest_point_on_rect;
     }
 
+    pub fn inertia(&self) -> f32 {
+        match self.body_type {
+            RigidBodyType::Rectangle { width, height } => 
+                rectangle_equations::inertia(height, width, self.mass),
+            RigidBodyType::Circle { radius } => 
+                circle_equations::inertia(radius, self.mass),
+            _ => panic!("Unkown body type"),
+        }
+    }
 
     pub fn cardinals(&self) -> [[f32;3];4]{
         match self.body_type {
             RigidBodyType::Rectangle { width, height } => 
-                rectangle_equations::cardinals(self.position.into(), width, height, self.rotation),
+                rectangle_equations::cardinals(&self.position.into(), width, height, self.rotation),
             RigidBodyType::Circle { radius } => 
                 circle_equations::cardinals(self.position.into(), radius),
             _ => panic!("Unkown body type"),

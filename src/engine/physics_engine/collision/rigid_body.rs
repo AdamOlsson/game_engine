@@ -25,7 +25,7 @@ pub struct RigidBody {
     pub rotation: f32,
 
     pub rotational_velocity: f32, 
-    pub inertia: f32,
+    //pub inertia: f32,
 
     // Render data
     pub color: Vector3<f32>,
@@ -96,12 +96,11 @@ impl std::fmt::Display for RigidBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "RigidBody{{ id: {}, position: ({},{},{}), prev_pos: ({},{},{}), velocity: ({},{},{}), type: {}: rotation: {}rad }}",
+            "RigidBody{{ id: {}, position: ({},{},{}), velocity: ({},{},{}), type: {}: rotation: {}rad, angular velocity: {} }}",
             self.id,
             self.position.x, self.position.y, self.position.z,
-            self.prev_position.x, self.prev_position.y, self.prev_position.z,
             self.velocity.x, self.velocity.y, self.velocity.z,
-            self.body_type, self.rotation,)
+            self.body_type, self.rotation, self.rotational_velocity,)
     }
 }
 
@@ -115,7 +114,7 @@ pub struct RigidBodyBuilder {
     pub mass: f32,
     pub rotational_velocity: f32, 
     pub rotation: f32,
-    pub inertia: f32,
+    //pub inertia: f32,
     // Render data
     pub color: Vector3<f32>,
     pub sprite_coord: SpriteCoordinate,
@@ -132,12 +131,12 @@ impl std::default::Default for RigidBodyBuilder {
         let body_type = RigidBodyType::Unkown; 
         let mass = 1.0;
         let rotation = 0.0;
-        let inertia = 0.0;
+        //let inertia = 0.0;
         let color = blue();
         let sprite_coord = SpriteCoordinate::none();
         Self { velocity: velocity.into(), rotational_velocity,
             id, acceleration: acceleration.into(), prev_position,
-            position: position.into(), body_type,mass,rotation,inertia,
+            position: position.into(), body_type,mass,rotation,//inertia,
             color: color.into(),sprite_coord,
         }
     }
@@ -190,10 +189,10 @@ impl RigidBodyBuilder {
         self
     }
 
-    pub fn inertia(mut self, inertia: f32) -> Self {
-        self.inertia = inertia;
-        self
-    }
+    //pub fn inertia(mut self, inertia: f32) -> Self {
+    //    self.inertia = inertia;
+    //    self
+    //}
 
     pub fn color(mut self, color: [f32;3]) -> Self {
         self.color = color.into();
@@ -219,7 +218,7 @@ impl RigidBodyBuilder {
         RigidBody { id, velocity: self.velocity, acceleration: self.acceleration, 
             prev_position, position: self.position,
             body_type: self.body_type, mass: self.mass, rotation: self.rotation,
-            color: self.color, sprite_coord: self.sprite_coord, inertia: self.inertia,
+            color: self.color, sprite_coord: self.sprite_coord, //inertia: self.inertia,
             rotational_velocity: self.rotational_velocity,
         }
     }

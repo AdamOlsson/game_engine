@@ -6,7 +6,8 @@ struct InstanceInput {
     @location(2) position: vec3<f32>,
     @location(3) color: vec3<f32>,
     @location(4) radius: f32,
-    @location(5) sprite_coords: vec4<f32>,
+    @location(5) rotation: f32,
+    @location(6) sprite_coords: vec4<f32>,
 };
 
 struct VertexOutput {
@@ -55,9 +56,14 @@ fn vs_main(
     let scaled_object_radius = vec2<f32>(instance.radius, instance.radius) / window_size;
     let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_radius, 1.0);
 
-    out.clip_position = vec4<f32>(scaled_vertex_position, 1.0) + vec4<f32>(scaled_object_position, 0.0);
+    let rotation_matrix = mat2x2<f32>(
+            vec2<f32>(cos(-instance.rotation), -sin(-instance.rotation)),
+            vec2<f32>(sin(-instance.rotation),  cos(-instance.rotation)));
+    let rotated_vertex_position = rotation_matrix * scaled_vertex_position.xy;
 
-   let none = vec4<f32>(-1.0,0.0,0.0,0.0);
+    out.clip_position = vec4<f32>(rotated_vertex_position, 0.0, 1.0) + vec4<f32>(scaled_object_position, 0.0);
+
+    let none = vec4<f32>(-1.0,0.0,0.0,0.0);
     if (instance.sprite_coords.x == none.x) {
         out.tex_coord = vec2<f32>(-1.0,-1.0);
     } else {

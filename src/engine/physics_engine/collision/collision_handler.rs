@@ -1,4 +1,4 @@
-use crate::engine::{physics_engine::util::equations::{self, impulse_magnitude}, util::fixed_float::fixed_float::FixedFloat};
+use crate::engine::{physics_engine::util::equations::{impulse_magnitude, post_collision_angular_velocity, post_collision_velocity}, util::fixed_float::fixed_float::FixedFloat};
 
 use super::rigid_body::{RigidBody, RigidBodyType};
 use cgmath::{InnerSpace, MetricSpace, Vector3};
@@ -95,33 +95,39 @@ impl CollisionHandler for SimpleCollisionSolver {
             "Penetration depth less than or equal to the radius the circle causes undefined behavior");
 
         let collision_normal_unit = (closest_point_on_rect - circle.position).normalize();
-
-        let relative_vel = circle.velocity - rect.velocity;
-        let relative_vel_along_norm = relative_vel.dot(collision_normal_unit);
-        let mass_circle = circle.mass;
-        let mass_rect = rect.mass;
         let c_r = 1.0;
-        let impulse_magnitude = impulse_magnitude(relative_vel_along_norm, mass_circle, mass_rect, c_r);
-            
+        let impulse_magnitude = impulse_magnitude(c_r, &collision_normal_unit.into(), 
+            &closest_point_on_rect.into(), &circle, rect,);
+        
         // resolve new velocities
-        let new_rect_velocity = rect.velocity - (impulse_magnitude/mass_rect)*collision_normal_unit;
-        let new_circ_velocity = circle.velocity + (impulse_magnitude/mass_circle)*collision_normal_unit;
+        let normal_unit_array: [f32;3] = collision_normal_unit.into();
+        let new_rect_velocity = post_collision_velocity(
+            &normal_unit_array, -impulse_magnitude, &rect);
+        let new_circ_velocity = post_collision_velocity(
+            &normal_unit_array, impulse_magnitude, &circle);
 
-        let circle_correction = (penetration_depth/(mass_circle+mass_rect))*mass_rect*-collision_normal_unit;
-        let rect_correction = (penetration_depth/(mass_circle+mass_rect))*mass_circle*collision_normal_unit;
-        let new_circle_center = circle.position + circle_correction; 
-        let new_rect_center = rect.position + rect_correction; 
+        let closest_point: [f32; 3] = closest_point_on_rect.into();
+        let new_rect_angular_velocity = post_collision_angular_velocity(
+            &normal_unit_array, &closest_point, -impulse_magnitude, &rect);
+        let new_circ_angular_velocity = post_collision_angular_velocity(
+            &normal_unit_array, &closest_point, impulse_magnitude, &circle);
 
-        // TODO: Handle rotation (and maybe friction)
-
+        let circle_correction = (penetration_depth/(circle.mass+rect.mass))*rect.mass*-collision_normal_unit;
+        let rect_correction = (penetration_depth/(circle.mass+rect.mass))*circle.mass*collision_normal_unit;
+        let new_circle_center = circle.position + circle_correction;
+        let new_rect_center = rect.position + rect_correction;
+       
         bodies[circ_idx].position = new_circle_center;
         bodies[rect_idx].position = new_rect_center;
 
-        bodies[circ_idx].velocity = new_circ_velocity;
-        bodies[rect_idx].velocity = new_rect_velocity;
+        bodies[circ_idx].velocity = Vector3::from(new_circ_velocity);
+        bodies[rect_idx].velocity = Vector3::from(new_rect_velocity);
 
         bodies[circ_idx].prev_position = bodies[circ_idx].position - bodies[circ_idx].velocity;
         bodies[rect_idx].prev_position = bodies[rect_idx].position - bodies[rect_idx].velocity;
+
+        bodies[circ_idx].rotational_velocity = new_circ_angular_velocity; 
+        bodies[rect_idx].rotational_velocity = new_rect_angular_velocity; 
 
         return true;
     }

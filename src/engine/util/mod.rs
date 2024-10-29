@@ -16,6 +16,7 @@ pub fn get_circle_instances(bodies: &[RigidBody]) -> Vec<CircleInstance> {
                     Some(CircleInstance {
                         position: body.position.into(), 
                         color: body.color.into(), 
+                        rotation: body.rotation,
                         radius,
                         sprite_coord: body.sprite_coord.coordinate, 
                     }),

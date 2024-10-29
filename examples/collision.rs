@@ -96,20 +96,18 @@ impl <C, B, N> Collision<C, B, N>
         //let acceleration = Vector3::new(0., (-9.82 / dt)*60., 0.);
         //let bodies = spawn_bodies(RADIUS, acceleration, NUM_COLS, NUM_ROWS);
         // TODO:
-        // - Refactor CircleRect collision to handle rotation
         // - RectRect collision
         // - Refactor CircleCircle collision using techniques in RectCircle and RectRect
-        // - For RectCircle collision (and probably RectRect and CircleCircle) we perform the collision 
-        //      detection twice. Refactor this
-        // - Add rotation to CircleCircle, CircleRect and RectRect collisions
+        // - Box constraint should handle rotation as well
+        // - Move restitution to the rigid body and determine effective restitution 
+        //      using weighted average during collision
         let bodies = vec![
-            RigidBodyBuilder::default().id(0).velocity([0., 0.,0.]).position([-150.,-100.,0.])
-                .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
-            RigidBodyBuilder::default().id(1).velocity([-5.,-5.,0.]).position([150.,100.,0.0])
-                .color(blue()).body_type(RigidBodyType::Rectangle { width: 500., height: 100.0 })
-                .rotation(-std::f32::consts::PI - std::f32::consts::PI/4.0)
-                //.rotational_velocity((std::f32::consts::PI/4.0)/(60.*dt))
+            RigidBodyBuilder::default().id(0).velocity([0.,0.,0.]).position([0.,0.,0.])
+                .color(blue()).body_type(RigidBodyType::Rectangle { width: 100., height: 1000.0 })
+                .rotation(-std::f32::consts::PI/4.0)
                 .build(),
+            RigidBodyBuilder::default().id(1).velocity([5., 0.,0.]).position([-400.,200.,0.])
+                .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
         ];
         
         let integrator = VerletIntegrator::new(f32::MAX);
@@ -128,7 +126,7 @@ where
         let mut bodies = &mut self.bodies;
         self.integrator.update(&mut bodies, self.dt);
         bodies.iter_mut().for_each(|b| self.constraint.apply_constraint(b));
-
+        
         let candidates = self.broadphase.collision_detection(&bodies);
 
         let pass1 = &candidates[0];
@@ -193,7 +191,7 @@ where
 
 fn main() {
     let window_size = (800,800);
-    //let mut constraint = BoxConstraint::new(ElasticConstraintResolver::new());
+
     let mut constraint = BoxConstraint::new(InelasticConstraintResolver::new());
     constraint.set_top_left(Vector3::new(-(window_size.0 as f32), window_size.1 as f32, 0.0));
     constraint.set_bottom_right(Vector3::new(window_size.0 as f32, -(window_size.1 as f32), 0.0));

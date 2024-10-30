@@ -142,47 +142,10 @@ impl CollisionHandler for SimpleCollisionSolver {
              RigidBodyType::Rectangle { width: wj, height:hj }) => ((wi, hi), (wj,hj)), 
             (_, _) => unreachable!()
         };   
-       
-        if body_i.position.x + wi/2.0 >= body_j.position.x &&
-                                body_i.position.x <= body_j.position.x + wj/2.0 &&
-                                body_i.position.y + hi/2.0 >= body_j.position.y &&
-                                body_i.position.y <= body_j.position.y + hj/2.0 {
-            return false;
-        }
-        return true;
-        //let collision_axis = body_i.position - body_j.position;
-        //let collision_normal = collision_axis.normalize();
-        //let dist = collision_axis.magnitude();
-        //let correction_direction = collision_axis / dist;
-        //let collision_depth_w = wi + wj - (body_j.position.x + wj - body_i.position.x);
-        ////let collision_depth_w = f32::min(body_i.position.x + wi, body_j.position.x + wj) -
-        ////    f32::max(body_i.position.x, body_j.position.x);
+        
+        // SAT get axii
 
-        ////let collision_depth_h = hi + hj - (body_j.position.y + hj - body_i.position.y);
-        //let collision_depth_h = f32::min(body_i.position.y + hi, body_j.position.y + hj) -
-        //    f32::max(body_i.position.y, body_j.position.y);
-
-        ////let collision_depth = Vector3::new(collision_depth_w, collision_depth_h, 0.0).magnitude();
-        //let collision_depth = collision_depth_w.min(collision_depth_h);
-
-        //println!("collision depth w: {:?}", collision_depth_w);
-        //println!("collision depth h: {:?}", collision_depth_h);
-        //println!("collision depth magnitude: {:?}", collision_depth);
-        //bodies[idx_i].position += 0.5*collision_depth*correction_direction;
-        //bodies[idx_j].position -= 0.5*collision_depth*correction_direction;
-        //
-        //println!("0: {:?}", bodies[idx_i].position);
-        //println!("1: {:?}", bodies[idx_j].position);
-
-        //let p = bodies[idx_i].velocity.dot(collision_normal) - bodies[idx_j].velocity.dot(collision_normal);
-        //
-        //println!("p: {:?}, collision_normal: {:?}", p, collision_normal);
-
-        //bodies[idx_i].velocity = bodies[idx_i].velocity - p * collision_normal; 
-        //bodies[idx_j].velocity = bodies[idx_j].velocity + p * collision_normal;
-
-        //bodies[idx_i].prev_position = bodies[idx_i].position - bodies[idx_i].velocity;
-        //bodies[idx_j].prev_position = bodies[idx_j].position - bodies[idx_j].velocity;
+        return false;
     }
 }
 
@@ -227,6 +190,7 @@ mod tests {
 
         use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
         use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
+        use crate::engine::physics_engine::util::equations;
         use crate::engine::util::zero;
         use super::super::CollisionHandler;
 
@@ -236,9 +200,21 @@ mod tests {
                     #[test]
                     fn $name() {
                         let mut bodies = $bodies;
+                        let initial_kinetic_energy = 
+                            equations::translational_kinetic_energy(&bodies[0]) + 
+                            equations::rotational_kinetic_energy(&bodies[0]) +
+                            equations::translational_kinetic_energy(&bodies[1]) + 
+                            equations::rotational_kinetic_energy(&bodies[1]);
+
                         let expected_output = $expected_output;
                         let ch = SimpleCollisionSolver::new();
                         ch.handle_circle_rect_collision(&mut bodies, 0, 1);
+
+                        let resulting_kinetic_energy = 
+                            equations::translational_kinetic_energy(&bodies[0]) + 
+                            equations::rotational_kinetic_energy(&bodies[0]) +
+                            equations::translational_kinetic_energy(&bodies[1]) + 
+                            equations::rotational_kinetic_energy(&bodies[1]);
 
                         let expected_output_circ = &expected_output[0];
                         let expected_output_rect = &expected_output[1];
@@ -268,6 +244,10 @@ mod tests {
                         assert_eq!(
                             expected_output_1_vel, output_1_vel,
                             "Expected rectangle velocity {expected_output_1_vel:?} but found {output_1_vel:?}");
+
+                        assert_eq!(initial_kinetic_energy, resulting_kinetic_energy,
+                            "Expected the kinetic energy to be equal before and after
+                            collision. Before: {initial_kinetic_energy} and after: {resulting_kinetic_energy}");
                     }
                 )*
             }
@@ -464,7 +444,6 @@ mod tests {
                 expected_output_1_vel, output_1_vel,
                 "Expected rectangle velocity {expected_output_1_vel:?} but found {output_1_vel:?}");
         }
-
     }
 }
 

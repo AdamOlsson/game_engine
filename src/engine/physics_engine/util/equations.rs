@@ -17,6 +17,22 @@ pub fn perpendicular_2d(v: &[f32;3]) -> [f32;3] {
     [-v[1], v[0], v[2]]
 }
 
+pub fn magnitude(v: &[f32;3]) -> f32 {
+    (v[0].powi(2) + v[1].powi(2) + v[2].powi(2)).sqrt()
+}
+
+pub fn magnitude2(v: &[f32;3]) -> f32 {
+    v[0].powi(2) + v[1].powi(2) + v[2].powi(2)
+}
+
+pub fn translational_kinetic_energy(body: &RigidBody) -> f32 {
+    0.5*body.mass*magnitude2(&body.velocity.into())
+}
+
+pub fn rotational_kinetic_energy(body: &RigidBody) -> f32 {
+    0.5*body.inertia()*body.rotational_velocity
+}
+
 pub fn impulse_magnitude(
     e: f32, coll_normal: &[f32;3], collision_point: &[f32;3],
     body_a: &RigidBody, body_b: &RigidBody,

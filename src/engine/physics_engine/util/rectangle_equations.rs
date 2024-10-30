@@ -1,4 +1,4 @@
-use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
+use crate::engine::{physics_engine::collision::rigid_body::{RigidBody, RigidBodyType}, util::fixed_float::fixed_float_vector::FixedFloatVector};
 
 use super::equations;
 
@@ -37,6 +37,40 @@ pub fn cardinals(center: &[f32;3], width: f32, height:f32, rotation: f32) -> [[f
         FixedFloatVector::from(*bot_most).into()];
 }
 
+//pub fn corners(body: &RigidBody) -> [[f32;3];4] {
+//    let (width, height) = match body.body_type {
+//        RigidBodyType::Rectangle { width, height } => (width, height),
+//        _ => panic!("Expected rectangle body"),
+//    };
+//    [
+//        equations::rotate_z(&[body.position.x - width/2.0, body.position.y + height/2.0, 0.0], body.rotation),// Top left
+//        equations::rotate_z(&[body.position.x + width/2.0, body.position.y + height/2.0, 0.0], body.rotation),// Top right
+//        equations::rotate_z(&[body.position.x + width/2.0, body.position.y - height/2.0, 0.0], body.rotation),// Bottom right
+//        equations::rotate_z(&[body.position.x - width/2.0, body.position.y - height/2.0, 0.0], body.rotation),// Bottom left
+//    ]
+//}
+
+pub fn sat_get_axii(body: &RigidBody) -> [[f32;3];2] {
+    let (width, height) = match body.body_type {
+        RigidBodyType::Rectangle { width, height } => (width, height),
+        _ => panic!("Expected rectangle body"),
+    };
+
+    let top_left = equations::rotate_z(
+        &[body.position.x - width/2.0, body.position.y + height/2.0, 0.0], body.rotation);
+    let top_right = equations::rotate_z(
+        &[body.position.x + width/2.0, body.position.y + height/2.0, 0.0], body.rotation);
+    let bot_right = equations::rotate_z(
+        &[body.position.x + width/2.0, body.position.y - height/2.0, 0.0], body.rotation);
+
+    let axis1 = [bot_right[0]-top_right[0],bot_right[1]-top_right[1],bot_right[2]-top_right[2]];
+    let axis2 = [top_right[0]-top_left[0],top_right[1]-top_left[1],top_right[2]-top_left[2]];
+    let mut normal1 = equations::perpendicular_2d(&axis1);
+    let mut normal2 = equations::perpendicular_2d(&axis2);
+    equations::normalize(&mut normal1);
+    equations::normalize(&mut normal2);
+    [normal1, normal2]
+}
 
 #[cfg(test)]
 mod rectangle_equations_test {
@@ -83,4 +117,57 @@ mod rectangle_equations_test {
 
         }
     }
+
+    mod sat_get_axii {
+        use super::super::sat_get_axii;
+        use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
+        use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
+        macro_rules! sat_get_axii_tests {
+            ($($name:ident: $body: expr, $expected_axis1: expr, $expected_axis2: expr)*) => {
+                $(
+                    #[test]
+                    fn $name() {
+                        let exp1 = $expected_axis1;
+                        let exp2 = $expected_axis2;
+                        let axii = sat_get_axii(&$body);
+                        let ax1: [f32;3] = FixedFloatVector::from(axii[0]).into();
+                        let ax2: [f32;3] = FixedFloatVector::from(axii[1]).into();
+                        assert_eq!(exp1, ax1, "Expected first normal to be {exp1:?} but found {ax1:?}");
+                        assert_eq!(exp2, ax2, "Expected second normal to be {exp2:?} but found {ax2:?}");
+                    }
+                )*
+            }
+        }
+
+        sat_get_axii_tests! {
+            given_rect_with_no_rotation_expect_axis_aligned_axii:
+                RigidBodyBuilder::default().id(0)
+                    .position([0.0,0.0,0.0])
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
+            given_rect_is_offset_with_no_rotation_expect_axis_aligned_axii:
+                RigidBodyBuilder::default().id(0)
+                    .position([7.0,-6.0,0.0])
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
+            given_rect_is_offset_with_45_degree_rotation_expect_axis_aligned_axii:
+                RigidBodyBuilder::default().id(0)
+                    .position([7.0,-6.0,0.0])
+                    .rotation(std::f32::consts::PI/4.0)
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [0.707, 0.707, 0.0], [-0.707, 0.707, 0.0]
+            given_rect_is_offset_with_45_degree_rotation_and_uneven_height_and_width_expect_axis_aligned_axii:
+                RigidBodyBuilder::default().id(0)
+                    .position([7.0,-6.0,0.0])
+                    .rotation(std::f32::consts::PI/4.0)
+                    .body_type(RigidBodyType::Rectangle { width: 30., height: 10.})
+                    .build(),
+              [0.707, 0.707, 0.0], [-0.707, 0.707, 0.0]
+
+        }
+    }
 }
+

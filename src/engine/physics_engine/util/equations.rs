@@ -88,7 +88,14 @@ pub fn rotate_z(v: &[f32; 3], theta: f32) -> [f32; 3] {
     ]
 }
 
-
+pub fn normalize(v: &mut [f32; 3]) {
+    let magnitude = (v[0].powi(2) + v[1].powi(2) + v[2].powi(2)).sqrt();
+    if magnitude != 0.0 {
+        v[0] /= magnitude;
+        v[1] /= magnitude;
+        v[2] /= magnitude;
+    }
+}
 
 #[cfg(test)]
 mod test {

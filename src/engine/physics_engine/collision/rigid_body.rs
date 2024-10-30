@@ -25,7 +25,6 @@ pub struct RigidBody {
     pub rotation: f32,
 
     pub rotational_velocity: f32, 
-    //pub inertia: f32,
 
     // Render data
     pub color: Vector3<f32>,
@@ -114,7 +113,6 @@ pub struct RigidBodyBuilder {
     pub mass: f32,
     pub rotational_velocity: f32, 
     pub rotation: f32,
-    //pub inertia: f32,
     // Render data
     pub color: Vector3<f32>,
     pub sprite_coord: SpriteCoordinate,
@@ -131,7 +129,6 @@ impl std::default::Default for RigidBodyBuilder {
         let body_type = RigidBodyType::Unkown; 
         let mass = 1.0;
         let rotation = 0.0;
-        //let inertia = 0.0;
         let color = blue();
         let sprite_coord = SpriteCoordinate::none();
         Self { velocity: velocity.into(), rotational_velocity,
@@ -188,11 +185,6 @@ impl RigidBodyBuilder {
         self.rotation = rotation;
         self
     }
-
-    //pub fn inertia(mut self, inertia: f32) -> Self {
-    //    self.inertia = inertia;
-    //    self
-    //}
 
     pub fn color(mut self, color: [f32;3]) -> Self {
         self.color = color.into();

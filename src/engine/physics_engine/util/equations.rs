@@ -37,7 +37,7 @@ pub fn impulse_magnitude(
     e: f32, coll_normal: &[f32;3], collision_point: &[f32;3],
     body_a: &RigidBody, body_b: &RigidBody,
 ) -> f32 {
-    let rel_vel = body_a.velocity - body_b.velocity;
+
     let r_ap = [
         collision_point[0] - body_a.position.x,
         collision_point[1] - body_a.position.y,
@@ -50,12 +50,23 @@ pub fn impulse_magnitude(
     ];
     let r_ap_perp = perpendicular_2d(&r_ap);
     let r_bp_perp = perpendicular_2d(&r_bp);
-    
+
+    let rel_vel = [
+        (body_a.velocity.x + body_a.rotational_velocity*r_ap_perp[0]) -
+            (body_b.velocity.x + body_b.rotational_velocity*r_bp_perp[0]),
+
+        (body_a.velocity.y + body_a.rotational_velocity*r_ap_perp[1]) -
+            (body_b.velocity.y + body_b.rotational_velocity*r_bp_perp[1]),
+
+        (body_a.velocity.z + body_a.rotational_velocity*r_ap_perp[2]) -
+            (body_b.velocity.z + body_b.rotational_velocity*r_bp_perp[2]),
+    ];
+
     let nom = -(1.0+e)*dot(&rel_vel.into(), &coll_normal);
     let denom_term_1 = dot(coll_normal, coll_normal) * (1.0/body_a.mass) + (1.0/body_b.mass);
     let denom_term_2 = dot(&r_ap_perp, &coll_normal).powi(2) / body_a.inertia();
     let denom_term_3 = dot(&r_bp_perp, &coll_normal).powi(2) / body_b.inertia();
-   
+  
     return nom/(denom_term_1 + denom_term_2 + denom_term_3);
 }
 
@@ -128,7 +139,9 @@ mod test {
         }
     }
 
-    use super::rotate_z;
+    use crate::engine::{physics_engine::{collision::rigid_body::{RigidBodyBuilder, RigidBodyType}, util::equations::{post_collision_angular_velocity, post_collision_velocity}}, util::fixed_float::{fixed_float::FixedFloat, fixed_float_vector::FixedFloatVector}};
+
+    use super::{impulse_magnitude, rotate_z};
     use std::f32::consts::PI;
 
     rotate_z_tests! {
@@ -146,4 +159,102 @@ mod test {
             [-75.0,-220.0,0.0], rotate_z(&[220.0,-75.0,0.0], -PI/2.0)
 
     }
+
+    #[test]
+    fn impulse_magnitude_with_linear_velocity_test() {
+        let circle = RigidBodyBuilder::default().id(0)
+            .body_type(RigidBodyType::Circle { radius: 5. })
+            .mass(1.0)
+            .velocity([10.,0.,0.])
+            .position([-5.,400.,0.])
+            .build();
+        let rectangle = RigidBodyBuilder::default().id(1)
+            .body_type(RigidBodyType::Rectangle { width: 10., height: 800. })
+            .mass(1.0)
+            .velocity([0.,0.,0.])
+            .position([5.,0.,0.])
+            .build();
+        let collision_point = [0.0, 400.0,0.0];
+        let collision_normal = [-1.0,0.0,0.0];
+        let impulse = impulse_magnitude(1.0, &collision_normal, &collision_point, &circle, &rectangle);
+        let post_angular_velocity_rect = post_collision_angular_velocity(
+            &collision_normal, &collision_point, impulse, &rectangle);
+
+        let impulse_ff: f32 = FixedFloat::from(impulse).into();
+        let post_angular_velocity_rect_ff: f32 = FixedFloat::from(post_angular_velocity_rect).into();
+
+        let _r_cp = [5.0, 0.0, 0.0];
+        let _r_cp_perp = [0.0, 5.0, 0.0];
+        let _r_rp = [-5.0, 400.0, 0.0];
+        let _r_rp_perp = [-400.0, -5.0, 0.0];
+        let _circle_inertia = 0.5*1.0*5.*5.;
+        let _vel_diff = [10.0, 0.,0.];
+        let _rectangle_inertia = (1.0*(10.*10. + 800.*800.))/12.0;
+        let expected_impulse = 4.0;
+        let expected_post_angular_velocity_rect = 0.03;
+
+        assert_eq!(expected_impulse, impulse_ff, "Expected impulse {expected_impulse} but found {impulse_ff}");
+        assert_eq!(expected_post_angular_velocity_rect, post_angular_velocity_rect_ff,
+            "Expected post collision angular velocity for rectangle to be {expected_post_angular_velocity_rect} but found {post_angular_velocity_rect_ff}");
+        
+    }
+
+    #[test]
+    fn impulse_magnitude_with_angular_velocity_test() {
+        let circle = RigidBodyBuilder::default().id(0)
+            .position([-400.,-3.,0.])
+            .mass(1.0)
+            .velocity([0.,0.,0.])
+            .body_type(RigidBodyType::Circle { radius: 5.0 })
+            .build();
+        let rectangle = RigidBodyBuilder::default().id(1)
+            .position([0.,5.,0.])
+            .mass(1.0)
+            .velocity([0.,0.,0.])
+            .rotational_velocity(std::f32::consts::PI/120.0)
+            .body_type(RigidBodyType::Rectangle { width: 1000., height: 10.})
+            .build();
+
+        let collision_point = [-400.0, 0.0, 0.0];
+        let collision_normal = [0.0,-1.0,0.0];
+        let impulse = impulse_magnitude(1.0, &collision_normal, &collision_point, &circle, &rectangle);
+
+        let post_velocity_circle = post_collision_velocity(&collision_normal, impulse, &circle);
+        let post_velocity_rectangle = post_collision_velocity(&collision_normal, -impulse, &rectangle);
+
+        let post_angular_velocity_circle = post_collision_angular_velocity(
+            &collision_normal, &collision_point, impulse, &circle);
+        let post_angular_velocity_rectangle = post_collision_angular_velocity(
+            &collision_normal, &collision_point, -impulse, &rectangle);
+
+        let impulse_ff: f32 = FixedFloat::from(impulse).into();
+        let post_velocity_circle_ff: [f32; 3] = FixedFloatVector::from(post_velocity_circle).into();
+        let post_velocity_rectangle_ff: [f32; 3] = FixedFloatVector::from(post_velocity_rectangle).into();
+        let post_angular_velocity_circ_ff: f32 = FixedFloat::from(post_angular_velocity_circle).into();
+        let post_angular_velocity_rect_ff: f32 = FixedFloat::from(post_angular_velocity_rectangle).into();
+
+        let _r_cp = [0.0, 5.0, 0.0];
+        let _r_cp_perp = [-5.0, 0.0, 0.0];
+        let _r_rp = [-400.0, -5.0, 0.0];
+        let _r_rp_perp = [5.0, -400.0, 0.0];
+        let _circle_inertia = 0.5*1.0*5.*5.;
+        let _vel_diff = [-5.0*std::f32::consts::PI/120., 400.0*std::f32::consts::PI/120., 0.0];
+        let _rectangle_inertia = (1.0/12.0)*1.0*(1000.0_f32.powi(2) + 10.0_f32.powi(2));
+        let expected_impulse = 5.343;
+        let expected_post_velocity_circle = [0.0, -5.343, 0.0];
+        let expected_post_velocity_rectangle = [0.0, 5.343, 0.0];
+        let expected_post_angular_velocity_circle = 0.0;
+        let expected_post_angular_velocity_rectangle = 0.001;
+
+        assert_eq!(expected_impulse, impulse_ff, "Expected impulse {expected_impulse} but found {impulse_ff}");
+        assert_eq!(expected_post_velocity_circle, post_velocity_circle_ff,
+            "Expected post collision velocity for circle to be {expected_post_velocity_circle:?} but found {post_velocity_circle_ff:?}");
+        assert_eq!(expected_post_velocity_rectangle, post_velocity_rectangle_ff,
+            "Expected post collision velocity for rectangle to be {expected_post_velocity_rectangle:?} but found {post_velocity_rectangle_ff:?}");
+        assert_eq!(expected_post_angular_velocity_circle, post_angular_velocity_circ_ff,
+            "Expected post collision angular velocity for circle to be {expected_post_angular_velocity_circle} but found {post_angular_velocity_circ_ff}");
+        assert_eq!(expected_post_angular_velocity_rectangle, post_angular_velocity_rect_ff,
+            "Expected post collision angular velocity for rectangle to be {expected_post_angular_velocity_rectangle} but found {post_angular_velocity_rect_ff}");
+
+    }      
 }

@@ -104,10 +104,16 @@ impl <C, B, N> Collision<C, B, N>
         let bodies = vec![
             RigidBodyBuilder::default().id(0).velocity([0.,0.,0.]).position([0.,0.,0.])
                 .color(blue()).body_type(RigidBodyType::Rectangle { width: 100., height: 1000.0 })
-                .rotation(-std::f32::consts::PI/4.0)
+                //.rotational_velocity(std::f32::consts::PI/120.0)
+                //.rotational_velocity(0.003)
+                .mass(1.)
                 .build(),
-            RigidBodyBuilder::default().id(1).velocity([5., 0.,0.]).position([-400.,200.,0.])
+            RigidBodyBuilder::default().id(1).velocity([5., 0.,0.]).position([-400.,400.,0.])
+                .mass(1.)
                 .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
+            //RigidBodyBuilder::default().id(2).velocity([0., 0.,0.]).position([400.,-400.,0.])
+            //    .mass(1000.)
+            //    .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
         ];
         
         let integrator = VerletIntegrator::new(f32::MAX);
@@ -125,6 +131,7 @@ where
     fn update(&mut self) {
         let mut bodies = &mut self.bodies;
         self.integrator.update(&mut bodies, self.dt);
+
         bodies.iter_mut().for_each(|b| self.constraint.apply_constraint(b));
         
         let candidates = self.broadphase.collision_detection(&bodies);
@@ -157,11 +164,14 @@ where
         //println!("graph2: {_graphs_2:?}");
         //println!("graph3: {_graphs_3:?}");
         //println!("graph4: {_graphs_4:?}");
-        
+
+        //println!("{}", &bodies[0]);
+        //println!("");
+
         //panic!();
-        if _graphs_1.len() != 0 || _graphs_2.len() != 0 || _graphs_3.len() != 0 || _graphs_3.len() != 0 {
+        //if _graphs_1.len() != 0 || _graphs_2.len() != 0 || _graphs_3.len() != 0 || _graphs_3.len() != 0 {
             //panic!();
-        }
+        //}
     }
 
     fn get_bodies(&self) -> &Vec<RigidBody> {

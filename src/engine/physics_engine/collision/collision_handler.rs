@@ -86,6 +86,7 @@ impl CollisionHandler for SimpleCollisionSolver {
         if distance2 >= radius.powi(2) {
             return false;
         }
+
         let penetration_depth: f32 = FixedFloat::from(radius - distance2.sqrt()).into();
 
         if penetration_depth <= 0.0 {
@@ -126,8 +127,12 @@ impl CollisionHandler for SimpleCollisionSolver {
         bodies[circ_idx].prev_position = bodies[circ_idx].position - bodies[circ_idx].velocity;
         bodies[rect_idx].prev_position = bodies[rect_idx].position - bodies[rect_idx].velocity;
 
+        // We never update the rotation because we separate objects only by linear movement
         bodies[circ_idx].rotational_velocity = new_circ_angular_velocity; 
         bodies[rect_idx].rotational_velocity = new_rect_angular_velocity; 
+
+        bodies[circ_idx].prev_rotation = bodies[circ_idx].rotation - bodies[circ_idx].rotational_velocity;
+        bodies[rect_idx].prev_rotation = bodies[rect_idx].rotation - bodies[rect_idx].rotational_velocity;
 
         return true;
     }
@@ -390,7 +395,29 @@ mod tests {
                         .position([50.,9.,0.])
                         .velocity([0.,0.,0.])
                         .build()]
-        }
+        given_rect_rotates_at_origo_when_collision_with_non_moving_circle_expect_rotational_energy_translate_to_linear_and_rotation:
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([-400.,-3.,0.])
+                        .velocity([0.,0.,0.])
+                        .body_type(RigidBodyType::Circle { radius: 5.0 })
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([0.,5.,0.])
+                        .velocity([0.,0.,0.])
+                        .rotational_velocity(std::f32::consts::PI/120.0)
+                        .body_type(RigidBodyType::Rectangle { width: 1000., height: 10.})
+                        .build()],
+                vec![
+                    RigidBodyBuilder::default().id(0)
+                        .position([-400.,-4.,0.])
+                        .velocity([0.,-2.,0.])
+                        .build(),
+                    RigidBodyBuilder::default().id(1)
+                        .position([0.,0.,0.])
+                        .velocity([0.,0.,0.])
+                        .build()]
+}
 
         #[test]
         fn given_circle_collide_when_rect_is_rotated_45_degrees_and_circle_moves_perpendicular_towards_rect_expect_penetration_depth_to_be_resolved(){

@@ -29,16 +29,18 @@ pub struct GameEngine<'a, T: PhysicsEngine + RenderEngine> {
 impl<'a, T: PhysicsEngine + RenderEngine> GameEngine<'a, T> {
     pub fn run(mut self) {
         let mut tick_count = 0;
-        let hz = Duration::from_millis((1000/self.target_fps) as u64);
+        let render_interval_ms = Duration::from_millis((1000/self.target_fps) as u64);
         let mut time_since_render = Instant::now();
         std::thread::spawn(move || loop {
+            
+            // Run all required server ticks
             if tick_count < self.target_tpf {
                 self.event_loop_proxy.send_event(CustomEvent::ServerTick).ok();
                 tick_count += 1;
                 continue;
             } 
 
-            if time_since_render.elapsed() > hz {
+            if time_since_render.elapsed() > render_interval_ms {
                 self.event_loop_proxy.send_event(CustomEvent::ClientRender).ok();
                 tick_count = 0;
                 time_since_render = Instant::now();

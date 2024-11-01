@@ -24,8 +24,11 @@ impl VerletIntegrator {
                 b.position = b.position + velocity + b.acceleration * dt*dt;   
                 b.velocity = velocity; // Used in constraint handling
 
-                // Rotational (Euler based and non-linear)
-                b.rotation += b.rotational_velocity*dt;
+                // Ignore angular accelleration for now
+                let angular_velocity = b.rotation - b.prev_rotation;
+                b.prev_rotation = b.rotation;
+                b.rotation = b.rotation + angular_velocity;
+                b.rotational_velocity = angular_velocity;
             });
     }
 

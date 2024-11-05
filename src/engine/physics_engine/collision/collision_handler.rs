@@ -94,13 +94,21 @@ impl CollisionHandler for SimpleCollisionSolver {
         }
         debug_assert!(penetration_depth >= 0.0,
             "Penetration depth less than or equal to the radius the circle causes undefined behavior");
-
-        let collision_normal_unit = (closest_point_on_rect - circle.position).normalize();
+        // TODO: The relative velocites (linear and rotational) needs to be negative
+        // (a-b) for a collision to occur. Otherwise they are moving away from each other.
+        // https://chrishecker.com/images/e/e7/Gdmphys3.pdf, page 12 column 1
+        
+        // Collision normal should always point towards object A (or circle in this case)
+        let collision_normal_unit = (circle.position - closest_point_on_rect).normalize();
+        //let collision_normal_unit = (closest_point_on_rect - circle.position).normalize();
         let c_r = 1.0;
         let impulse_magnitude = impulse_magnitude(c_r, &collision_normal_unit.into(), 
             &closest_point_on_rect.into(), &circle, rect,);
         
         // resolve new velocities
+        // ANSWER IS HERE :https://www.sparknotes.com/physics/linearmomentum/collisions/section2/
+        // AND HERE: https://phys.libretexts.org/Courses/Prince_Georges_Community_College/PHY_1030%3A_General_Physics_I/07%3A_Linear_Momentum_and_Collisions/7.3%3A_Collisions
+        // TODO: Will probably have to do someting similar to the angular momentum
         let normal_unit_array: [f32;3] = collision_normal_unit.into();
         let new_rect_velocity = post_collision_velocity(
             &normal_unit_array, -impulse_magnitude, &rect);
@@ -108,16 +116,26 @@ impl CollisionHandler for SimpleCollisionSolver {
             &normal_unit_array, impulse_magnitude, &circle);
 
         let closest_point: [f32; 3] = closest_point_on_rect.into();
-        let new_rect_angular_velocity = post_collision_angular_velocity(
-            &normal_unit_array, &closest_point, -impulse_magnitude, &rect);
         let new_circ_angular_velocity = post_collision_angular_velocity(
             &normal_unit_array, &closest_point, impulse_magnitude, &circle);
+        let new_rect_angular_velocity = post_collision_angular_velocity(
+            &normal_unit_array, &closest_point, -impulse_magnitude, &rect);
 
-        let circle_correction = (penetration_depth/(circle.mass+rect.mass))*rect.mass*-collision_normal_unit;
-        let rect_correction = (penetration_depth/(circle.mass+rect.mass))*circle.mass*collision_normal_unit;
+        let circle_correction = (penetration_depth/(circle.mass+rect.mass))*rect.mass*collision_normal_unit;
+        let rect_correction = (penetration_depth/(circle.mass+rect.mass))*circle.mass*-collision_normal_unit;
         let new_circle_center = circle.position + circle_correction;
         let new_rect_center = rect.position + rect_correction;
-       
+      
+        println!("closest_point_on_rect: {closest_point_on_rect:?}");
+        println!("impulse_magnitude: {impulse_magnitude}");
+        println!("normal: {collision_normal_unit:?}");
+        println!("initial_circle_angular_vel: {}", circle.rotational_velocity);
+        println!("initial_rect_angular_vel: {}", rect.rotational_velocity);
+        println!("new_circ_angular_velocity: {new_circ_angular_velocity}");
+        println!("new_rect_angular_velocity: {new_rect_angular_velocity}");
+        println!("new_circ_velocity: {new_circ_velocity:?}");
+        println!("new_rect_velocity: {new_rect_velocity:?}");
+
         bodies[circ_idx].position = new_circle_center;
         bodies[rect_idx].position = new_rect_center;
 
@@ -192,7 +210,8 @@ mod tests {
         //}
     }
     mod circle_rect_collision {
-
+        
+        use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
         use crate::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
         use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
         use crate::engine::physics_engine::util::equations;
@@ -205,6 +224,20 @@ mod tests {
                     #[test]
                     fn $name() {
                         let mut bodies = $bodies;
+                        let initial_linear_momentum_0 = equations::linear_momentum(&bodies[0]);
+                        let initial_linear_momentum_1 = equations::linear_momentum(&bodies[1]);
+                        let initial_linear_momentum = [
+                            initial_linear_momentum_0[0] + initial_linear_momentum_1[0],
+                            initial_linear_momentum_0[1] + initial_linear_momentum_1[1],
+                            initial_linear_momentum_0[2] + initial_linear_momentum_1[2],
+                        ];
+                        let initial_angular_momentum_0 = equations::angular_momentum(&bodies[0]);
+                        let initial_angular_momentum_1 = equations::angular_momentum(&bodies[1]);
+                        let initial_angular_momentum = initial_angular_momentum_0 + initial_angular_momentum_1;
+                        let initial_momentum = 
+                            initial_linear_momentum[0] + initial_linear_momentum[1] + 
+                            initial_linear_momentum[2] + initial_angular_momentum;
+
                         let initial_kinetic_energy = 
                             equations::translational_kinetic_energy(&bodies[0]) + 
                             equations::rotational_kinetic_energy(&bodies[0]) +
@@ -214,6 +247,20 @@ mod tests {
                         let expected_output = $expected_output;
                         let ch = SimpleCollisionSolver::new();
                         ch.handle_circle_rect_collision(&mut bodies, 0, 1);
+
+                        let resulting_linear_momentum_0 = equations::linear_momentum(&bodies[0]);
+                        let resulting_linear_momentum_1 = equations::linear_momentum(&bodies[1]);
+                        let resulting_linear_momentum = [
+                            resulting_linear_momentum_0[0] + resulting_linear_momentum_1[0],
+                            resulting_linear_momentum_0[1] + resulting_linear_momentum_1[1],
+                            resulting_linear_momentum_0[2] + resulting_linear_momentum_1[2],
+                        ];
+                        let resulting_angular_momentum_0 = equations::angular_momentum(&bodies[0]);
+                        let resulting_angular_momentum_1 = equations::angular_momentum(&bodies[1]);
+                        let resulting_angular_momentum = resulting_angular_momentum_0 + resulting_angular_momentum_1;
+                        let resulting_momentum = 
+                            resulting_linear_momentum[0] + resulting_linear_momentum[1] + 
+                            resulting_linear_momentum[2] + resulting_angular_momentum;
 
                         let resulting_kinetic_energy = 
                             equations::translational_kinetic_energy(&bodies[0]) + 
@@ -227,32 +274,34 @@ mod tests {
                         let output_rect = &bodies[1];
 
                         let expected_output_0_pos: [f32; 3] = expected_output_circ.position.into();
-                        let output_0_pos: [f32; 3] = output_circ.position.into();
+                        let output_0_pos: [f32; 3] = FixedFloatVector::from(output_circ.position).into();
                         assert_eq!(
                             expected_output_0_pos, output_0_pos, //$epsilon,
                             "Expected circle position {expected_output_0_pos:?} but found {output_0_pos:?}");
 
                         let expected_output_1_pos: [f32; 3] = expected_output_rect.position.into();
-                        let output_1_pos: [f32; 3] = output_rect.position.into();
+                        let output_1_pos: [f32; 3] = FixedFloatVector::from(output_rect.position).into();
                         assert_eq!(
                             expected_output_1_pos, output_1_pos, //$epsilon,
                             "Expected rectangle position {expected_output_1_pos:?} but found {output_1_pos:?}");
 
                         let expected_output_0_vel: [f32; 3] = expected_output_circ.velocity.into();
-                        let output_0_vel: [f32; 3] = output_circ.velocity.into();
+                        let output_0_vel: [f32; 3] = FixedFloatVector::from(output_circ.velocity).into();
                         assert_eq!(
                             expected_output_0_vel, output_0_vel, //$epsilon,
                             "Expected circle velocity {expected_output_0_vel:?} but found {output_0_vel:?}");
                         
                         let expected_output_1_vel: [f32; 3] = expected_output_rect.velocity.into();
-                        let output_1_vel: [f32; 3] = output_rect.velocity.into();
+                        let output_1_vel: [f32; 3] = FixedFloatVector::from(output_rect.velocity).into();
                         assert_eq!(
                             expected_output_1_vel, output_1_vel,
                             "Expected rectangle velocity {expected_output_1_vel:?} but found {output_1_vel:?}");
 
+                        assert_eq!(initial_momentum, resulting_momentum,
+                            "Expected the momentum to be preserved. Before: {initial_momentum} and after: {resulting_momentum}");
+
                         assert_eq!(initial_kinetic_energy, resulting_kinetic_energy,
-                            "Expected the kinetic energy to be equal before and after
-                            collision. Before: {initial_kinetic_energy} and after: {resulting_kinetic_energy}");
+                            "Expected the kinetic energy to be preserved due to elastic collision. Before: {initial_kinetic_energy} and after: {resulting_kinetic_energy}");
                     }
                 )*
             }
@@ -411,11 +460,11 @@ mod tests {
                 vec![
                     RigidBodyBuilder::default().id(0)
                         .position([-400.,-4.,0.])
-                        .velocity([0.,-2.,0.])
+                        .velocity([0.,-5.343,0.])
                         .build(),
                     RigidBodyBuilder::default().id(1)
-                        .position([0.,0.,0.])
-                        .velocity([0.,0.,0.])
+                        .position([0.,6.,0.])
+                        .velocity([0.,5.343,0.])
                         .build()]
 }
 

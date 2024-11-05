@@ -4,6 +4,8 @@ $$
 p_{pre}^A + p_{pre}^B = p_{post}^A + p_{post}^B 
 $$
 
+When expanding to multiple dimensions, we preserve the momentum in each dimension independently.
+
 The momentum of an object can be expanded to:
 $$
 p_{linear} = mv
@@ -16,6 +18,8 @@ p = p_{linear} + p_{angular}
 $$
 
 where $v$ is the velocity and $m$ is the mass of the object.
+
+
 # Impulse Magnitude
 We need to compute the total impulse going into the collision. The intuition is that imagine two objects collide at point $P$, both object contribute with linear and angular force into the contact point. We calculate the impact through the following equation 
 $$
@@ -38,6 +42,10 @@ $$v_{pre}^{relative} = v_{pre}^{AP} - v_{pre}^{BP}$$
 Once we know the impulse we can insert it into the following equations to get the new linear and angular velocities:
 $$v_{post} = v_{pre} + \frac{J}{m}n$$
 $$\omega_{post} = \omega_{pre} + \frac{r_{\perp}^{AP} \cdot j n}{I}$$
+
+<!-- Because we apply an impulse at point $P$, the impulse will produce a change in linear and angular velocity. Note that only the latter term in the above two equations uses the impulse magnitute. -->
+<!-- $$v_{\Delta} = \frac{J}{m}n$$ -->
+<!-- $$\omega_{\Delta} = \frac{r_{\perp}^{AP} \cdot j n}{I}$$ -->
 
 # Example Linear Elastic Collision 1D
 A circle collides with a rectangle at rest. For consitency with the other examples, we will use vectors for this example but still only consider the x-axis.
@@ -72,7 +80,7 @@ $$
 Calculating the new velocites:
 $$v_{post}^{circle} = v_{pre}^{circle} + \frac{J}{m^{circle}}n 
 = [7.0,0] + \frac{7.0}{1.0}[-1.0,0] 
-= [7.0,0.0] - [-7.0, 0.0]
+= [7.0,0.0] + [-7.0, 0.0]
 = [0.0,0.0]
 $$
 $$v_{post}^{rectangle} = v_{pre}^{rectangle} + \frac{-J}{m^{rectangle}}n 
@@ -84,12 +92,54 @@ Trivially, we can also verify that the moment has been conserved
 $$p_{pre}^{circle} + p_{pre}^{rectangle} = p_{post}^{circle} + p_{post}^{rectangle}  \rightarrow$$
 $$m^{circle}v_{pre}^{circle} + m^{rectangle}v_{pre}^{rectangle} = m^{circle}v_{post}^{circle} + m^{rectangle}v_{post}^{rectangle}  \rightarrow$$
 $$1.0[7.0,0.0] + 1.0[0.0,0.0] = 1.0[0.0,0.0] + 1.0[7.0,0.0] \rightarrow $$
-$$1.0(\sqrt{7.0^2 + 0.0^0}) = 1.0(\sqrt{7.0^2 + 0.0^0}) = \rightarrow $$
+$$1.0(\sqrt{7.0^2 + 0.0^2}) = 1.0(\sqrt{7.0^2 + 0.0^2}) = \rightarrow $$
 $$ 7.0 = 7.0$$
 
 # Example Linear Elastic Collision 2D
+Now we take the same example as above but add a y-component. Here consider a circle colliding with a rectangle at rest, however the circle is moving diagonally.
+$$m^{circle} = m^{rectangle} = 1.0$$ 
+$$v^{circle} = [7.0, -7.0]$$
+$$v^{rectangle} = [0.0, 0.0]$$
+$$P = [-5.0, 0.0]$$
+$$e = 1.0 $$
+$$n = [-1.0, 0.0] \text{  (pointing towards the circle)}$$
 
+We neither consider angular effects as the collision point $P$ is align with the rectangles center of mass.
+$$v_{pre}^{relative}
+= v_{linear}^{circle} - v_{linear}^{rectangle}
+= [7.0, -7.0] - [0.0,0.0]
+= [-7.0, 7.0]$$
+$$J=\frac{-(1.0 + e)v_{pre}^{relative} \cdot n}{n \cdot n(\frac{1.0}{m^A} + \frac{1.0}{m^B})}
+=\frac{-(1.0 + 1.0)[7.0,-7.0] \cdot [-1.0,0.0]}{[-1.0,0.0] \cdot [-1.0,0.0](\frac{1.0}{1.0} + \frac{1.0}{1.0})}
+=\frac{-2.0(-7.0)}{2.0}
+= 7.0
+$$
 
+Calculating the new velocities
+$$v_{post}^{circle} = v_{pre}^{circle} + \frac{J}{m^{circle}}n 
+= [7.0,-7.0] + \frac{7.0}{1.0}[-1.0, 0.0] 
+= [7.0,-7.0] + [-7.0, 0.0]
+= [0.0,-7.0]
+$$
+$$v_{post}^{rectangle} = v_{pre}^{rectangle} + \frac{-J}{m^{rectangle}}n 
+= [0.0,0.0] + \frac{-7.0}{1.0}[-1.0,0] 
+= [7.0,0.0] - [7.0, 0.0]
+= [7.0,0.0]
+$$
+
+Validating that momentum has been preserved in the x-component
+
+$$p_{pre_{x}}^{circle} + p_{pre_{x}}^{rectangle} = p_{post_{x}}^{circle} + p_{post_{x}}^{rectangle}  \rightarrow$$
+$$m^{circle}v_{pre_{x}}^{circle} + m^{rectangle}v_{pre_{x}}^{rectangle} = m^{circle}v_{post_{x}}^{circle} + m^{rectangle}v_{post_{x}}^{rectangle}  \rightarrow$$
+$$1.0*7.0 + 1.0*0.0 = 1.0*0.0 + 1.0*7.0 \rightarrow $$
+$$ 7.0 = 7.0$$
+
+and similarly for the y-component
+
+$$p_{pre_{y}}^{circle} + p_{pre_{y}}^{rectangle} = p_{post_{y}}^{circle} + p_{post_{y}}^{rectangle}  \rightarrow$$
+$$m^{circle}v_{pre_{y}}^{circle} + m^{rectangle}v_{pre_{y}}^{rectangle} = m^{circle}v_{post_{y}}^{circle} + m^{rectangle}v_{post_{y}}^{rectangle}  \rightarrow$$
+$$1.0*-7.0 + 1.0*0.0 = 1.0*-7.0 + 1.0*0.0 \rightarrow $$
+$$ -7.0 = -7.0$$
 # Sources
 - https://chrishecker.com/Rigid_Body_Dynamics
 - https://chrishecker.com/images/c/c2/Gdmphys2.pdf

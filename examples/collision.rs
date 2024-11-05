@@ -103,12 +103,12 @@ impl <C, B, N> Collision<C, B, N>
         //      using weighted average during collision
         let bodies = vec![
             RigidBodyBuilder::default().id(0).velocity([0.,0.,0.]).position([0.,0.,0.])
-                .color(blue()).body_type(RigidBodyType::Rectangle { width: 100., height: 1000.0 })
+                .color(blue()).body_type(RigidBodyType::Rectangle { width: 1000., height: 100.0 })
                 //.rotational_velocity(std::f32::consts::PI/120.0)
-                //.rotational_velocity(0.003)
+                .rotation(std::f32::consts::PI/2.0)
                 .mass(1.)
                 .build(),
-            RigidBodyBuilder::default().id(1).velocity([5., 0.,0.]).position([-400.,400.,0.])
+            RigidBodyBuilder::default().id(1).velocity([3., -3.,0.]).position([-400.,400.,0.])
                 .mass(1.)
                 .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
             //RigidBodyBuilder::default().id(2).velocity([0., 0.,0.]).position([400.,-400.,0.])

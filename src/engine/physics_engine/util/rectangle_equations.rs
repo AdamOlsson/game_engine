@@ -1,6 +1,6 @@
 use crate::engine::{physics_engine::collision::rigid_body::{RigidBody, RigidBodyType}, util::fixed_float::fixed_float_vector::FixedFloatVector};
 
-use super::equations;
+use super::equations::{self, magnitude2};
 
 /// Returns the moment of inertia for a solid rectangle rotating around its center
 pub fn inertia(height:f32, width:f32, mass:f32) -> f32 {
@@ -36,6 +36,28 @@ pub fn cardinals(center: &[f32;3], width: f32, height:f32, rotation: f32) -> [[f
         FixedFloatVector::from(*top_most).into(),
         FixedFloatVector::from(*bot_most).into()];
 }
+
+//pub fn apply_impulse(
+//    coll_normal: &[f32;3], collision_point: &[f32;3], body: &RigidBody, impulse: f32,
+//    r_cp: &[f32;3]
+//) -> ([f32;3], f32) {
+//    let j = [
+//        coll_normal[0] * impulse,
+//        coll_normal[1] * impulse,
+//        coll_normal[2] * impulse,
+//    ];
+//    let j_linear = magnitude2(&j) / (2.0*body.mass);
+//    let j_angular = (magnitude2(&j)*magnitude2(&r_cp)) / (2.0*body.inertia());
+//
+//    let new_linear_velocity = equations::post_collision_velocity(coll_normal, j_linear, body);
+//    let new_angular_velocity = equations::post_collision_angular_velocity(coll_normal, collision_point, j_angular, body);
+//
+//    println!("j_linear: {j_linear}, j_angular: {j_angular}");
+//    println!("new_linear_vel: {new_linear_velocity:?}");
+//    println!("new_angular_vel: {new_angular_velocity}");
+//
+//    return (new_linear_velocity, new_angular_velocity);
+//}
 
 //pub fn corners(body: &RigidBody) -> [[f32;3];4] {
 //    let (width, height) = match body.body_type {
@@ -168,6 +190,51 @@ mod rectangle_equations_test {
               [0.707, 0.707, 0.0], [-0.707, 0.707, 0.0]
 
         }
+    }
+
+    mod apply_impulse {
+        //use cgmath::Vector3;
+
+        //use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
+        //use crate::engine::physics_engine::util::equations;
+        //use super::super::apply_impulse;
+
+        //#[test]
+        //fn apply_impulse_test(){
+        //    let impulse = 5.343;
+        //    let mut rectangle = RigidBodyBuilder::default().id(1)
+        //        .position([0.,5.,0.])
+        //        .mass(1.0)
+        //        .velocity([0.,0.,0.])
+        //        .rotational_velocity(std::f32::consts::PI/120.0)
+        //        .body_type(RigidBodyType::Rectangle { width: 1000., height: 10.})
+        //        .build();
+        //        
+        //    let collision_point = [-400.0, 0.0, 0.0];
+        //    let collision_normal = [0.0,-1.0,0.0];
+        //    let r_rp = [-400.0, -5.0, 0.0];
+        //    // TODO: Angular momentum should not be preserved because the impulse apply 
+        //    // applies a torque
+        //    // TODO: System total momentun (linear + angular) should be preserved
+        //    // TODO: Kinetic energy needs to be preserved (elastic collision)
+        //    let initial_kinetic_energy = 
+        //                    equations::translational_kinetic_energy(&rectangle) + 
+        //                    equations::rotational_kinetic_energy(&rectangle);
+        //   
+        //    let (new_linear_vel, new_angular_vel) = apply_impulse(
+        //        &collision_normal, &collision_point, &rectangle, -impulse, &r_rp);
+
+        //    rectangle.velocity = Vector3::from(new_linear_vel);
+        //    rectangle.rotational_velocity = new_angular_vel;
+
+        //    let resulting_kinetic_energy = 
+        //                    equations::translational_kinetic_energy(&rectangle) + 
+        //                    equations::rotational_kinetic_energy(&rectangle);
+        //    
+        //    assert_eq!(initial_kinetic_energy, resulting_kinetic_energy,
+        //        "Expected the kinetic energy to be equal before and after collision. Before: {initial_kinetic_energy} and after: {resulting_kinetic_energy}");
+
+        //}
     }
 }
 

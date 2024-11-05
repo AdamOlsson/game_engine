@@ -25,14 +25,6 @@ pub fn magnitude2(v: &[f32;3]) -> f32 {
     v[0].powi(2) + v[1].powi(2) + v[2].powi(2)
 }
 
-pub fn translational_kinetic_energy(body: &RigidBody) -> f32 {
-    0.5*body.mass*magnitude2(&body.velocity.into())
-}
-
-pub fn rotational_kinetic_energy(body: &RigidBody) -> f32 {
-    0.5*body.inertia()*body.rotational_velocity
-}
-
 pub fn impulse_magnitude(
     e: f32, coll_normal: &[f32;3], collision_point: &[f32;3],
     body_a: &RigidBody, body_b: &RigidBody,
@@ -124,6 +116,26 @@ pub fn normalize(v: &mut [f32; 3]) {
     }
 }
 
+pub fn translational_kinetic_energy(body: &RigidBody) -> f32 {
+    0.5*body.mass*magnitude2(&body.velocity.into())
+}
+
+pub fn rotational_kinetic_energy(body: &RigidBody) -> f32 {
+    0.5*body.inertia()*body.rotational_velocity.powi(2)
+}
+
+pub fn angular_momentum(body: & RigidBody) -> f32 {
+    body.inertia()*body.rotational_velocity
+}
+
+pub fn linear_momentum(body: &RigidBody) -> [f32;3] {
+    [
+        body.mass*body.velocity.x,
+        body.mass*body.velocity.y,
+        body.mass*body.velocity.z,
+    ]
+}
+
 #[cfg(test)]
 mod test {
     macro_rules! rotate_z_tests {
@@ -139,7 +151,7 @@ mod test {
         }
     }
 
-    use crate::engine::{physics_engine::{collision::rigid_body::{RigidBodyBuilder, RigidBodyType}, util::equations::{post_collision_angular_velocity, post_collision_velocity}}, util::fixed_float::{fixed_float::FixedFloat, fixed_float_vector::FixedFloatVector}};
+    use crate::engine::{physics_engine::{collision::rigid_body::{RigidBodyBuilder, RigidBodyType}, util::equations::{cross_2d, post_collision_angular_velocity, post_collision_velocity}}, util::fixed_float::{fixed_float::FixedFloat, fixed_float_vector::FixedFloatVector}};
 
     use super::{impulse_magnitude, rotate_z};
     use std::f32::consts::PI;
@@ -257,4 +269,12 @@ mod test {
             "Expected post collision angular velocity for rectangle to be {expected_post_angular_velocity_rectangle} but found {post_angular_velocity_rect_ff}");
 
     }      
+
+    #[test]
+    fn cross_2d_test() {
+        let a = [-10., 15., 0.];
+        let b = [-4.0, -2., 0.];
+        assert_eq!(cross_2d(&a, &b), super::dot(&super::perpendicular_2d(&a), &b),
+            "Expected cross_2d to give the same result as taking the dot product between a and b_perp");
+    }
 }

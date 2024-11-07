@@ -124,18 +124,6 @@ pub fn rotational_kinetic_energy(body: &RigidBody) -> f32 {
     0.5*body.inertia()*body.rotational_velocity.powi(2)
 }
 
-pub fn angular_momentum(body: & RigidBody) -> f32 {
-    body.inertia()*body.rotational_velocity
-}
-
-pub fn linear_momentum(body: &RigidBody) -> [f32;3] {
-    [
-        body.mass*body.velocity.x,
-        body.mass*body.velocity.y,
-        body.mass*body.velocity.z,
-    ]
-}
-
 #[cfg(test)]
 mod test {
     macro_rules! rotate_z_tests {

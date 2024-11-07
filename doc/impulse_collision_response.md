@@ -1,145 +1,94 @@
-# Conservation of Momentum
-The law of conservation of momentum states that the total momentum of the system before the collision must remain the same as total momentum after the collision. Here $p_{pre}^A$ and $p_{post}^A$ is the combined linear and angular momentum of object A before and after the collision, the same goes for object B.
+# Impulse-Based Collision Resolution in 2D: Summary of Key Equations
+
+This document provides an educational overview of the fundamental equations used for calculating impulse-based collision resolution in two-dimensional (2D) physics, specifically for the case of two colliding bodies. The purpose is to offer clear, consolidated information that can help anyone working with these types of collisions, especially as reliable and accessible resources on this topic are often scattered. This document will list the necessary equations and methods to verify them, although it won’t include detailed derivations. Instead, it will focus on the application and verification of each equation.
+
+## Conservation of Momentum
+
+The principle of conservation of momentum is central to understanding collision dynamics. This law states that the total momentum of a system remains constant before and after a collision, meaning the sum of the momenta of two objects before the collision is equal to the sum after. The linear momentum $ p $ of an object is given by $ p = mv $, where $ m $ is mass and $ v $ is velocity. In the case of two colliding bodies, A and B, conservation of momentum can be expressed as follows:
+
 $$
-p_{pre}^A + p_{pre}^B = p_{post}^A + p_{post}^B 
+p_{\text{pre}}^A + p_{\text{pre}}^B = p_{\text{post}}^A + p_{\text{post}}^B
 $$
 
-When expanding to multiple dimensions, we preserve the momentum in each dimension independently.
+Since momentum is a vector quantity, it must be conserved independently in each directional component. This can be represented as:
 
-The momentum of an object can be expanded to:
 $$
-p_{linear} = mv
-$$
-$$
-p_{angular} = I\omega = r \times p_{linear}
+p_{\text{pre-x}}^A + p_{\text{pre-x}}^B = p_{\text{post-x}}^A + p_{\text{post-x}}^B
 $$
 $$
-p = p_{linear} + p_{angular}
+p_{\text{pre-y}}^A + p_{\text{pre-y}}^B = p_{\text{post-y}}^A + p_{\text{post-y}}^B
 $$
 
-where $v$ is the velocity and $m$ is the mass of the object.
+### Angular Momentum
 
+Angular momentum $ L $ is also conserved in collisions and includes both translational and rotational components. For a body with a mass $ m $ moving with a velocity $ v $ at a distance $ r_{CP} $ (from a reference point, often the collision point), the translational component of angular momentum is given by:
 
-# Impulse Magnitude
-We need to compute the total impulse going into the collision. The intuition is that imagine two objects collide at point $P$, both object contribute with linear and angular force into the contact point. We calculate the impact through the following equation 
 $$
-J = \frac{-(1 + e)v_{pre}^{relative} \cdot n}
-{n \cdot n(\frac{1}{m^A} + \frac{1}{m^B}) + \frac{(r^{AP} \times n)^2}{I^A} + \frac{(r^{BP} \times n)^2}{I^B}}
-$$
-where 
-$$ e := \text{coefficient of restituion} $$
-$$ P := \text{contact point between the objects} $$
-$$ v_{pre}^{relative} := \text{the relative velocity between objects $A$ and $B$ at contact point $P$ before the collision} $$
-$$ n := \text{collision normal pointing towards object $A$} $$
-$$ I := \text{inertia} $$
-$$ r^{AP} := \text{vector from object $A$ center of rotation to collision point $P$} $$
-
-The equation for the relative velocites at the contact point looks as following where $r_{\perp}^{AP}$ is the vector perpendicular to $r^{AP}$ and $\omega$ is the angular velocity:
-$$v_{pre}^{AP} = v_{linear}^A + \omega_{pre} r_{\perp}^{AP}$$
-$$v_{pre}^{BP} = v_{linear}^B + \omega_{pre} r_{\perp}^{BP}$$
-$$v_{pre}^{relative} = v_{pre}^{AP} - v_{pre}^{BP}$$
-
-Once we know the impulse we can insert it into the following equations to get the new linear and angular velocities:
-$$v_{post} = v_{pre} + \frac{J}{m}n$$
-$$\omega_{post} = \omega_{pre} + \frac{r_{\perp}^{AP} \cdot j n}{I}$$
-
-<!-- Because we apply an impulse at point $P$, the impulse will produce a change in linear and angular velocity. Note that only the latter term in the above two equations uses the impulse magnitute. -->
-<!-- $$v_{\Delta} = \frac{J}{m}n$$ -->
-<!-- $$\omega_{\Delta} = \frac{r_{\perp}^{AP} \cdot j n}{I}$$ -->
-
-# Example Linear Elastic Collision 1D
-A circle collides with a rectangle at rest. For consitency with the other examples, we will use vectors for this example but still only consider the x-axis.
-
-$$m^{circle} = m^{rectangle} = 1.0$$ 
-$$v^{circle} = [7.0, 0.0]$$
-$$v^{rectangle} = [0.0, 0.0]$$
-$$P = [-5.0, 0.0]$$
-$$e = 1.0 $$
-$$n = [-1.0, 0.0] \text{  (pointing towards the circle)}$$
-
-Because we in this exmaple do not consider angular effects, the impulse magnitude and relative velocity can be simplified: 
-$$
-v_{pre}^{relative} = v_{pre}^{AP} - v_{pre}^{BP} = v_{linear}^A - v_{linear}^B
-$$
-$$
-J = \frac{-(1 + e)v_{pre}^{relative} \cdot n}
-{n \cdot n(\frac{1}{m^A} + \frac{1}{m^B}) + \frac{(r^{AP} \times n)^2}{I^A} + \frac{(r^{BP} \times n)^2}{I^B}} = \frac{-(1 + e)v_{pre}^{relative} \cdot n}{n \cdot n(\frac{1}{m^A} + \frac{1}{m^B})}
-$$
-Inserting all the values:
-$$
-v_{pre}^{relative} = v_{pre}^{AP} - v_{pre}^{BP} =[7.0,0.0] - [0.0,0.0] = [10.0,0.0]
-$$
-$$
-J = \frac{-(1 + e)v_{pre}^{relative} \cdot n}{n \cdot n(\frac{1}{m^A} + \frac{1}{m^B})}
-= \frac{-(1.0 + 1.0)[7.0,0.0] \cdot [-1.0,0.0]}{[-1.0, 0.0] \cdot [-1.0,0.0](\frac{1}{1} + \frac{1}{1})}
-= \frac{-(2.0)(-7.0)}{1.0(2.0)}
-= \frac{14.0}{2}
-= 7.0
+L_{\text{translational}} = r_{CP} \times (mv)
 $$
 
-Calculating the new velocites:
-$$v_{post}^{circle} = v_{pre}^{circle} + \frac{J}{m^{circle}}n 
-= [7.0,0] + \frac{7.0}{1.0}[-1.0,0] 
-= [7.0,0.0] + [-7.0, 0.0]
-= [0.0,0.0]
-$$
-$$v_{post}^{rectangle} = v_{pre}^{rectangle} + \frac{-J}{m^{rectangle}}n 
-= [0.0,0.0] + \frac{-7.0}{1.0}[-1.0,0] 
-= [7.0,0.0] - [7.0, 0.0]
-= [7.0,0.0]
-$$
-Trivially, we can also verify that the moment has been conserved
-$$p_{pre}^{circle} + p_{pre}^{rectangle} = p_{post}^{circle} + p_{post}^{rectangle}  \rightarrow$$
-$$m^{circle}v_{pre}^{circle} + m^{rectangle}v_{pre}^{rectangle} = m^{circle}v_{post}^{circle} + m^{rectangle}v_{post}^{rectangle}  \rightarrow$$
-$$1.0[7.0,0.0] + 1.0[0.0,0.0] = 1.0[0.0,0.0] + 1.0[7.0,0.0] \rightarrow $$
-$$1.0(\sqrt{7.0^2 + 0.0^2}) = 1.0(\sqrt{7.0^2 + 0.0^2}) = \rightarrow $$
-$$ 7.0 = 7.0$$
+The rotational component, which depends on the body's moment of inertia $ I $ and angular velocity $ \omega $, is:
 
-# Example Linear Elastic Collision 2D
-Now we take the same example as above but add a y-component. Here consider a circle colliding with a rectangle at rest, however the circle is moving diagonally.
-$$m^{circle} = m^{rectangle} = 1.0$$ 
-$$v^{circle} = [7.0, -7.0]$$
-$$v^{rectangle} = [0.0, 0.0]$$
-$$P = [-5.0, 0.0]$$
-$$e = 1.0 $$
-$$n = [-1.0, 0.0] \text{  (pointing towards the circle)}$$
-
-We neither consider angular effects as the collision point $P$ is align with the rectangles center of mass.
-$$v_{pre}^{relative}
-= v_{linear}^{circle} - v_{linear}^{rectangle}
-= [7.0, -7.0] - [0.0,0.0]
-= [-7.0, 7.0]$$
-$$J=\frac{-(1.0 + e)v_{pre}^{relative} \cdot n}{n \cdot n(\frac{1.0}{m^A} + \frac{1.0}{m^B})}
-=\frac{-(1.0 + 1.0)[7.0,-7.0] \cdot [-1.0,0.0]}{[-1.0,0.0] \cdot [-1.0,0.0](\frac{1.0}{1.0} + \frac{1.0}{1.0})}
-=\frac{-2.0(-7.0)}{2.0}
-= 7.0
+$$
+L_{\text{rotational}} = I \omega
 $$
 
-Calculating the new velocities
-$$v_{post}^{circle} = v_{pre}^{circle} + \frac{J}{m^{circle}}n 
-= [7.0,-7.0] + \frac{7.0}{1.0}[-1.0, 0.0] 
-= [7.0,-7.0] + [-7.0, 0.0]
-= [0.0,-7.0]
+Thus, the total angular momentum before and after a collision should be:
+
 $$
-$$v_{post}^{rectangle} = v_{pre}^{rectangle} + \frac{-J}{m^{rectangle}}n 
-= [0.0,0.0] + \frac{-7.0}{1.0}[-1.0,0] 
-= [7.0,0.0] - [7.0, 0.0]
-= [7.0,0.0]
+L_{\text{pre}}^A + L_{\text{pre}}^B = L_{\text{post}}^A + L_{\text{post}}^B
 $$
 
-Validating that momentum has been preserved in the x-component
+In practice, the vector $ r_{CP} $ can be chosen relative to the collision point, but simplifying assumptions (e.g., using the origin) may be made for easier calculations. The above equations can be used to verify the correctness of the below equations. Consider using these in any unit tests you implement.
 
-$$p_{pre_{x}}^{circle} + p_{pre_{x}}^{rectangle} = p_{post_{x}}^{circle} + p_{post_{x}}^{rectangle}  \rightarrow$$
-$$m^{circle}v_{pre_{x}}^{circle} + m^{rectangle}v_{pre_{x}}^{rectangle} = m^{circle}v_{post_{x}}^{circle} + m^{rectangle}v_{post_{x}}^{rectangle}  \rightarrow$$
-$$1.0*7.0 + 1.0*0.0 = 1.0*0.0 + 1.0*7.0 \rightarrow $$
-$$ 7.0 = 7.0$$
+## Calculating Impulse Magnitude
 
-and similarly for the y-component
+During a collision, the total impulse $ J $ exchanged between two bodies at the point of impact determines the resulting changes in their velocities. Impulse considers both linear and angular contributions from each object, and it can be computed as follows:
 
-$$p_{pre_{y}}^{circle} + p_{pre_{y}}^{rectangle} = p_{post_{y}}^{circle} + p_{post_{y}}^{rectangle}  \rightarrow$$
-$$m^{circle}v_{pre_{y}}^{circle} + m^{rectangle}v_{pre_{y}}^{rectangle} = m^{circle}v_{post_{y}}^{circle} + m^{rectangle}v_{post_{y}}^{rectangle}  \rightarrow$$
-$$1.0*-7.0 + 1.0*0.0 = 1.0*-7.0 + 1.0*0.0 \rightarrow $$
-$$ -7.0 = -7.0$$
+$$
+J = \frac{-(1 + e) \, v_{\text{pre}}^{\text{relative}} \cdot n}
+{n \cdot n \left( \frac{1}{m^A} + \frac{1}{m^B} \right) + \frac{(r^{AP} \times n)^2}{I^A} + \frac{(r^{BP} \times n)^2}{I^B}}
+$$
+
+Here, the terms are defined as:
+
+- $ e $: coefficient of restitution, measuring the "elasticity" of the collision
+- $ P $: contact point between the two objects
+- $ v_{\text{pre}}^{\text{relative}} $: relative velocity between objects $ A $ and $ B $ at the contact point $ P $ before collision
+- $ n $: collision normal vector directed toward object $ A $
+- $ I $: moment of inertia of the object
+- $ r^{AP} $: vector from the center of mass of object $ A $ to the collision point $ P $
+
+## Calculating Relative Velocity at Contact Point
+
+The relative velocity at the point of contact, $ v_{\text{pre}}^{\text{relative}} $, considers both linear and angular velocities of each object. For an object, the velocity at the collision point can be described as:
+
+$$
+v_{\text{pre}}^{AP} = v_{\text{linear}}^A + \omega_{\text{pre}} \, r_{\perp}^{AP}
+$$
+$$
+v_{\text{pre}}^{BP} = v_{\text{linear}}^B + \omega_{\text{pre}} \, r_{\perp}^{BP}
+$$
+$$
+v_{\text{pre}}^{\text{relative}} = v_{\text{pre}}^{AP} - v_{\text{pre}}^{BP}
+$$
+
+where $ r_{\perp}^{AP} $ is the vector perpendicular to $ r^{AP} $, and $ \omega $ is the angular velocity.
+
+## Updating Linear and Angular Velocities
+
+After determining the impulse $ J $, it can be used to update the post-collision velocities for both linear and angular components:
+
+$$
+v_{\text{post}} = v_{\text{pre}} + \frac{J}{m} n
+$$
+$$
+\omega_{\text{post}} = \omega_{\text{pre}} + \frac{r_{\perp}^{AP} \cdot J \, n}{I}
+$$
+
+These equations provide the new linear and angular velocities of the objects, allowing for the accurate simulation of 2D collision outcomes in physics engines and simulations.
+
+
 # Sources
 - https://chrishecker.com/Rigid_Body_Dynamics
 - https://chrishecker.com/images/c/c2/Gdmphys2.pdf
@@ -148,3 +97,5 @@ $$ -7.0 = -7.0$$
 - https://www.sparknotes.com/physics/linearmomentum/collisions/section2/
 - https://www2.tntech.edu/leap/murdock/books/v1chap7.pdf
 - https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/5collisionresponse/Physics%20-%20Collision%20Response.pdf
+- https://mechanicsmap.psu.edu/websites/15_impulse_momentum_rigid_body/15-2_impulse_momentum_theorem_rigid_body/impulse_momentum_theorem_rigid_body.html
+- https://mechanicsmap.psu.edu/websites/15_impulse_momentum_rigid_body/15-4_rigid_body_free_collisions/free_rigid_body_collisions.html

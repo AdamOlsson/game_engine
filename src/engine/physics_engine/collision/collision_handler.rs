@@ -94,15 +94,34 @@ impl CollisionHandler for SimpleCollisionSolver {
         }
         debug_assert!(penetration_depth >= 0.0,
             "Penetration depth less than or equal to the radius the circle causes undefined behavior");
-        // TODO: The relative velocites (linear and rotational) needs to be negative
-        // (a-b) for a collision to occur. Otherwise they are moving away from each other.
-        // https://chrishecker.com/images/e/e7/Gdmphys3.pdf, page 12 column 1
-        
+
         // Collision normal should always point towards object A (or circle in this case)
         let collision_normal_unit = (circle.position - closest_point_on_rect).normalize();
+       
+        let circle_center_to_p = closest_point_on_rect - circle.position;
+        let rect_center_to_p = closest_point_on_rect - rect.position;
+        let circle_vel_at_p = equations::total_velocity_at_point_p(
+            &circle, &circle_center_to_p.into());
+        let rect_vel_at_p = equations::total_velocity_at_point_p(
+            &rect, &rect_center_to_p.into());
+
+        let relative_vel_at_p = [
+           circle_vel_at_p[0] - rect_vel_at_p[0],
+           circle_vel_at_p[1] - rect_vel_at_p[1],
+           circle_vel_at_p[2] - rect_vel_at_p[2],
+        ];
+
+        // If objects are moving away from each other, we do not consider a collision
+        if equations::dot(&relative_vel_at_p, &collision_normal_unit.into()) > 0.0 {
+            return false;
+        }
+
         let c_r = 1.0;
-        let impulse_magnitude = impulse_magnitude(c_r, &collision_normal_unit.into(), 
-            &closest_point_on_rect.into(), &circle, rect,);
+
+        let impulse_magnitude = impulse_magnitude(
+            c_r, &collision_normal_unit.into(), 
+            &circle_center_to_p.into(),&rect_center_to_p.into(),
+            &relative_vel_at_p, &circle, &rect);
         
         let normal_unit_array: [f32;3] = collision_normal_unit.into();
         let new_rect_velocity = Vector3::from(post_collision_velocity(
@@ -138,7 +157,7 @@ impl CollisionHandler for SimpleCollisionSolver {
                 rect.inertia()*new_rect_angular_velocity +
                 equations::cross_2d(&circle.position.into(), &(circle.mass*new_circ_velocity).into()) +
                 equations::cross_2d(&rect.position.into(), &(rect.mass*new_rect_velocity).into())).into();
-       
+            // Note that we compare linear momentum component-wise 
             initial_linear_momentum == final_linear_momentum &&
                 initial_angular_momentum == final_angular_momentum
         }, "Expected total momentum of collision to be preserved");
@@ -231,49 +250,9 @@ mod tests {
                     #[test]
                     fn $name() {
                         let mut bodies = $bodies;
-                        //let initial_linear_momentum_0 = equations::linear_momentum(&bodies[0]);
-                        //let initial_linear_momentum_1 = equations::linear_momentum(&bodies[1]);
-                        //let initial_linear_momentum = [
-                        //    initial_linear_momentum_0[0] + initial_linear_momentum_1[0],
-                        //    initial_linear_momentum_0[1] + initial_linear_momentum_1[1],
-                        //    initial_linear_momentum_0[2] + initial_linear_momentum_1[2],
-                        //];
-                        //let initial_angular_momentum_0 = equations::angular_momentum(&bodies[0]);
-                        //let initial_angular_momentum_1 = equations::angular_momentum(&bodies[1]);
-                        //let initial_angular_momentum = initial_angular_momentum_0 + initial_angular_momentum_1;
-                        //let initial_momentum = 
-                        //    initial_linear_momentum[0] + initial_linear_momentum[1] + 
-                        //    initial_linear_momentum[2] + initial_angular_momentum;
-
-                        //let initial_kinetic_energy = 
-                        //    equations::translational_kinetic_energy(&bodies[0]) + 
-                        //    equations::rotational_kinetic_energy(&bodies[0]) +
-                        //    equations::translational_kinetic_energy(&bodies[1]) + 
-                        //    equations::rotational_kinetic_energy(&bodies[1]);
-
                         let expected_output = $expected_output;
                         let ch = SimpleCollisionSolver::new();
                         ch.handle_circle_rect_collision(&mut bodies, 0, 1);
-
-                        //let resulting_linear_momentum_0 = equations::linear_momentum(&bodies[0]);
-                        //let resulting_linear_momentum_1 = equations::linear_momentum(&bodies[1]);
-                        //let resulting_linear_momentum = [
-                        //    resulting_linear_momentum_0[0] + resulting_linear_momentum_1[0],
-                        //    resulting_linear_momentum_0[1] + resulting_linear_momentum_1[1],
-                        //    resulting_linear_momentum_0[2] + resulting_linear_momentum_1[2],
-                        //];
-                        //let resulting_angular_momentum_0 = equations::angular_momentum(&bodies[0]);
-                        //let resulting_angular_momentum_1 = equations::angular_momentum(&bodies[1]);
-                        //let resulting_angular_momentum = resulting_angular_momentum_0 + resulting_angular_momentum_1;
-                        //let resulting_momentum = 
-                        //    resulting_linear_momentum[0] + resulting_linear_momentum[1] + 
-                        //    resulting_linear_momentum[2] + resulting_angular_momentum;
-
-                        //let resulting_kinetic_energy = 
-                        //    equations::translational_kinetic_energy(&bodies[0]) + 
-                        //    equations::rotational_kinetic_energy(&bodies[0]) +
-                        //    equations::translational_kinetic_energy(&bodies[1]) + 
-                        //    equations::rotational_kinetic_energy(&bodies[1]);
 
                         let expected_output_circ = &expected_output[0];
                         let expected_output_rect = &expected_output[1];
@@ -303,12 +282,6 @@ mod tests {
                         assert_eq!(
                             expected_output_1_vel, output_1_vel,
                             "Expected rectangle velocity {expected_output_1_vel:?} but found {output_1_vel:?}");
-
-                        //assert_eq!(initial_momentum, resulting_momentum,
-                        //    "Expected the momentum to be preserved. Before: {initial_momentum} and after: {resulting_momentum}");
-
-                        //assert_eq!(initial_kinetic_energy, resulting_kinetic_energy,
-                        //    "Expected the kinetic energy to be preserved due to elastic collision. Before: {initial_kinetic_energy} and after: {resulting_kinetic_energy}");
                     }
                 )*
             }

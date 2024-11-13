@@ -1,6 +1,31 @@
-use super::Projection;
 use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
 use crate::engine::physics_engine::util::equations;
+
+#[derive(Debug)]
+pub struct Projection {
+    pub min: f32,
+    pub min_corner: [f32; 3],
+    pub max: f32,
+    pub max_corner: [f32; 3],
+}
+
+impl Projection {
+    pub fn no_axis(min: f32, max: f32) -> Self {
+        Self {
+            min,
+            min_corner: [0., 0., 0.],
+            max,
+            max_corner: [0., 0., 0.],
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Overlap {
+    pub distance: f32,
+    pub min: [f32; 3],
+    pub max: [f32; 3],
+}
 
 /// Computes the primary axes to test for a Separating Axis Theorem (SAT) collision
 /// between rectangles in 2D space.
@@ -123,14 +148,31 @@ pub fn sat_get_axii(body: &RigidBody) -> Vec<[f32; 3]> {
 /// - Panics if the `RigidBody` is not of type `Rectangle`.
 pub fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> Projection {
     let corners = body.corners();
-    let (min, max) = corners
-        .iter()
-        .map(|c| equations::dot(axis, c))
-        .fold((f32::MAX, f32::MIN), |(min, max): (f32, f32), x| {
-            (min.min(x), max.max(x))
-        });
 
-    return Projection { min, max };
+    // Fold with initial values that include both min/max values and indices of the corners
+    let (min, min_corner_idx, max, max_corner_idx) = corners
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (equations::dot(axis, c), i))
+        .fold(
+            (f32::MAX, 0, f32::MIN, 0), // Initial values: min, min_index, max, max_index
+            |(min, min_idx, max, max_idx), (value, idx)| {
+                (
+                    if value < min { value } else { min },
+                    if value < min { idx } else { min_idx },
+                    if value > max { value } else { max },
+                    if value > max { idx } else { max_idx },
+                )
+            },
+        );
+    let min_corner = corners[min_corner_idx];
+    let max_corner = corners[max_corner_idx];
+    Projection {
+        min,
+        min_corner,
+        max,
+        max_corner,
+    }
 }
 
 /// Determines whether there is an overlap between the projection intervals of
@@ -205,8 +247,118 @@ pub fn sat_projection_overlap(proj_a: &Projection, proj_b: &Projection) -> bool 
 /// This function assumes that the overlap check (`sat_projection_overlap`) has
 /// already confirmed an intersection along the axis. If not, the result could be
 /// zero or negative, indicating no overlap.
-pub fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> f32 {
-    proj_a.max.min(proj_b.max) - proj_a.min.max(proj_b.min)
+pub fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> Overlap {
+    let max = std::cmp::min_by(proj_a, proj_b, |a, b| a.max.total_cmp(&b.max));
+    let min = std::cmp::max_by(proj_a, proj_b, |a, b| a.min.total_cmp(&b.min));
+    let distance = max.max - min.min;
+    Overlap {
+        distance,
+        min: min.min_corner,
+        max: max.max_corner,
+    }
+}
+
+/// Performs collision detection between two rectangular `RigidBody` objects using
+/// the Separating Axis Theorem (SAT).
+///
+/// # Parameters
+/// - `body_a`: A reference to the first `RigidBody`.
+/// - `body_b`: A reference to the second `RigidBody`.
+///
+/// # Returns
+/// - `Some((f32, [f32; 3]))` if a collision is detected, where:
+///   - `f32` is the minimum overlap distance (depth of penetration) between the
+///     two rectangles along the collision axis.
+///   - `[f32; 3]` is the collision axis vector, representing the axis along which
+///     the shapes are intersecting. **Note**: No guarantee is made regarding the
+///     direction of this axis (e.g., pointing towards a specific object).
+/// - `None` if no collision is detected, meaning there is an axis along which the
+///   two rectangles' projections do not overlap.
+///
+/// # Details
+/// This function applies the SAT to determine if two rectangles are colliding.
+/// The process includes:
+/// 1. Retrieving the axes (perpendiculars to edges) of each rectangle by calling
+///    `sat_get_axii` on both `body_a` and `body_b`.
+/// 2. Projecting both rectangles onto each of the axes from `body_a` and `body_b`.
+/// 3. For each axis, computing the overlap distance using `sat_overlap_distance`.
+///    If any axis results in zero or negative overlap, the bodies are not colliding.
+///
+/// - The function iterates over all axes of both bodies, maintaining the minimum
+///   overlap distance and axis (the "collision axis").
+///
+/// - The minimum overlap and axis values are returned to provide the depth and
+///   direction of collision, which can be used in collision response calculations.
+///
+/// # Usage
+/// This function is typically called to check for collisions between two rectangles
+/// in a 2D physics engine. The returned penetration depth and axis vector can be
+/// used to calculate the necessary corrective response if the objects are found
+/// to be intersecting.
+pub fn sat_collision_detection(
+    body_a: &RigidBody,
+    body_b: &RigidBody,
+) -> Option<super::SATCollisionInfo> {
+    let axii_a = sat_get_axii(&body_a);
+    let axii_b = sat_get_axii(&body_b);
+
+    // iterators are 0 cost, create them all
+    let projections_body_a_on_axii_a = axii_a.iter().map(|ax| sat_project_on_axis(&body_a, ax));
+    let projections_body_b_on_axii_a = axii_a.iter().map(|ax| sat_project_on_axis(&body_b, ax));
+    let projections_axii_a =
+        std::iter::zip(projections_body_a_on_axii_a, projections_body_b_on_axii_a);
+    let overlap_per_axii_a =
+        projections_axii_a.map(|(proj_a, proj_b)| sat_overlap_distance(&proj_a, &proj_b));
+
+    let (index_axii_a, min_overlap_on_a) = overlap_per_axii_a
+        .enumerate()
+        .min_by(|(_, overlap_a), (_, overlap_b)| overlap_a.distance.total_cmp(&overlap_b.distance))
+        .expect("Expected there to be axii to perform overlap checks on");
+
+    if min_overlap_on_a.distance <= 0.0 {
+        // We found an axis where the projections do not overlap and therefore
+        // does not the bodies overlap
+        return None;
+    }
+
+    let projections_body_a_on_axii_b = axii_b.iter().map(|ax| sat_project_on_axis(&body_a, ax));
+    let projections_body_b_on_axii_b = axii_b.iter().map(|ax| sat_project_on_axis(&body_b, ax));
+    let projections_axii_b =
+        std::iter::zip(projections_body_a_on_axii_b, projections_body_b_on_axii_b);
+    let overlap_per_axii_b =
+        projections_axii_b.map(|(proj_a, proj_b)| sat_overlap_distance(&proj_a, &proj_b));
+
+    let (index_axii_b, min_overlap_on_b) = overlap_per_axii_b
+        .enumerate()
+        .min_by(|(_, overlap_a), (_, overlap_b)| overlap_a.distance.total_cmp(&overlap_b.distance))
+        .expect("Expected there to be axii to perform overlap checks on");
+
+    if min_overlap_on_b.distance <= 0.0 {
+        // We found an axis where the projections do not overlap and therefore
+        // does not the bodies overlap
+        return None;
+    }
+
+    let (axii, index, overlap) = std::cmp::min_by(
+        (axii_a, index_axii_a, min_overlap_on_a),
+        (axii_b, index_axii_b, min_overlap_on_b),
+        |a, b| a.2.distance.total_cmp(&b.2.distance),
+    );
+
+    let axis = axii[index];
+    let collision_point = [
+        overlap.max[0] + axis[0] * overlap.distance,
+        overlap.max[1] + axis[1] * overlap.distance,
+        overlap.max[2] + axis[2] * overlap.distance,
+    ];
+
+    let collision_info = super::SATCollisionInfo {
+        penetration_depth: overlap.distance,
+        normal: axis,
+        collision_point,
+    };
+
+    return Some(collision_info);
 }
 
 #[cfg(test)]
@@ -398,15 +550,15 @@ mod sat_test {
 
         sat_projection_overlap! {
             given_projections_does_not_overlap_1:
-                Projection::new(-10.0, 10.0), Projection::new(10.0, 20.0), false
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(10.0, 20.0), false
             given_projections_does_not_overlap_2:
-                Projection::new(10.0, 20.0), Projection::new(-10.0, 10.0), false
+                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 10.0), false
             given_projections_do_overlap_1:
-                Projection::new(10.0, 20.0), Projection::new(-10.0, 11.0), true
+                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 11.0), true
             given_projections_are_contained_1:
-                Projection::new(-10.0, 10.0), Projection::new(-10.0, 10.0), true
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-10.0, 10.0), true
             given_projections_are_contained_2:
-                Projection::new(-10.0, 10.0), Projection::new(-9.0, 9.0), true
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-9.0, 9.0), true
         }
     }
 
@@ -423,8 +575,8 @@ mod sat_test {
                         let expected = $expected;
                         let overlap = sat_overlap_distance(&proj_a, &proj_b);
                         assert_eq!(
-                            expected, overlap,
-                            "Expected projection overlap to be {expected} but found {overlap}"
+                            expected, overlap.distance,
+                            "Expected projection overlap to be {expected} but found {overlap:?}"
                         );
                     }
                 )*
@@ -433,15 +585,189 @@ mod sat_test {
 
         sat_overlap_distance_tests! {
             given_projections_does_not_overlap_1:
-                Projection::new(-10.0, 10.0), Projection::new(10.0, 20.0), 0.0
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(10.0, 20.0), 0.0
             given_projections_does_not_overlap_2:
-                Projection::new(10.0, 20.0), Projection::new(-10.0, 10.0), 0.0
+                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 10.0), 0.0
             given_projections_do_overlap_1:
-                Projection::new(10.0, 20.0), Projection::new(-10.0, 11.0), 1.0
+                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 11.0), 1.0
             given_projections_are_contained_1:
-                Projection::new(-10.0, 10.0), Projection::new(-10.0, 10.0), 20.0
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-10.0, 10.0), 20.0
             given_projections_are_contained_2:
-                Projection::new(-10.0, 10.0), Projection::new(-9.0, 9.0), 18.0
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-9.0, 9.0), 18.0
+        }
+    }
+
+    mod sat_collision_detection {
+        use super::super::super::SATCollisionInfo;
+        use super::super::sat_collision_detection;
+        use crate::engine::physics_engine::collision::rigid_body::{
+            RigidBodyBuilder, RigidBodyType,
+        };
+        use crate::engine::util::fixed_float::fixed_float::FixedFloat;
+        use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
+
+        macro_rules! sat_collision_detection_tests {
+            ($($name:ident: $body_a: expr, $body_b: expr, $expected: expr)*) => {
+                $(
+                    #[test]
+                    fn $name() {
+                        let expected: Option<SATCollisionInfo> = $expected;
+                        let collision_info = sat_collision_detection(&$body_a, &$body_b);
+
+                        match (expected, collision_info) {
+                            (None, None) => (),
+                            (None, Some(info)) =>  panic!("Expected result None but found {info:?}"),
+                            (Some(e_info), None) => panic!("Expected result {e_info:?} but found None"),
+                            (Some(e_collision_info), Some(collision_info)) => {
+                                let penetration_depth_ff: f32 = FixedFloat::from(collision_info.penetration_depth).into();
+                                let normal_ff: [f32;3] = FixedFloatVector::from(collision_info.normal).into();
+                                //let collision_point_ff: [f32;3] = FixedFloatVector::from(collision_info.collision_point).into()                 ;
+                                assert_eq!(e_collision_info.penetration_depth,
+                                    penetration_depth_ff,
+                                    "Expected collision info {e_collision_info:?} but found {collision_info:?}");
+                                assert_eq!(e_collision_info.normal,
+                                    normal_ff,
+                                    "Expected collision info {e_collision_info:?} but found {collision_info:?}");
+                                //assert_eq!(e_collision_info.collision_point,
+                                //    collision_point_ff,
+                                //    "Expected collision info {e_collision_info:?} but found {collision_info:?}");
+},
+                        }
+                    }
+                )*
+            }
+        }
+
+        sat_collision_detection_tests! {
+            given_rectangles_are_axis_aligned_when_do_not_collide_expect_no_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([-10.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([11.0,0.0,0.0])
+                    .build(),
+                None
+
+            given_rectangles_are_axis_aligned_when_touch_on_y_axis_expect_no_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([-10.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([10.0,0.0,0.0])
+                    .build(),
+                None
+
+            given_rectangles_are_axis_aligned_when_overlap_on_y_axis_expect_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([-10.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([9.0,0.0,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 1.0,
+                    normal: [1.0,0.0,0.0],
+                    collision_point: [0.0,0.0,0.0] // TODO
+                })
+
+            given_rectangles_are_axis_aligned_when_overlap_on_y_axis_but_bodies_have_swapped_order_expect_collision:
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([9.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([-10.0,0.0,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 1.0,
+                    normal: [1.0,0.0,0.0],
+                    collision_point: [0.0,0.0,0.0] // TODO
+                })
+
+            given_rectangles_are_axis_aligned_and_offset_when_overlapping_on_x_axis_expect_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([-10.0,20.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([-10.0,15.0,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 5.0,
+                    normal: [0.0,1.0,0.0],
+                    collision_point: [0.0,0.0,0.0] // TODO
+                })
+
+            given_one_rectangle_is_axis_aligned_and_one_rotated_90_degrees_when_overlap_on_y_axis_expect_collision:
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .rotation(std::f32::consts::PI/2.0)
+                    .position([10.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
+                    .position([0.0,0.0,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 5.0,
+                    normal: [-1.0,0.0,0.0],
+                    collision_point: [0.0,0.0,0.0] // TODO
+                })
+
+            given_rectangles_are_rotated_45_degrees_when_their_sides_overlap_expect_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .rotation(std::f32::consts::PI/4.0)
+                    .position([0.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .rotation(std::f32::consts::PI/4.0)
+                    .position([6.071,6.071,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 1.414,
+                    normal: [0.707,0.707,0.0],
+                    collision_point: [0.0,0.0,0.0] // TODO
+                })
+
+            given_rectangles_are_rotated_neg_45_degrees_when_their_sides_overlap_expect_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .rotation(-std::f32::consts::PI/4.0)
+                    .position([0.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .rotation(-std::f32::consts::PI/4.0)
+                    .position([6.071,-6.071,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 1.414,
+                    normal: [0.707,-0.707,0.0],
+                    collision_point: [0.0,0.0,0.0] // TODO
+                })
+
+            //given_rectangles_are_rotated_neg_45_degrees_when_their_corners_overlap_expect_collision:
+            //    RigidBodyBuilder::default().id(0)
+            //        .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+            //        .rotation(-std::f32::consts::PI/4.0)
+            //        .position([-5.0,0.0,0.0])
+            //        .build(),
+            //    RigidBodyBuilder::default().id(1)
+            //        .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+            //        .rotation(-std::f32::consts::PI/4.0)
+            //        .position([5.0,0.0,0.0])
+            //        .build(),
+            //    Some((2.07*2.0, [1.0,0.0,0.0]))
         }
     }
 }

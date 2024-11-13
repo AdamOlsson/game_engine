@@ -293,9 +293,8 @@ impl CollisionHandler for SimpleCollisionSolver {
             (_, _) => unreachable!(),
         };
 
-        // SAT get axii
-        let axii_i = sat::sat_get_axii(&body_i);
-        let axii_j = sat::sat_get_axii(&body_j);
+        // If we can find an axis where the projections to not overlap,
+        // then the bodies does not overlap
 
         return false;
     }

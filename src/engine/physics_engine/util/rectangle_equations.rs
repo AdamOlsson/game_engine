@@ -172,7 +172,7 @@ pub fn corners(body: &RigidBody) -> Vec<[f32; 3]> {
 /// is employed to determine if two rectangles are intersecting. The returned axes
 /// are used to project both rectangles and check for overlap, allowing for precise
 /// collision determination.
-pub fn sat_get_axii(body: &RigidBody) -> [[f32; 3]; 2] {
+pub fn sat_get_axii(body: &RigidBody) -> Vec<[f32; 3]> {
     let (width, height) = match body.body_type {
         RigidBodyType::Rectangle { width, height } => (width, height),
         _ => panic!("Expected rectangle body"),
@@ -217,7 +217,19 @@ pub fn sat_get_axii(body: &RigidBody) -> [[f32; 3]; 2] {
     let mut normal2 = equations::perpendicular_2d(&axis2);
     equations::normalize(&mut normal1);
     equations::normalize(&mut normal2);
-    [normal1, normal2]
+    vec![normal1, normal2]
+}
+
+pub fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> (f32, f32) {
+    let corners = corners(body);
+    let min_max = corners
+        .iter()
+        .map(|c| equations::dot(axis, c))
+        .fold((f32::MAX, f32::MIN), |(min, max): (f32, f32), x| {
+            (min.min(x), max.max(x))
+        });
+
+    return min_max;
 }
 
 #[cfg(test)]
@@ -381,6 +393,115 @@ mod rectangle_equations_test {
                 .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
                 .build(),
             [-6.071, 2.0, 0.0], [1.0, 9.071, 0.0],[8.071, 2.0, 0.0], [1.0, -5.071, 0.0]
+        }
+    }
+
+    mod sat_project_on_axis {
+        use super::super::sat_project_on_axis;
+        use crate::engine::physics_engine::collision::rigid_body::{
+            RigidBodyBuilder, RigidBodyType,
+        };
+        use crate::engine::util::fixed_float::fixed_float::FixedFloat;
+
+        macro_rules! sat_project_on_axis_test {
+            ($($name:ident: $body: expr, $axis: expr, $expected_min: expr, $expected_max: expr)*) => {
+                $(
+                    #[test]
+                    fn $name() {
+                        let body = $body;
+                        let axis = $axis;
+                        let expected_min = $expected_min;
+                        let expected_max = $expected_max;
+                        let (min_proj, max_proj) = sat_project_on_axis(&body, &axis);
+                        let min_proj_ff: f32 = FixedFloat::from(min_proj).into();
+                        let max_proj_ff: f32 = FixedFloat::from(max_proj).into();
+                        assert_eq!(
+                            expected_min, min_proj_ff,
+                            "Expected projection minimum to be {expected_min} but found {min_proj_ff}"
+                        );
+                        assert_eq!(
+                            expected_max, max_proj_ff,
+                            "Expected projection maximum to be {expected_max} but found {max_proj_ff}"
+                        );
+
+                    }
+                )*
+            }
+        }
+
+        sat_project_on_axis_test! {
+            given_rect_is_axis_aligned_and_not_offset_when_projected_onto_x:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([0.0, 0.0, 0.0])
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[1.0, 0.0, 0.0], -5.0, 5.0
+
+            given_rect_is_axis_aligned_and_not_offset_when_projected_onto_y:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([0.0, 0.0, 0.0])
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[0.0, 1.0, 0.0], -5.0, 5.0
+
+            given_rect_is_axis_aligned_and_offset_when_projected_onto_x:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([5.0, -5.0, 0.0])
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[1.0, 0.0, 0.0], 0.0, 10.0
+
+            given_rect_is_axis_aligned_and_offset_when_projected_onto_y:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([5.0, -5.0, 0.0])
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[0.0, 1.0, 0.0], -10.0, 0.0
+
+            given_rect_is_rotated_45_degrees_and_not_offset_when_projected_onto_x:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([0.0, 0.0, 0.0])
+                .rotation(std::f32::consts::PI/4.0)
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[1.0, 0.0, 0.0], -7.071, 7.071
+
+            given_rect_is_rotated_90_degrees_and_not_offset_when_projected_onto_x:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([0.0, 0.0, 0.0])
+                .rotation(std::f32::consts::PI/2.0)
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[1.0, 0.0, 0.0], -5.0, 5.0
+
+            given_rect_is_rotated_45_degrees_and_offset_when_projected_onto_x:
+                RigidBodyBuilder::default()
+                .id(0)
+                .position([5.0, 5.0, 0.0])
+                .rotation(std::f32::consts::PI/4.0)
+                .body_type(RigidBodyType::Rectangle {
+                    width: 10.,
+                    height: 10.,
+                })
+                .build(),[1.0, 0.0, 0.0], -2.071, 12.071
         }
     }
 }

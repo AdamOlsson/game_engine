@@ -1,12 +1,12 @@
+use super::rigid_body::{RigidBody, RigidBodyType};
+use super::sat::sat;
+use crate::engine::physics_engine::util::rectangle_equations;
 use crate::engine::{
     physics_engine::util::equations::{
         self, impulse_magnitude, post_collision_angular_velocity, post_collision_velocity,
     },
     util::fixed_float::fixed_float::FixedFloat,
 };
-
-use super::rigid_body::{RigidBody, RigidBodyType};
-use crate::engine::physics_engine::util::rectangle_equations;
 use cgmath::{InnerSpace, MetricSpace, Vector3};
 
 pub trait CollisionHandler {
@@ -294,8 +294,8 @@ impl CollisionHandler for SimpleCollisionSolver {
         };
 
         // SAT get axii
-        let axii_i = rectangle_equations::sat_get_axii(&body_i);
-        let axii_j = rectangle_equations::sat_get_axii(&body_j);
+        let axii_i = sat::sat_get_axii(&body_i);
+        let axii_j = sat::sat_get_axii(&body_j);
 
         return false;
     }

@@ -1,92 +1,218 @@
-use crate::engine::{physics_engine::collision::rigid_body::{RigidBody, RigidBodyType}, util::fixed_float::fixed_float_vector::FixedFloatVector};
+use crate::engine::{
+    physics_engine::collision::rigid_body::{RigidBody, RigidBodyType},
+    util::fixed_float::fixed_float_vector::FixedFloatVector,
+};
 
 use super::equations::{self, magnitude2};
 
 /// Returns the moment of inertia for a solid rectangle rotating around its center
-pub fn inertia(height:f32, width:f32, mass:f32) -> f32 {
-    (mass/12.0)*(height.powi(2) + width.powi(2))
+pub fn inertia(height: f32, width: f32, mass: f32) -> f32 {
+    (mass / 12.0) * (height.powi(2) + width.powi(2))
 }
 
 /// Returns the left-, right-, top- and bottom-most points of a rotated rectangle
-pub fn cardinals(center: &[f32;3], width: f32, height:f32, rotation: f32) -> [[f32;3];4]{
-    let top_left  = [-width/2.0,  height/2.0, 0.0];
-    let top_right = [ width/2.0,  height/2.0, 0.0];
-    let bot_right = [ width/2.0, -height/2.0, 0.0];
-    let bot_left  = [-width/2.0, -height/2.0, 0.0];
+pub fn cardinals(center: &[f32; 3], width: f32, height: f32, rotation: f32) -> [[f32; 3]; 4] {
+    let top_left = [-width / 2.0, height / 2.0, 0.0];
+    let top_right = [width / 2.0, height / 2.0, 0.0];
+    let bot_right = [width / 2.0, -height / 2.0, 0.0];
+    let bot_left = [-width / 2.0, -height / 2.0, 0.0];
 
     let top_left_rot = equations::rotate_z(&top_left, rotation);
     let top_right_rot = equations::rotate_z(&top_right, rotation);
     let bot_right_rot = equations::rotate_z(&bot_right, rotation);
     let bot_left_rot = equations::rotate_z(&bot_left, rotation);
-    
-    let top_left_offset  = [center[0] + top_left_rot[0],  center[1] + top_left_rot[1],  0.0];
-    let top_right_offset = [center[0] + top_right_rot[0], center[1] + top_right_rot[1], 0.0];
-    let bot_right_offset = [center[0] + bot_right_rot[0], center[1] + bot_right_rot[1], 0.0];
-    let bot_left_offset  = [center[0] + bot_left_rot[0],  center[1] + bot_left_rot[1],  0.0];
 
-    let corners = [top_left_offset, top_right_offset, bot_right_offset, bot_left_offset];
-    let left_most = corners.iter().min_by(|a,b| a[0].partial_cmp(&b[0]).unwrap()).unwrap();
-    let right_most = corners.iter().max_by(|a,b| a[0].partial_cmp(&b[0]).unwrap()).unwrap();
-    let top_most = corners.iter().max_by(|a,b| a[1].partial_cmp(&b[1]).unwrap()).unwrap();
-    let bot_most = corners.iter().min_by(|a,b| a[1].partial_cmp(&b[1]).unwrap()).unwrap();
+    let top_left_offset = [
+        center[0] + top_left_rot[0],
+        center[1] + top_left_rot[1],
+        0.0,
+    ];
+    let top_right_offset = [
+        center[0] + top_right_rot[0],
+        center[1] + top_right_rot[1],
+        0.0,
+    ];
+    let bot_right_offset = [
+        center[0] + bot_right_rot[0],
+        center[1] + bot_right_rot[1],
+        0.0,
+    ];
+    let bot_left_offset = [
+        center[0] + bot_left_rot[0],
+        center[1] + bot_left_rot[1],
+        0.0,
+    ];
+
+    let corners = [
+        top_left_offset,
+        top_right_offset,
+        bot_right_offset,
+        bot_left_offset,
+    ];
+    let left_most = corners
+        .iter()
+        .min_by(|a, b| a[0].partial_cmp(&b[0]).unwrap())
+        .unwrap();
+    let right_most = corners
+        .iter()
+        .max_by(|a, b| a[0].partial_cmp(&b[0]).unwrap())
+        .unwrap();
+    let top_most = corners
+        .iter()
+        .max_by(|a, b| a[1].partial_cmp(&b[1]).unwrap())
+        .unwrap();
+    let bot_most = corners
+        .iter()
+        .min_by(|a, b| a[1].partial_cmp(&b[1]).unwrap())
+        .unwrap();
 
     return [
-        FixedFloatVector::from(*left_most).into(), 
+        FixedFloatVector::from(*left_most).into(),
         FixedFloatVector::from(*right_most).into(),
         FixedFloatVector::from(*top_most).into(),
-        FixedFloatVector::from(*bot_most).into()];
+        FixedFloatVector::from(*bot_most).into(),
+    ];
 }
 
-//pub fn apply_impulse(
-//    coll_normal: &[f32;3], collision_point: &[f32;3], body: &RigidBody, impulse: f32,
-//    r_cp: &[f32;3]
-//) -> ([f32;3], f32) {
-//    let j = [
-//        coll_normal[0] * impulse,
-//        coll_normal[1] * impulse,
-//        coll_normal[2] * impulse,
-//    ];
-//    let j_linear = magnitude2(&j) / (2.0*body.mass);
-//    let j_angular = (magnitude2(&j)*magnitude2(&r_cp)) / (2.0*body.inertia());
-//
-//    let new_linear_velocity = equations::post_collision_velocity(coll_normal, j_linear, body);
-//    let new_angular_velocity = equations::post_collision_angular_velocity(coll_normal, collision_point, j_angular, body);
-//
-//    println!("j_linear: {j_linear}, j_angular: {j_angular}");
-//    println!("new_linear_vel: {new_linear_velocity:?}");
-//    println!("new_angular_vel: {new_angular_velocity}");
-//
-//    return (new_linear_velocity, new_angular_velocity);
-//}
+/// Computes the world-space coordinates of the four corners of a rectangle,
+/// taking into account its position and rotation.
+///
+/// # Parameters
+/// - `body`: A reference to a `RigidBody` representing a rectangle. The function
+///   assumes the `RigidBody` is of type `Rectangle`; if not, it will panic.
+///
+/// # Returns
+/// - A `Vec<[f32; 3]>` containing four 3D points (x, y, z = 0) representing the
+///   rectangle's corners in world space, after rotation and translation.
+///
+/// # Details
+/// This function calculates the positions of a rectangle's corners in 2D space
+/// and applies a rotation around the Z-axis using the `rotation` property from
+/// the `body`. The Z-coordinate is set to 0 for each corner point, as the function
+/// is intended for 2D operations within a 3D space.
+///
+/// - The function first extracts the `width` and `height` of the rectangle and computes
+///   each corner's initial coordinates based on the rectangle's center.
+/// - Rotation is applied individually to each corner using the specified `rotation`
+///   angle.
+/// - Finally, the rotated corners are translated by the rectangle's `position`,
+///   yielding their world-space locations.
+///
+/// # Panics
+/// - Panics if the `RigidBody` is not of type `Rectangle`.
+///
+/// # Usage
+/// This function is useful in collision detection or rendering contexts where
+/// the precise positions of the rectangle's corners in world space are required.
+pub fn corners(body: &RigidBody) -> Vec<[f32; 3]> {
+    let (width, height) = match body.body_type {
+        RigidBodyType::Rectangle { width, height } => (width, height),
+        _ => panic!("Expected rectangle body"),
+    };
 
-//pub fn corners(body: &RigidBody) -> [[f32;3];4] {
-//    let (width, height) = match body.body_type {
-//        RigidBodyType::Rectangle { width, height } => (width, height),
-//        _ => panic!("Expected rectangle body"),
-//    };
-//    [
-//        equations::rotate_z(&[body.position.x - width/2.0, body.position.y + height/2.0, 0.0], body.rotation),// Top left
-//        equations::rotate_z(&[body.position.x + width/2.0, body.position.y + height/2.0, 0.0], body.rotation),// Top right
-//        equations::rotate_z(&[body.position.x + width/2.0, body.position.y - height/2.0, 0.0], body.rotation),// Bottom right
-//        equations::rotate_z(&[body.position.x - width/2.0, body.position.y - height/2.0, 0.0], body.rotation),// Bottom left
-//    ]
-//}
+    let top_left_rot = equations::rotate_z(&[-width / 2.0, height / 2.0, 0.0], body.rotation);
+    let top_right_rot = equations::rotate_z(&[width / 2.0, height / 2.0, 0.0], body.rotation);
+    let bot_right_rot = equations::rotate_z(&[width / 2.0, -height / 2.0, 0.0], body.rotation);
+    let bot_left_rot = equations::rotate_z(&[-width / 2.0, -height / 2.0, 0.0], body.rotation);
+    vec![
+        [
+            top_left_rot[0] + body.position.x,
+            top_left_rot[1] + body.position.y,
+            0.0,
+        ],
+        [
+            top_right_rot[0] + body.position.x,
+            top_right_rot[1] + body.position.y,
+            0.0,
+        ],
+        [
+            bot_right_rot[0] + body.position.x,
+            bot_right_rot[1] + body.position.y,
+            0.0,
+        ],
+        [
+            bot_left_rot[0] + body.position.x,
+            bot_left_rot[1] + body.position.y,
+            0.0,
+        ],
+    ]
+}
 
-pub fn sat_get_axii(body: &RigidBody) -> [[f32;3];2] {
+/// Computes the primary axes to test for a Separating Axis Theorem (SAT) collision
+/// between rectangles in 2D space.
+///
+/// # Parameters
+/// - `body`: A reference to a `RigidBody` representing a rectangle. The function
+///   assumes the `RigidBody` is of type `Rectangle`; if not, it will panic.
+///
+/// # Returns
+/// - A 2x3 array containing two normalized axis vectors (in 3D form) perpendicular
+///   to the rectangle's edges. These axes are necessary for performing SAT-based
+///   collision detection.
+///
+/// # Details
+/// This function calculates the two primary axes of separation for the given rectangle,
+/// which are based on its rotated edges. The rotation is applied around the Z-axis using
+/// the body's `rotation` property.
+///
+/// - First, the function determines the rectangle's `width` and `height` and then finds
+///   three of its corner points in world space (top-left, top-right, and bottom-right),
+///   accounting for rotation.
+/// - The edge vectors `axis1` (bottom-right to top-right) and `axis2` (top-right to
+///   top-left) are computed, and then the perpendicular (normal) vectors for each axis
+///   are derived to obtain the directions to test for separation.
+/// - Finally, both perpendicular vectors are normalized, ensuring that they are unit
+///   vectors suitable for projection in SAT testing.
+///
+/// # Panics
+/// - Panics if the `RigidBody` is not of type `Rectangle`.
+///
+/// # Usage
+/// This function is used primarily in collision detection algorithms where SAT
+/// is employed to determine if two rectangles are intersecting. The returned axes
+/// are used to project both rectangles and check for overlap, allowing for precise
+/// collision determination.
+pub fn sat_get_axii(body: &RigidBody) -> [[f32; 3]; 2] {
     let (width, height) = match body.body_type {
         RigidBodyType::Rectangle { width, height } => (width, height),
         _ => panic!("Expected rectangle body"),
     };
 
     let top_left = equations::rotate_z(
-        &[body.position.x - width/2.0, body.position.y + height/2.0, 0.0], body.rotation);
+        &[
+            body.position.x - width / 2.0,
+            body.position.y + height / 2.0,
+            0.0,
+        ],
+        body.rotation,
+    );
     let top_right = equations::rotate_z(
-        &[body.position.x + width/2.0, body.position.y + height/2.0, 0.0], body.rotation);
+        &[
+            body.position.x + width / 2.0,
+            body.position.y + height / 2.0,
+            0.0,
+        ],
+        body.rotation,
+    );
     let bot_right = equations::rotate_z(
-        &[body.position.x + width/2.0, body.position.y - height/2.0, 0.0], body.rotation);
+        &[
+            body.position.x + width / 2.0,
+            body.position.y - height / 2.0,
+            0.0,
+        ],
+        body.rotation,
+    );
 
-    let axis1 = [bot_right[0]-top_right[0],bot_right[1]-top_right[1],bot_right[2]-top_right[2]];
-    let axis2 = [top_right[0]-top_left[0],top_right[1]-top_left[1],top_right[2]-top_left[2]];
+    let axis1 = [
+        bot_right[0] - top_right[0],
+        bot_right[1] - top_right[1],
+        bot_right[2] - top_right[2],
+    ];
+    let axis2 = [
+        top_right[0] - top_left[0],
+        top_right[1] - top_left[1],
+        top_right[2] - top_left[2],
+    ];
     let mut normal1 = equations::perpendicular_2d(&axis1);
     let mut normal2 = equations::perpendicular_2d(&axis2);
     equations::normalize(&mut normal1);
@@ -121,7 +247,7 @@ mod rectangle_equations_test {
                 )*
             }
         }
-    
+
         cardinals_test! {
             given_rect_when_aabb_and_no_rotation_expect_corners:
                 &[0.,0.,0.], 2.0, 2.0, 0.0,
@@ -132,7 +258,7 @@ mod rectangle_equations_test {
             given_rect_when_aabb_and_30_degrees_rotation_expect_corners:
                 &[0.,0.,0.], 2.0, 2.0, std::f32::consts::PI/6.,
                 [-1.366,0.366,0.0],[1.366,-0.366,0.0],[0.366,1.366,0.0],[-0.366,-1.366,0.0]
-            
+
             given_rect_when_aabb_and_30_degrees_rotation_and_offset_expect_corners:
                 &[1.,0.,0.], 2.0, 2.0, std::f32::consts::PI/6.,
                 [-0.366,0.366,0.0],[2.366,-0.366,0.0],[1.366,1.366,0.0],[0.634,-1.366,0.0]
@@ -142,8 +268,10 @@ mod rectangle_equations_test {
 
     mod sat_get_axii {
         use super::super::sat_get_axii;
+        use crate::engine::physics_engine::collision::rigid_body::{
+            RigidBodyBuilder, RigidBodyType,
+        };
         use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
-        use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
         macro_rules! sat_get_axii_tests {
             ($($name:ident: $body: expr, $expected_axis1: expr, $expected_axis2: expr)*) => {
                 $(
@@ -192,49 +320,67 @@ mod rectangle_equations_test {
         }
     }
 
-    mod apply_impulse {
-        //use cgmath::Vector3;
+    mod get_corners {
+        use super::super::corners;
+        use crate::engine::physics_engine::collision::rigid_body::{
+            RigidBodyBuilder, RigidBodyType,
+        };
+        use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 
-        //use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
-        //use crate::engine::physics_engine::util::equations;
-        //use super::super::apply_impulse;
+        macro_rules! get_corners_tests {
+            ($($name:ident: $body: expr, $expected_corner1: expr, $expected_corner2: expr,
+                    $expected_corner3: expr, $expected_corner4: expr)*) => {
+                $(
+                    #[test]
+                    fn $name() {
+                        let exp1 = $expected_corner1;
+                        let exp2 = $expected_corner2;
+                        let exp3 = $expected_corner3;
+                        let exp4 = $expected_corner4;
+                        let corners = corners(&$body);
+                        let c1: [f32;3] = FixedFloatVector::from(corners[0]).into();
+                        let c2: [f32;3] = FixedFloatVector::from(corners[1]).into();
+                        let c3: [f32;3] = FixedFloatVector::from(corners[2]).into();
+                        let c4: [f32;3] = FixedFloatVector::from(corners[3]).into();
+                        assert_eq!(exp1, c1, "Expected first corner to be {exp1:?} but found {c1:?}");
+                        assert_eq!(exp2, c2, "Expected second corner to be {exp2:?} but found {c2:?}");
+                        assert_eq!(exp3, c3, "Expected third corner to be {exp3:?} but found {c3:?}");
+                        assert_eq!(exp4, c4, "Expected third corner to be {exp4:?} but found {c4:?}");
+                    }
+                )*
+            }
+        }
 
-        //#[test]
-        //fn apply_impulse_test(){
-        //    let impulse = 5.343;
-        //    let mut rectangle = RigidBodyBuilder::default().id(1)
-        //        .position([0.,5.,0.])
-        //        .mass(1.0)
-        //        .velocity([0.,0.,0.])
-        //        .rotational_velocity(std::f32::consts::PI/120.0)
-        //        .body_type(RigidBodyType::Rectangle { width: 1000., height: 10.})
-        //        .build();
-        //        
-        //    let collision_point = [-400.0, 0.0, 0.0];
-        //    let collision_normal = [0.0,-1.0,0.0];
-        //    let r_rp = [-400.0, -5.0, 0.0];
-        //    // TODO: Angular momentum should not be preserved because the impulse apply 
-        //    // applies a torque
-        //    // TODO: System total momentun (linear + angular) should be preserved
-        //    // TODO: Kinetic energy needs to be preserved (elastic collision)
-        //    let initial_kinetic_energy = 
-        //                    equations::translational_kinetic_energy(&rectangle) + 
-        //                    equations::rotational_kinetic_energy(&rectangle);
-        //   
-        //    let (new_linear_vel, new_angular_vel) = apply_impulse(
-        //        &collision_normal, &collision_point, &rectangle, -impulse, &r_rp);
+        get_corners_tests! {
+            given_rect_is_axis_aligned_and_not_offset_expect_even_corners:
+                RigidBodyBuilder::default().id(0)
+                .position([0.0,0.0,0.0])
+                .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                .build(),
+            [-5.0, 5.0, 0.0], [5.0, 5.0, 0.0],[5.0, -5.0, 0.0], [-5.0, -5.0, 0.0]
 
-        //    rectangle.velocity = Vector3::from(new_linear_vel);
-        //    rectangle.rotational_velocity = new_angular_vel;
+            given_rect_is_axis_aligned_and_offset_expect_even_corners:
+                RigidBodyBuilder::default().id(0)
+                .position([4.0,5.0,0.0])
+                .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                .build(),
+            [-1.0, 10.0, 0.0], [9.0, 10.0, 0.0],[9.0, 0.0, 0.0], [-1.0, 0.0, 0.0]
 
-        //    let resulting_kinetic_energy = 
-        //                    equations::translational_kinetic_energy(&rectangle) + 
-        //                    equations::rotational_kinetic_energy(&rectangle);
-        //    
-        //    assert_eq!(initial_kinetic_energy, resulting_kinetic_energy,
-        //        "Expected the kinetic energy to be equal before and after collision. Before: {initial_kinetic_energy} and after: {resulting_kinetic_energy}");
+            given_rect_is_rotated_and_not_offset_expect_even_corners:
+                RigidBodyBuilder::default().id(0)
+                .position([0.0,0.0,0.0])
+                .rotation(std::f32::consts::PI/4.0)
+                .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                .build(),
+            [-7.071, 0.0, 0.0], [0.0, 7.071, 0.0],[7.071, 0.0, 0.0], [0.0, -7.071, 0.0]
 
-        //}
+            given_rect_is_rotated_and_offset_expect_even_corners:
+                RigidBodyBuilder::default().id(0)
+                .position([1.0,2.0,0.0])
+                .rotation(std::f32::consts::PI/4.0)
+                .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                .build(),
+            [-6.071, 2.0, 0.0], [1.0, 9.071, 0.0],[8.071, 2.0, 0.0], [1.0, -5.071, 0.0]
+        }
     }
 }
-

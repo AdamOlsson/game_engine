@@ -24,8 +24,8 @@ pub struct RigidBody {
     pub mass: f32,
 
     pub rotation: f32,
-    pub prev_rotation:f32,
-    pub rotational_velocity: f32, 
+    pub prev_rotation: f32,
+    pub rotational_velocity: f32,
 
     // Render data
     pub color: Vector3<f32>,
@@ -39,45 +39,58 @@ impl RigidBody {
             RigidBodyType::Rectangle { width, height } => (width, height),
             _ => panic!("Self is not a rectangle"),
         };
-        
+
         let transformed_other_point = other_point - rectangle.position;
-        let local_circle_center = equations ::rotate_z(
-            &transformed_other_point.into(), -rectangle.rotation);
+        let local_circle_center =
+            equations::rotate_z(&transformed_other_point.into(), -rectangle.rotation);
 
-        let local_closest_point_on_rect_x = (-width/2.0).max(local_circle_center[0].min(width/2.0));
-        let local_closest_point_on_rect_y = (-height/2.0).max(local_circle_center[1].min(height/2.0));
+        let local_closest_point_on_rect_x =
+            (-width / 2.0).max(local_circle_center[0].min(width / 2.0));
+        let local_closest_point_on_rect_y =
+            (-height / 2.0).max(local_circle_center[1].min(height / 2.0));
         let local_closest_point_on_rect = Vector3::new(
-                local_closest_point_on_rect_x, local_closest_point_on_rect_y, 0.0);
-       
-        let local_rotated_closest_point_on_rect_ = equations::rotate_z(
-            &local_closest_point_on_rect.into(), rectangle.rotation);
+            local_closest_point_on_rect_x,
+            local_closest_point_on_rect_y,
+            0.0,
+        );
 
-        let local_rotated_closest_point_on_rect: Vector3<f32> = 
+        let local_rotated_closest_point_on_rect_ =
+            equations::rotate_z(&local_closest_point_on_rect.into(), rectangle.rotation);
+
+        let local_rotated_closest_point_on_rect: Vector3<f32> =
             FixedFloatVector::from(local_rotated_closest_point_on_rect_).into();
 
-        let closest_point_on_rect = 
-            local_rotated_closest_point_on_rect + rectangle.position;
+        let closest_point_on_rect = local_rotated_closest_point_on_rect + rectangle.position;
 
         return closest_point_on_rect;
     }
 
     pub fn inertia(&self) -> f32 {
         match self.body_type {
-            RigidBodyType::Rectangle { width, height } => 
-                rectangle_equations::inertia(height, width, self.mass),
-            RigidBodyType::Circle { radius } => 
-                circle_equations::inertia(radius, self.mass),
+            RigidBodyType::Rectangle { width, height } => {
+                rectangle_equations::inertia(height, width, self.mass)
+            }
+            RigidBodyType::Circle { radius } => circle_equations::inertia(radius, self.mass),
             _ => panic!("Unkown body type"),
         }
     }
 
-    pub fn cardinals(&self) -> [[f32;3];4]{
+    pub fn cardinals(&self) -> [[f32; 3]; 4] {
         match self.body_type {
-            RigidBodyType::Rectangle { width, height } => 
-                rectangle_equations::cardinals(&self.position.into(), width, height, self.rotation),
-            RigidBodyType::Circle { radius } => 
-                circle_equations::cardinals(self.position.into(), radius),
+            RigidBodyType::Rectangle { width, height } => {
+                rectangle_equations::cardinals(&self.position.into(), width, height, self.rotation)
+            }
+            RigidBodyType::Circle { radius } => {
+                circle_equations::cardinals(self.position.into(), radius)
+            }
             _ => panic!("Unkown body type"),
+        }
+    }
+
+    pub fn corners(&self) -> Vec<[f32; 3]> {
+        match self.body_type {
+            RigidBodyType::Rectangle { width, height } => rectangle_equations::corners(&self),
+            _ => panic!("Rigid body of type {} has no corners", self.body_type),
         }
     }
 }
@@ -86,7 +99,9 @@ impl std::fmt::Display for RigidBodyType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RigidBodyType::Circle { radius } => write!(f, "Circle({})", radius),
-            RigidBodyType::Rectangle { width, height } => write!(f, "Rectangle({},{})", width, height),
+            RigidBodyType::Rectangle { width, height } => {
+                write!(f, "Rectangle({},{})", width, height)
+            }
             RigidBodyType::Unkown => write!(f, "Uknown"),
         }
     }
@@ -114,7 +129,7 @@ pub struct RigidBodyBuilder {
     pub mass: f32,
     pub rotation: f32,
     pub prev_rotation: Option<f32>,
-    pub rotational_velocity: f32, 
+    pub rotational_velocity: f32,
     // Render data
     pub color: Vector3<f32>,
     pub sprite_coord: SpriteCoordinate,
@@ -130,41 +145,49 @@ impl std::default::Default for RigidBodyBuilder {
         let rotation = 0.0;
         let prev_rotation = None;
         let rotational_velocity = 0.0;
-        let body_type = RigidBodyType::Unkown; 
+        let body_type = RigidBodyType::Unkown;
         let mass = 1.0;
         let color = blue();
         let sprite_coord = SpriteCoordinate::none();
-        Self { velocity: velocity.into(), rotational_velocity,
-            id, acceleration: acceleration.into(), prev_position,
-            position: position.into(), body_type,mass,rotation,//inertia,
-            color: color.into(),sprite_coord, prev_rotation,
+        Self {
+            velocity: velocity.into(),
+            rotational_velocity,
+            id,
+            acceleration: acceleration.into(),
+            prev_position,
+            position: position.into(),
+            body_type,
+            mass,
+            rotation, //inertia,
+            color: color.into(),
+            sprite_coord,
+            prev_rotation,
         }
     }
 }
 
 impl RigidBodyBuilder {
-   
     pub fn id(mut self, id: usize) -> Self {
         self.id = Some(id);
         self
     }
 
-    pub fn velocity(mut self, velocity: [f32;3]) -> Self {
+    pub fn velocity(mut self, velocity: [f32; 3]) -> Self {
         self.velocity = velocity.into();
         self
     }
 
-    pub fn acceleration(mut self, acceleration: [f32;3]) -> Self {
+    pub fn acceleration(mut self, acceleration: [f32; 3]) -> Self {
         self.acceleration = acceleration.into();
         self
-     }
+    }
 
-    pub fn prev_position(mut self, prev_position: [f32;3]) -> Self {
+    pub fn prev_position(mut self, prev_position: [f32; 3]) -> Self {
         self.prev_position = Some(prev_position.into());
         self
     }
 
-    pub fn position(mut self, position: [f32;3]) -> Self {
+    pub fn position(mut self, position: [f32; 3]) -> Self {
         self.position = position.into();
         self
     }
@@ -172,7 +195,7 @@ impl RigidBodyBuilder {
     pub fn body_type(mut self, body_type: RigidBodyType) -> Self {
         self.body_type = body_type;
         self
-    } 
+    }
 
     pub fn mass(mut self, mass: f32) -> Self {
         self.mass = mass;
@@ -184,7 +207,7 @@ impl RigidBodyBuilder {
         self
     }
 
-    pub fn prev_rotation(mut self, prev_rotation: [f32;3]) -> Self {
+    pub fn prev_rotation(mut self, prev_rotation: [f32; 3]) -> Self {
         self.prev_position = Some(prev_rotation.into());
         self
     }
@@ -193,8 +216,8 @@ impl RigidBodyBuilder {
         self.rotational_velocity = radians;
         self
     }
-   
-    pub fn color(mut self, color: [f32;3]) -> Self {
+
+    pub fn color(mut self, color: [f32; 3]) -> Self {
         self.color = color.into();
         self
     }
@@ -203,7 +226,7 @@ impl RigidBodyBuilder {
         self.sprite_coord = sprite_coord;
         self
     }
- 
+
     pub fn build(self) -> RigidBody {
         let id = match self.id {
             Some(id) => id,
@@ -220,11 +243,19 @@ impl RigidBodyBuilder {
             None => self.rotation - self.rotational_velocity,
         };
 
-        RigidBody { id, velocity: self.velocity, acceleration: self.acceleration, 
-            prev_position, position: self.position,
-            body_type: self.body_type, mass: self.mass, rotation: self.rotation,
-            color: self.color, sprite_coord: self.sprite_coord, //inertia: self.inertia,
-            rotational_velocity: self.rotational_velocity, prev_rotation
+        RigidBody {
+            id,
+            velocity: self.velocity,
+            acceleration: self.acceleration,
+            prev_position,
+            position: self.position,
+            body_type: self.body_type,
+            mass: self.mass,
+            rotation: self.rotation,
+            color: self.color,
+            sprite_coord: self.sprite_coord, //inertia: self.inertia,
+            rotational_velocity: self.rotational_velocity,
+            prev_rotation,
         }
     }
 }
@@ -242,13 +273,12 @@ mod rigid_body_tests {
                         let r: RigidBody = $rectangle;
                         let expected_output: Vector3<f32> = $expected;
                         let output = r.closest_point_on_rectangle($other_point);
-                        assert_eq!(expected_output, output, 
+                        assert_eq!(expected_output, output,
                             "Expected {expected_output:?} but found {output:?}");
                     }
                 )*
             }
         }
-
 
         closest_point_on_rectangle_tests! {
             given_other_point_is_x_axis_aligned_when_no_rotation_expect_closest_point_to_be_axis_aligned:
@@ -284,7 +314,7 @@ mod rigid_body_tests {
                     .body_type(RigidBodyType::Rectangle {width: 10., height: 10.,})
                     .build(),
                 Vector3::new(-15., 15., 0.), Vector3::new(-5., 5.0, 0.)
-            
+
             given_other_point_is_diagonally_when_rect_rotated_neg_90_expect_closest_point_to_be_corner:
                 RigidBodyBuilder::default().id(0).position([0.,0.,0.])
                     .rotation(-std::f32::consts::PI/2.0)
@@ -327,7 +357,7 @@ mod rigid_body_tests {
                     .body_type(RigidBodyType::Rectangle {width: 500., height: 500.,})
                     .build(),
                 Vector3::new(0., 400., 0.), Vector3::new(0., 250., 0.)
-            
+
             given_point_is_async_offset_when_rectangle_is_rotated_90_degrees_and_async_offset_expect_closest_point_be_on_rect_edge:
                 RigidBodyBuilder::default().id(0).position([-150.,50.,0.])
                     .rotation(std::f32::consts::PI/2.0)

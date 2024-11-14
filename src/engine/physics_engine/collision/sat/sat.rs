@@ -347,9 +347,9 @@ pub fn sat_collision_detection(
 
     let axis = axii[index];
     let collision_point = [
-        overlap.max[0] + axis[0] * overlap.distance,
-        overlap.max[1] + axis[1] * overlap.distance,
-        overlap.max[2] + axis[2] * overlap.distance,
+        overlap.min[0] + axis[0] * overlap.distance,
+        overlap.min[1] + axis[1] * overlap.distance,
+        overlap.min[2] + axis[2] * overlap.distance,
     ];
 
     let collision_info = super::SATCollisionInfo {
@@ -621,17 +621,17 @@ mod sat_test {
                             (Some(e_collision_info), Some(collision_info)) => {
                                 let penetration_depth_ff: f32 = FixedFloat::from(collision_info.penetration_depth).into();
                                 let normal_ff: [f32;3] = FixedFloatVector::from(collision_info.normal).into();
-                                //let collision_point_ff: [f32;3] = FixedFloatVector::from(collision_info.collision_point).into()                 ;
+                                let collision_point_ff: [f32;3] = FixedFloatVector::from(collision_info.collision_point).into();
                                 assert_eq!(e_collision_info.penetration_depth,
                                     penetration_depth_ff,
                                     "Expected collision info {e_collision_info:?} but found {collision_info:?}");
                                 assert_eq!(e_collision_info.normal,
                                     normal_ff,
                                     "Expected collision info {e_collision_info:?} but found {collision_info:?}");
-                                //assert_eq!(e_collision_info.collision_point,
-                                //    collision_point_ff,
-                                //    "Expected collision info {e_collision_info:?} but found {collision_info:?}");
-},
+                                assert_eq!(e_collision_info.collision_point,
+                                    collision_point_ff,
+                                    "Expected collision info {e_collision_info:?} but found {collision_info:?}");
+                            },
                         }
                     }
                 )*
@@ -673,7 +673,7 @@ mod sat_test {
                 Some(SATCollisionInfo {
                     penetration_depth: 1.0,
                     normal: [1.0,0.0,0.0],
-                    collision_point: [0.0,0.0,0.0] // TODO
+                    collision_point: [0.0,5.0,0.0]
                 })
 
             given_rectangles_are_axis_aligned_when_overlap_on_y_axis_but_bodies_have_swapped_order_expect_collision:
@@ -688,7 +688,7 @@ mod sat_test {
                 Some(SATCollisionInfo {
                     penetration_depth: 1.0,
                     normal: [1.0,0.0,0.0],
-                    collision_point: [0.0,0.0,0.0] // TODO
+                    collision_point: [0.0,5.0,0.0]
                 })
 
             given_rectangles_are_axis_aligned_and_offset_when_overlapping_on_x_axis_expect_collision:
@@ -703,7 +703,7 @@ mod sat_test {
                 Some(SATCollisionInfo {
                     penetration_depth: 5.0,
                     normal: [0.0,1.0,0.0],
-                    collision_point: [0.0,0.0,0.0] // TODO
+                    collision_point: [0.0,20.0,0.0]
                 })
 
             given_one_rectangle_is_axis_aligned_and_one_rotated_90_degrees_when_overlap_on_y_axis_expect_collision:
@@ -719,7 +719,7 @@ mod sat_test {
                 Some(SATCollisionInfo {
                     penetration_depth: 5.0,
                     normal: [-1.0,0.0,0.0],
-                    collision_point: [0.0,0.0,0.0] // TODO
+                    collision_point: [5.0,5.0,0.0]
                 })
 
             given_rectangles_are_rotated_45_degrees_when_their_sides_overlap_expect_collision:
@@ -736,38 +736,42 @@ mod sat_test {
                 Some(SATCollisionInfo {
                     penetration_depth: 1.414,
                     normal: [0.707,0.707,0.0],
-                    collision_point: [0.0,0.0,0.0] // TODO
+                    collision_point: [0.0,7.071,0.0]
                 })
 
             given_rectangles_are_rotated_neg_45_degrees_when_their_sides_overlap_expect_collision:
                 RigidBodyBuilder::default().id(0)
                     .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
-                    .rotation(-std::f32::consts::PI/4.0)
+                    .rotation(std::f32::consts::PI/4.0)
                     .position([0.0,0.0,0.0])
                     .build(),
                 RigidBodyBuilder::default().id(1)
                     .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
                     .rotation(-std::f32::consts::PI/4.0)
-                    .position([6.071,-6.071,0.0])
+                    .position([5.0,-5.0,0.0])
                     .build(),
                 Some(SATCollisionInfo {
-                    penetration_depth: 1.414,
-                    normal: [0.707,-0.707,0.0],
-                    collision_point: [0.0,0.0,0.0] // TODO
+                    penetration_depth: 2.929,
+                    normal: [-0.707,0.707,0.0],
+                    collision_point: [5.0,2.071,0.0]
                 })
 
-            //given_rectangles_are_rotated_neg_45_degrees_when_their_corners_overlap_expect_collision:
-            //    RigidBodyBuilder::default().id(0)
-            //        .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
-            //        .rotation(-std::f32::consts::PI/4.0)
-            //        .position([-5.0,0.0,0.0])
-            //        .build(),
-            //    RigidBodyBuilder::default().id(1)
-            //        .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
-            //        .rotation(-std::f32::consts::PI/4.0)
-            //        .position([5.0,0.0,0.0])
-            //        .build(),
-            //    Some((2.07*2.0, [1.0,0.0,0.0]))
+            given_rectangles_are_rotated_neg_45_degrees_when_their_corners_overlap_expect_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .rotation(-std::f32::consts::PI/4.0)
+                    .position([-5.0,0.0,0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .rotation(std::f32::consts::PI/4.0)
+                    .position([5.0,0.0,0.0])
+                    .build(),
+                Some(SATCollisionInfo {
+                    penetration_depth: 2.929,
+                    normal: [0.707, 0.707,0.0],
+                    collision_point: [0.0,2.071,0.0]
+                })
         }
     }
 }

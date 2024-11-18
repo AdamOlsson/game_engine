@@ -2,7 +2,7 @@ use image::{ImageBuffer, Rgba};
 
 use super::Asset;
 
-
+#[derive(Clone)]
 pub struct Background {
     pub img_buf: ImageBuffer<Rgba<u8>, Vec<u8>>,
     pub img_data: Vec<f32>,

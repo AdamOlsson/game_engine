@@ -2,6 +2,7 @@ use super::sprite_sheet::SpriteSheet;
 
 use super::Asset;
 
+#[derive(Clone)]
 pub struct Font {
     font_sprite: SpriteSheet,
 }
@@ -20,10 +21,10 @@ impl Writer {
     pub fn write(text: &str, position: &[f32; 3], size: f32) -> Vec<FontInstance> {
         let upper = text.to_uppercase();
         let bytes = upper.as_bytes();
-        
-        // All characters are offset by because whitespace is the first char 
-        let locations = bytes.iter()
-            .map(|b| if Self::is_number(b) {
+
+        // All characters are offset by because whitespace is the first char
+        let locations = bytes.iter().map(|b| {
+            if Self::is_number(b) {
                 return b - 48 + 1;
             } else if Self::is_character(b) {
                 return b - 65 + 10 + 1; // +10 to get the position of the character in the sprite sheet
@@ -32,14 +33,15 @@ impl Writer {
             } else {
                 println!("Found invalid u8 character {b}");
                 return 0;
-            });
-        
+            }
+        });
+
         let coordinates: Vec<FontInstance> = locations
             .enumerate()
-            .map(|(i,l)| FontInstance {
+            .map(|(i, l)| FontInstance {
                 font_coord: [l as f32, 0.0, l as f32 + 1., 1.],
                 position: [(i as f32 * size) + position[0], position[1], position[2]],
-                size
+                size,
             })
             .collect();
         return coordinates;
@@ -108,21 +110,26 @@ mod test {
     use crate::engine::renderer_engine::asset::font::Writer;
 
     #[test]
-    fn zero(){
-
+    fn zero() {
         let char_width = 11.0;
         let char = "0";
-        let expected_out = [1.0,0.0, 2.0,1.0];
-        let out = Writer::write(char, &[0.,0.,0.], char_width);
-        assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
+        let expected_out = [1.0, 0.0, 2.0, 1.0];
+        let out = Writer::write(char, &[0., 0., 0.], char_width);
+        assert_eq!(
+            out[0].font_coord, expected_out,
+            "Character {char} did not convert to the correct sprite coordinate"
+        );
     }
 
     #[test]
-    fn z(){
+    fn z() {
         let char_width = 11.0;
         let char = "Z";
-        let expected_out = [36.0,0.0, 37.0,1.0];
-        let out = Writer::write(char, &[0.,0.,0.], char_width);
-        assert_eq!(out[0].font_coord, expected_out, "Character {char} did not convert to the correct sprite coordinate");
+        let expected_out = [36.0, 0.0, 37.0, 1.0];
+        let out = Writer::write(char, &[0., 0., 0.], char_width);
+        assert_eq!(
+            out[0].font_coord, expected_out,
+            "Character {char} did not convert to the correct sprite coordinate"
+        );
     }
 }

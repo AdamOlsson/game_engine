@@ -1,3 +1,4 @@
+use crate::engine::event::user_event::UserEvent;
 use crate::engine::renderer_engine::asset::background::Background;
 use crate::engine::renderer_engine::asset::font::Font;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
@@ -12,9 +13,8 @@ use std::time::{Duration, Instant};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalSize,
-    event::{ElementState, KeyEvent, WindowEvent},
+    event::WindowEvent,
     event_loop::EventLoop,
-    keyboard::{KeyCode, PhysicalKey},
     window::{Window, WindowId},
 };
 
@@ -132,30 +132,13 @@ impl<'a, T: PhysicsEngine + RenderEngine> ApplicationHandler for GameEngine<'a, 
                 }
             }
             WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::KeyboardInput {
-                device_id: _,
-                event: key_event,
-                is_synthetic: _,
-            } => match key_event {
-                KeyEvent {
-                    physical_key: PhysicalKey::Code(KeyCode::KeyW),
-                    state,
-                    repeat,
-                    ..
-                } => match state {
-                    ElementState::Pressed => (),
-                    ElementState::Released => (),
-                },
-                KeyEvent {
-                    physical_key: PhysicalKey::Code(KeyCode::Escape),
-                    state,
-                    ..
-                } => match state {
-                    ElementState::Pressed => (),
-                    ElementState::Released => event_loop.exit(),
-                },
-                _ => (),
-            },
+            WindowEvent::CursorLeft { .. }
+            | WindowEvent::KeyboardInput { .. }
+            | WindowEvent::MouseInput { .. }
+            | WindowEvent::CursorEntered { .. }
+            | WindowEvent::CursorMoved { .. } => {
+                let user_event = UserEvent::from(event);
+            }
             _ => (),
         }
     }

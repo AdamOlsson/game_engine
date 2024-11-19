@@ -11,20 +11,24 @@ pub struct FixedFloatVector {
 
 impl FixedFloatVector {
     pub fn new<T: Into<FixedFloat>>(x: T, y: T, z: T) -> Self {
-        FixedFloatVector { x: x.into(), y: y.into(), z: z.into(),}
-    } 
-    
+        FixedFloatVector {
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+        }
+    }
+
     pub fn rotate_z(&self, theta: &FixedFloat) -> Self {
         let sin_theta = theta.sin();
         let cos_theta = theta.cos();
         Self::new(
             self.x * cos_theta - self.y * sin_theta,
             self.x * sin_theta + self.y * cos_theta,
-            self.z, 
+            self.z,
         )
     }
 
-    pub fn dot(&self, rhs: &FixedFloatVector) -> FixedFloat {
+    pub fn dot(&self, _rhs: &FixedFloatVector) -> FixedFloat {
         todo!();
     }
 
@@ -40,7 +44,7 @@ impl FixedFloatVector {
         todo!();
     }
 
-    pub fn distance2(&self, other: &Self) -> FixedFloat {
+    pub fn distance2(&self, _other: &Self) -> FixedFloat {
         todo!();
     }
 
@@ -49,26 +53,28 @@ impl FixedFloatVector {
     }
 }
 
-impl From<[f32;3]> for FixedFloatVector {
-    fn from(value: [f32;3]) -> FixedFloatVector {
+impl From<[f32; 3]> for FixedFloatVector {
+    fn from(value: [f32; 3]) -> FixedFloatVector {
         FixedFloatVector::new(
-            FixedFloat::from(value[0]), 
-            FixedFloat::from(value[1]), 
-            FixedFloat::from(value[2]),)
-    } 
+            FixedFloat::from(value[0]),
+            FixedFloat::from(value[1]),
+            FixedFloat::from(value[2]),
+        )
+    }
 }
 
 impl From<cgmath::Vector3<f32>> for FixedFloatVector {
     fn from(vec: cgmath::Vector3<f32>) -> FixedFloatVector {
         FixedFloatVector::new(
-            FixedFloat::from(vec.x), 
-            FixedFloat::from(vec.y), 
-            FixedFloat::from(vec.z),)
-    } 
+            FixedFloat::from(vec.x),
+            FixedFloat::from(vec.y),
+            FixedFloat::from(vec.z),
+        )
+    }
 }
 
 impl Into<[f32; 3]> for FixedFloatVector {
-    fn into(self) -> [f32;3] {
+    fn into(self) -> [f32; 3] {
         [self.x.into(), self.y.into(), self.z.into()]
     }
 }
@@ -173,7 +179,11 @@ impl Mul<FixedFloatVector> for f32 {
 impl Neg for FixedFloatVector {
     type Output = FixedFloatVector;
     fn neg(self) -> Self {
-        Self { x: -self.x, y: -self.y, z: -self.z }
+        Self {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+        }
     }
 }
 

@@ -52,10 +52,10 @@ fn vs_main(
     var out: VertexOutput;
     out.color = instance.color; 
 
-    let scaled_object_center = instance.center / vec3<f32>(window_size, 1.0);
+    let scaled_object_center = instance.center / vec3<f32>(window_size/2.0, 1.0);
     
-    let scaled_object_width = instance.width / window_size[0];
-    let scaled_object_height = instance.height / window_size[1];
+    let scaled_object_width = instance.width / (window_size[0]/2.0);
+    let scaled_object_height = instance.height / (window_size[1]/2.0);
     let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_width/2.0, scaled_object_height/2.0, 1.0);
 
     let rotation_matrix = mat2x2<f32>(

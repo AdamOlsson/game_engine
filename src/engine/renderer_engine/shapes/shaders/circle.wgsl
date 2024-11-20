@@ -50,10 +50,10 @@ fn vs_main(
     var out: VertexOutput;
     out.color = instance.color;
 
-    let scaled_object_position = instance.position / vec3<f32>(window_size, 1.0);
+    let scaled_object_position = instance.position / vec3<f32>(window_size/2.0, 1.0);
 
     // Circle vertices are defined with radius 1.0 using vertices
-    let scaled_object_radius = vec2<f32>(instance.radius, instance.radius) / window_size;
+    let scaled_object_radius = vec2<f32>(instance.radius, instance.radius) / (window_size/2.0);
     let scaled_vertex_position = vertex.position * vec3<f32>(scaled_object_radius, 1.0);
 
     let rotation_matrix = mat2x2<f32>(

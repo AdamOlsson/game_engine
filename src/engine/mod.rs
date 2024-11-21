@@ -8,11 +8,12 @@ use crate::engine::event::user_event::UserEvent;
 use physics_engine::collision::rigid_body::RigidBody;
 use renderer_engine::render_engine::RenderEngineControl;
 
+#[allow(unused_variables)]
 pub trait PhysicsEngine {
     fn update(&mut self);
     fn get_bodies(&self) -> &Vec<RigidBody>;
 
-    fn user_event(&mut self, _event: UserEvent) {}
+    fn user_event(&mut self, event: UserEvent) {}
 }
 
 pub trait RenderEngine {

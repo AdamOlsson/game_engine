@@ -89,8 +89,18 @@ impl RigidBody {
 
     pub fn corners(&self) -> Vec<[f32; 3]> {
         match self.body_type {
-            RigidBodyType::Rectangle { width, height } => rectangle_equations::corners(&self),
+            RigidBodyType::Rectangle { .. } => rectangle_equations::corners(&self),
             _ => panic!("Rigid body of type {} has no corners", self.body_type),
+        }
+    }
+
+    pub fn click_inside(&self, point: (f32, f32)) -> bool {
+        match self.body_type {
+            RigidBodyType::Rectangle { .. } => rectangle_equations::click_inside(point, &self),
+            _ => panic!(
+                "Rigid body of type {} has no click_inside() function",
+                self.body_type
+            ),
         }
     }
 }

@@ -73,6 +73,21 @@ pub fn cardinals(center: &[f32; 3], width: f32, height: f32, rotation: f32) -> [
     ];
 }
 
+pub fn click_inside(point: (f32, f32), rectangle: &RigidBody) -> bool {
+    let (width, height) = match rectangle.body_type {
+        RigidBodyType::Rectangle { width, height } => (width, height),
+        _ => unreachable!(),
+    };
+
+    let transformed_point = [
+        point.0 - rectangle.position.x,
+        point.1 - rectangle.position.y,
+        0.0,
+    ];
+    let local_point = equations::rotate_z(&transformed_point, -rectangle.rotation);
+    local_point[0].abs() <= width / 2.0 && local_point[1].abs() <= height / 2.0
+}
+
 /// Computes the world-space coordinates of the four corners of a rectangle,
 /// taking into account its position and rotation.
 ///

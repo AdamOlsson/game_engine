@@ -132,13 +132,21 @@ impl<'a, T: PhysicsEngine + RenderEngine> ApplicationHandler for GameEngine<'a, 
                 }
             }
             WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CursorMoved { position, .. } => {
+                let cursor_position_x = position.x - (self.window_size.width as f64 / 2.0);
+                let cursor_position_y = (self.window_size.height as f64 / 2.0) - position.y;
+                self.engine.user_event(UserEvent::CursorMoved(
+                    super::event::cursor_moved_event::CursorMovedEvent {
+                        x: cursor_position_x,
+                        y: cursor_position_y,
+                    },
+                ))
+            }
             WindowEvent::CursorLeft { .. }
             | WindowEvent::KeyboardInput { .. }
             | WindowEvent::MouseInput { .. }
-            | WindowEvent::CursorEntered { .. }
-            | WindowEvent::CursorMoved { .. } => {
-                let user_event = UserEvent::from(event);
-            }
+            | WindowEvent::CursorEntered { .. } => self.engine.user_event(UserEvent::from(event)),
+
             _ => (),
         }
     }

@@ -77,13 +77,13 @@ impl DebugPhysicsEngine {
 
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
         constraint.set_top_left(Vector3::new(
-            -(window_size.0 as f32),
-            window_size.1 as f32,
+            -(window_size.0 as f32) / 2.0,
+            window_size.1 as f32 / 2.0,
             0.0,
         ));
         constraint.set_bottom_right(Vector3::new(
-            window_size.0 as f32,
-            -(window_size.1 as f32),
+            window_size.0 as f32 / 2.0,
+            -(window_size.1 as f32) / 2.0,
             0.0,
         ));
         let broadphase = Box::new(BlockMap::new(window_size.0 as f32));

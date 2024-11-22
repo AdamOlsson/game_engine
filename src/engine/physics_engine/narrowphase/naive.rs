@@ -2,7 +2,7 @@ use crate::engine::physics_engine::collision::{
     collision_candidates::CollisionCandidates,
     collision_handler::CollisionHandler,
     rigid_body::{RigidBody, RigidBodyType},
-    CollisionGraph,
+    CollisionGraph, CollisionGraphNode,
 };
 
 use super::NarrowPhase;
@@ -34,7 +34,7 @@ where
     ) -> Option<CollisionGraph> {
         let num_candidates = candidates.len();
 
-        let mut collisions: Vec<(usize, usize)> = vec![];
+        let mut collisions: Vec<CollisionGraphNode> = vec![];
         if num_candidates <= 1 {
             return None;
         }
@@ -67,8 +67,12 @@ where
                     (_, _) => panic!("Unkown body type collision {type_i} and {type_j}"),
                 };
 
-                if let Some(_info) = collision_info {
-                    collisions.push((idx_i, idx_j));
+                if let Some(info) = collision_info {
+                    collisions.push(CollisionGraphNode {
+                        body_i_idx: idx_i,
+                        body_j_idx: idx_j,
+                        info,
+                    });
                 }
             }
         }

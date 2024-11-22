@@ -6,7 +6,14 @@ pub mod sat;
 
 #[derive(Debug)]
 pub struct CollisionGraph {
-    pub collisions: Vec<(usize, usize)>,
+    pub collisions: Vec<CollisionGraphNode>,
+}
+
+#[derive(Debug)]
+pub struct CollisionGraphNode {
+    pub body_i_idx: usize,
+    pub body_j_idx: usize,
+    pub info: CollisionInformation,
 }
 
 impl std::fmt::Display for CollisionGraph {

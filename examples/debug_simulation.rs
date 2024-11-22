@@ -45,21 +45,21 @@ impl DebugPhysicsEngine {
                 .velocity([2., 0., 0.])
                 .position([-400., 0., 0.])
                 .sprite_coord(SpriteCoordinate::new([2., 0.], [3., 1.]))
-                .body_type(RigidBodyType::Circle { radius: 100. })
+                .body_type(RigidBodyType::Circle { radius: 50. })
                 .build(),
             RigidBodyBuilder::default()
                 .id(1)
                 .velocity([1., 2., 0.])
                 .position([400., 400., 0.])
                 .color(blue())
-                .body_type(RigidBodyType::Circle { radius: 100. })
+                .body_type(RigidBodyType::Circle { radius: 50. })
                 .build(),
             RigidBodyBuilder::default()
                 .id(2)
                 .velocity([2., 1.5, 0.])
                 .position([350., 0., 0.])
                 .color(green())
-                .body_type(RigidBodyType::Circle { radius: 120. })
+                .body_type(RigidBodyType::Circle { radius: 60. })
                 .build(),
             RigidBodyBuilder::default()
                 .id(3)
@@ -67,8 +67,8 @@ impl DebugPhysicsEngine {
                 .position(zero())
                 .sprite_coord(SpriteCoordinate::new([1., 0.], [2., 1.]))
                 .body_type(RigidBodyType::Rectangle {
-                    width: 200.,
-                    height: 200.,
+                    width: 100.,
+                    height: 100.,
                 })
                 .build(),
         ];
@@ -159,8 +159,8 @@ impl PhysicsEngine for DebugPhysicsEngine {
         let rect_id = 3;
         bodies[rect_id].color = Vector3::new(0.0, 255.0, 255.0);
         for g in graphs {
-            for pairs in g.collisions {
-                if pairs.0 == rect_id || pairs.1 == rect_id {
+            for node in g.collisions {
+                if node.body_i_idx == rect_id || node.body_j_idx == rect_id {
                     bodies[rect_id].color = Vector3::new(255.0, 255.0, 0.0);
                 }
             }

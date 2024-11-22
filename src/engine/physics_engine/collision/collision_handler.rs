@@ -277,14 +277,14 @@ impl CollisionHandler for SimpleCollisionSolver {
         // If we can find an axis where the projections to not overlap,
         // then the bodies does not overlap
 
-        let collision_info = match sat::sat_collision_detection(body_i, body_j) {
+        let info = match sat::sat_collision_detection(body_i, body_j) {
             None => return None,
             Some(ci) => ci,
         };
 
         // TODO: Check if objects move away from each other in cp
 
-        return None;
+        return Some(info);
     }
 }
 

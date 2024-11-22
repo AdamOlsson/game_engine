@@ -1,5 +1,6 @@
 pub mod collision_candidates;
 pub mod collision_handler;
+pub mod identity_collision_handler;
 pub mod rigid_body;
 pub mod sat;
 
@@ -13,4 +14,11 @@ impl std::fmt::Display for CollisionGraph {
         let s = format!("{:?}", self.collisions);
         write!(f, "CollisionGraph{{ {s} }}")
     }
+}
+
+#[derive(Debug)]
+pub struct CollisionInformation {
+    pub penetration_depth: f32,
+    pub normal: [f32; 3],
+    pub collision_point: [f32; 3],
 }

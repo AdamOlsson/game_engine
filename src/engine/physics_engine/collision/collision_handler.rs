@@ -1,6 +1,6 @@
 use super::rigid_body::{RigidBody, RigidBodyType};
-use super::sat::sat;
-use crate::engine::physics_engine::util::rectangle_equations;
+use super::CollisionInformation;
+use crate::engine::physics_engine::collision::sat::sat;
 use crate::engine::{
     physics_engine::util::equations::{
         self, impulse_magnitude, post_collision_angular_velocity, post_collision_velocity,
@@ -15,53 +15,21 @@ pub trait CollisionHandler {
         bodies: &mut Vec<RigidBody>,
         idx_i: usize,
         idx_j: usize,
-    ) -> bool;
+    ) -> Option<CollisionInformation>;
+
     fn handle_circle_rect_collision(
         &self,
         bodies: &mut Vec<RigidBody>,
         idx_i: usize,
         idx_j: usize,
-    ) -> bool;
+    ) -> Option<CollisionInformation>;
+
     fn handle_rect_rect_collision(
         &self,
         bodies: &mut Vec<RigidBody>,
         idx_i: usize,
         idx_j: usize,
-    ) -> bool;
-}
-
-pub struct IdentityCollisionSolver {}
-impl IdentityCollisionSolver {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl CollisionHandler for IdentityCollisionSolver {
-    fn handle_circle_circle_collision(
-        &self,
-        _bodies: &mut Vec<RigidBody>,
-        _idx_i: usize,
-        _idx_j: usize,
-    ) -> bool {
-        false
-    }
-    fn handle_circle_rect_collision(
-        &self,
-        _bodies: &mut Vec<RigidBody>,
-        _idx_i: usize,
-        _idx_j: usize,
-    ) -> bool {
-        false
-    }
-    fn handle_rect_rect_collision(
-        &self,
-        _bodies: &mut Vec<RigidBody>,
-        _idx_i: usize,
-        _idx_j: usize,
-    ) -> bool {
-        false
-    }
+    ) -> Option<CollisionInformation>;
 }
 
 pub struct SimpleCollisionSolver {}
@@ -77,7 +45,7 @@ impl CollisionHandler for SimpleCollisionSolver {
         bodies: &mut Vec<RigidBody>,
         idx_i: usize,
         idx_j: usize,
-    ) -> bool {
+    ) -> Option<CollisionInformation> {
         let body_i = &bodies[idx_i];
         let body_j = &bodies[idx_j];
 
@@ -90,7 +58,7 @@ impl CollisionHandler for SimpleCollisionSolver {
 
         let dist = body_i.position.distance(body_j.position);
         if dist >= (radius_i + radius_j) {
-            return false;
+            return None;
         }
 
         let collision_axis = body_i.position - body_j.position;
@@ -98,6 +66,7 @@ impl CollisionHandler for SimpleCollisionSolver {
         let dist = collision_axis.magnitude();
         let correction_direction = collision_axis / dist;
         let collision_depth = radius_i + radius_j - dist;
+        let collision_point = body_i.position + collision_normal * (*radius_i);
 
         bodies[idx_i].position += 0.5 * collision_depth * correction_direction;
         bodies[idx_j].position -= 0.5 * collision_depth * correction_direction;
@@ -110,7 +79,13 @@ impl CollisionHandler for SimpleCollisionSolver {
         bodies[idx_i].prev_position = bodies[idx_i].position - bodies[idx_i].velocity;
         bodies[idx_j].prev_position = bodies[idx_j].position - bodies[idx_j].velocity;
 
-        return true;
+        let info = CollisionInformation {
+            penetration_depth: collision_depth,
+            normal: collision_normal.into(),
+            collision_point: collision_point.into(),
+        };
+
+        return Some(info);
     }
 
     fn handle_circle_rect_collision(
@@ -118,7 +93,7 @@ impl CollisionHandler for SimpleCollisionSolver {
         bodies: &mut Vec<RigidBody>,
         circ_idx: usize,
         rect_idx: usize,
-    ) -> bool {
+    ) -> Option<CollisionInformation> {
         let circle = &bodies[circ_idx];
         let radius = match circle.body_type {
             RigidBodyType::Circle { radius } => radius,
@@ -133,13 +108,13 @@ impl CollisionHandler for SimpleCollisionSolver {
         // radius of the circle. This will not cause an error but any computations
         // afterward are invalid.
         if distance2 >= radius.powi(2) {
-            return false;
+            return None;
         }
 
         let penetration_depth: f32 = FixedFloat::from(radius - distance2.sqrt()).into();
 
         if penetration_depth <= 0.0 {
-            return false;
+            return None;
         }
         debug_assert!(penetration_depth >= 0.0,
             "Penetration depth less than or equal to the radius the circle causes undefined behavior");
@@ -161,7 +136,7 @@ impl CollisionHandler for SimpleCollisionSolver {
 
         // If objects are moving away from each other, we do not consider a collision
         if equations::dot(&relative_vel_at_p, &collision_normal_unit.into()) > 0.0 {
-            return false;
+            return None;
         }
 
         let c_r = 1.0;
@@ -268,7 +243,13 @@ impl CollisionHandler for SimpleCollisionSolver {
         bodies[rect_idx].prev_rotation =
             bodies[rect_idx].rotation - bodies[rect_idx].rotational_velocity;
 
-        return true;
+        let info = CollisionInformation {
+            penetration_depth,
+            normal: collision_normal_unit.into(),
+            collision_point: closest_point_on_rect.into(),
+        };
+
+        return Some(info);
     }
 
     fn handle_rect_rect_collision(
@@ -276,7 +257,7 @@ impl CollisionHandler for SimpleCollisionSolver {
         bodies: &mut Vec<RigidBody>,
         idx_i: usize,
         idx_j: usize,
-    ) -> bool {
+    ) -> Option<CollisionInformation> {
         let body_i = &bodies[idx_i];
         let body_j = &bodies[idx_j];
         let ((wi, hi), (wj, hj)) = match (&body_i.body_type, &body_j.body_type) {
@@ -296,7 +277,14 @@ impl CollisionHandler for SimpleCollisionSolver {
         // If we can find an axis where the projections to not overlap,
         // then the bodies does not overlap
 
-        return false;
+        let collision_info = match sat::sat_collision_detection(body_i, body_j) {
+            None => return None,
+            Some(ci) => ci,
+        };
+
+        // TODO: Check if objects move away from each other in cp
+
+        return None;
     }
 }
 

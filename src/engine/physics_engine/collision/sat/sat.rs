@@ -1,3 +1,4 @@
+use super::super::CollisionInformation;
 use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
 use crate::engine::physics_engine::util::equations;
 
@@ -298,7 +299,7 @@ pub fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> Overlap
 pub fn sat_collision_detection(
     body_a: &RigidBody,
     body_b: &RigidBody,
-) -> Option<super::SATCollisionInfo> {
+) -> Option<CollisionInformation> {
     let axii_a = sat_get_axii(&body_a);
     let axii_b = sat_get_axii(&body_b);
 
@@ -352,7 +353,7 @@ pub fn sat_collision_detection(
         overlap.min[2] + axis[2] * overlap.distance,
     ];
 
-    let collision_info = super::SATCollisionInfo {
+    let collision_info = CollisionInformation {
         penetration_depth: overlap.distance,
         normal: axis,
         collision_point,
@@ -598,8 +599,8 @@ mod sat_test {
     }
 
     mod sat_collision_detection {
-        use super::super::super::SATCollisionInfo;
         use super::super::sat_collision_detection;
+        use super::super::CollisionInformation;
         use crate::engine::physics_engine::collision::rigid_body::{
             RigidBodyBuilder, RigidBodyType,
         };
@@ -611,7 +612,7 @@ mod sat_test {
                 $(
                     #[test]
                     fn $name() {
-                        let expected: Option<SATCollisionInfo> = $expected;
+                        let expected: Option<CollisionInformation> = $expected;
                         let collision_info = sat_collision_detection(&$body_a, &$body_b);
 
                         match (expected, collision_info) {
@@ -670,7 +671,7 @@ mod sat_test {
                     .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
                     .position([9.0,0.0,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 1.0,
                     normal: [1.0,0.0,0.0],
                     collision_point: [0.0,5.0,0.0]
@@ -685,7 +686,7 @@ mod sat_test {
                     .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
                     .position([-10.0,0.0,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 1.0,
                     normal: [1.0,0.0,0.0],
                     collision_point: [0.0,5.0,0.0]
@@ -700,7 +701,7 @@ mod sat_test {
                     .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
                     .position([-10.0,15.0,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 5.0,
                     normal: [0.0,1.0,0.0],
                     collision_point: [0.0,20.0,0.0]
@@ -716,7 +717,7 @@ mod sat_test {
                     .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
                     .position([0.0,0.0,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 5.0,
                     normal: [-1.0,0.0,0.0],
                     collision_point: [5.0,5.0,0.0]
@@ -733,7 +734,7 @@ mod sat_test {
                     .rotation(std::f32::consts::PI/4.0)
                     .position([6.071,6.071,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 1.414,
                     normal: [0.707,0.707,0.0],
                     collision_point: [0.0,7.071,0.0]
@@ -750,7 +751,7 @@ mod sat_test {
                     .rotation(-std::f32::consts::PI/4.0)
                     .position([5.0,-5.0,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 2.929,
                     normal: [-0.707,0.707,0.0],
                     collision_point: [5.0,2.071,0.0]
@@ -767,7 +768,7 @@ mod sat_test {
                     .rotation(std::f32::consts::PI/4.0)
                     .position([5.0,0.0,0.0])
                     .build(),
-                Some(SATCollisionInfo {
+                Some(CollisionInformation {
                     penetration_depth: 2.929,
                     normal: [0.707, 0.707,0.0],
                     collision_point: [0.0,2.071,0.0]

@@ -104,8 +104,6 @@ where
             .iter_mut()
             .for_each(|b| self.constraint.apply_constraint(b));
 
-        // TODO: Get collision information
-        // TODO: Collide the objects but with 0.0 as crf
         // TODO: Display the collision information
         let candidates = self.broadphase.collision_detection(&bodies);
 
@@ -114,22 +112,39 @@ where
         let pass3 = &candidates[2];
         let pass4 = &candidates[3];
 
-        let _graphs_1: Vec<CollisionGraph> = pass1
-            .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-            .collect();
-        let _graphs_2: Vec<CollisionGraph> = pass2
-            .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-            .collect();
-        let _graphs_3: Vec<CollisionGraph> = pass3
-            .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-            .collect();
-        let _graphs_4: Vec<CollisionGraph> = pass4
-            .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-            .collect();
+        let collision_info = if pass1.len() > 0 {
+            Some(&pass1[0])
+        } else if pass2.len() > 0 {
+            Some(&pass2[0])
+        } else if pass3.len() > 0 {
+            Some(&pass3[0])
+        } else if pass4.len() > 0 {
+            Some(&pass4[0])
+        } else {
+            None
+        };
+
+        if let Some(info) = collision_info {
+            // TODO: Display a renderbody circle
+        }
+
+        // TODO: Collide the objects but with 0.0 as crf
+        //let _graphs_1: Vec<CollisionGraph> = pass1
+        //    .iter()
+        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+        //    .collect();
+        //let _graphs_2: Vec<CollisionGraph> = pass2
+        //    .iter()
+        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+        //    .collect();
+        //let _graphs_3: Vec<CollisionGraph> = pass3
+        //    .iter()
+        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+        //    .collect();
+        //let _graphs_4: Vec<CollisionGraph> = pass4
+        //    .iter()
+        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+        //    .collect();
     }
 
     fn get_bodies(&self) -> &Vec<RigidBody> {

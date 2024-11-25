@@ -12,23 +12,20 @@ use cgmath::{InnerSpace, MetricSpace, Vector3};
 pub trait CollisionHandler {
     fn handle_circle_circle_collision(
         &self,
-        bodies: &mut Vec<RigidBody>,
-        idx_i: usize,
-        idx_j: usize,
+        body_i: &mut RigidBody,
+        body_j: &mut RigidBody,
     ) -> Option<CollisionInformation>;
 
     fn handle_circle_rect_collision(
         &self,
-        bodies: &mut Vec<RigidBody>,
-        idx_i: usize,
-        idx_j: usize,
+        body_i: &mut RigidBody,
+        body_j: &mut RigidBody,
     ) -> Option<CollisionInformation>;
 
     fn handle_rect_rect_collision(
         &self,
-        bodies: &mut Vec<RigidBody>,
-        idx_i: usize,
-        idx_j: usize,
+        body_i: &mut RigidBody,
+        body_j: &mut RigidBody,
     ) -> Option<CollisionInformation>;
 }
 
@@ -42,13 +39,9 @@ impl SimpleCollisionSolver {
 impl CollisionHandler for SimpleCollisionSolver {
     fn handle_circle_circle_collision(
         &self,
-        bodies: &mut Vec<RigidBody>,
-        idx_i: usize,
-        idx_j: usize,
+        body_i: &mut RigidBody,
+        body_j: &mut RigidBody,
     ) -> Option<CollisionInformation> {
-        let body_i = &bodies[idx_i];
-        let body_j = &bodies[idx_j];
-
         let (radius_i, radius_j) = match (&body_i.body_type, &body_j.body_type) {
             (RigidBodyType::Circle { radius: ri }, RigidBodyType::Circle { radius: rj }) => {
                 (ri, rj)
@@ -68,16 +61,15 @@ impl CollisionHandler for SimpleCollisionSolver {
         let collision_depth = radius_i + radius_j - dist;
         let collision_point = body_i.position + collision_normal * (*radius_i);
 
-        bodies[idx_i].position += 0.5 * collision_depth * correction_direction;
-        bodies[idx_j].position -= 0.5 * collision_depth * correction_direction;
+        body_i.position += 0.5 * collision_depth * correction_direction;
+        body_j.position -= 0.5 * collision_depth * correction_direction;
 
-        let p = bodies[idx_i].velocity.dot(collision_normal)
-            - bodies[idx_j].velocity.dot(collision_normal);
-        bodies[idx_i].velocity = bodies[idx_i].velocity - p * collision_normal;
-        bodies[idx_j].velocity = bodies[idx_j].velocity + p * collision_normal;
+        let p = body_i.velocity.dot(collision_normal) - body_j.velocity.dot(collision_normal);
+        body_i.velocity = body_i.velocity - p * collision_normal;
+        body_j.velocity = body_j.velocity + p * collision_normal;
 
-        bodies[idx_i].prev_position = bodies[idx_i].position - bodies[idx_i].velocity;
-        bodies[idx_j].prev_position = bodies[idx_j].position - bodies[idx_j].velocity;
+        body_i.prev_position = body_i.position - body_i.velocity;
+        body_j.prev_position = body_j.position - body_j.velocity;
 
         let info = CollisionInformation {
             penetration_depth: collision_depth,
@@ -90,17 +82,16 @@ impl CollisionHandler for SimpleCollisionSolver {
 
     fn handle_circle_rect_collision(
         &self,
-        bodies: &mut Vec<RigidBody>,
-        circ_idx: usize,
-        rect_idx: usize,
+        circle: &mut RigidBody,
+        rect: &mut RigidBody,
     ) -> Option<CollisionInformation> {
-        let circle = &bodies[circ_idx];
+        //let circle = &bodies[circ_idx];
         let radius = match circle.body_type {
             RigidBodyType::Circle { radius } => radius,
             _ => unreachable!(""),
         };
 
-        let rect = &bodies[rect_idx];
+        //let rect = &bodies[rect_idx];
         let closest_point_on_rect = rect.closest_point_on_rectangle(circle.position);
         let distance2: f32 = closest_point_on_rect.distance2(circle.position);
 
@@ -225,23 +216,21 @@ impl CollisionHandler for SimpleCollisionSolver {
             "Expected total momentum of collision to be preserved"
         );
 
-        bodies[circ_idx].position = new_circle_center;
-        bodies[rect_idx].position = new_rect_center;
+        circle.position = new_circle_center;
+        rect.position = new_rect_center;
 
-        bodies[circ_idx].velocity = new_circ_velocity;
-        bodies[rect_idx].velocity = new_rect_velocity;
+        circle.velocity = new_circ_velocity;
+        rect.velocity = new_rect_velocity;
 
-        bodies[circ_idx].prev_position = bodies[circ_idx].position - bodies[circ_idx].velocity;
-        bodies[rect_idx].prev_position = bodies[rect_idx].position - bodies[rect_idx].velocity;
+        circle.prev_position = circle.position - circle.velocity;
+        rect.prev_position = rect.position - rect.velocity;
 
         // We never update the rotation because we separate objects only by linear movement
-        bodies[circ_idx].rotational_velocity = new_circ_angular_velocity;
-        bodies[rect_idx].rotational_velocity = new_rect_angular_velocity;
+        circle.rotational_velocity = new_circ_angular_velocity;
+        rect.rotational_velocity = new_rect_angular_velocity;
 
-        bodies[circ_idx].prev_rotation =
-            bodies[circ_idx].rotation - bodies[circ_idx].rotational_velocity;
-        bodies[rect_idx].prev_rotation =
-            bodies[rect_idx].rotation - bodies[rect_idx].rotational_velocity;
+        circle.prev_rotation = circle.rotation - circle.rotational_velocity;
+        rect.prev_rotation = rect.rotation - rect.rotational_velocity;
 
         let info = CollisionInformation {
             penetration_depth,
@@ -254,12 +243,9 @@ impl CollisionHandler for SimpleCollisionSolver {
 
     fn handle_rect_rect_collision(
         &self,
-        bodies: &mut Vec<RigidBody>,
-        idx_i: usize,
-        idx_j: usize,
+        body_i: &mut RigidBody,
+        body_j: &mut RigidBody,
     ) -> Option<CollisionInformation> {
-        let body_i = &bodies[idx_i];
-        let body_j = &bodies[idx_j];
         let ((wi, hi), (wj, hj)) = match (&body_i.body_type, &body_j.body_type) {
             (
                 RigidBodyType::Rectangle {
@@ -341,7 +327,11 @@ mod tests {
                         let mut bodies = $bodies;
                         let expected_output = $expected_output;
                         let ch = SimpleCollisionSolver::new();
-                        ch.handle_circle_rect_collision(&mut bodies, 0, 1);
+
+                        let (left, right) = bodies.split_at_mut(1);
+                        let mut b1 = &mut left[0];
+                        let mut b2 = &mut right[0];
+                        ch.handle_circle_rect_collision(&mut b1, &mut b2);
 
                         let expected_output_circ = &expected_output[0];
                         let expected_output_rect = &expected_output[1];
@@ -584,37 +574,41 @@ mod tests {
             let ch = SimpleCollisionSolver::new();
 
             // Perform initial collision test
-            ch.handle_circle_rect_collision(&mut bodies, 0, 1);
+            let (left, right) = bodies.split_at_mut(1);
+            let mut b1 = &mut left[0];
+            let mut b2 = &mut right[0];
+            ch.handle_circle_rect_collision(&mut b1, &mut b2);
 
             let expected_output_circ = bodies[0].clone();
             let expected_output_rect = bodies[1].clone();
 
             // Perform second collision test and expect no change
-            ch.handle_circle_rect_collision(&mut bodies, 0, 1);
+            let (left, right) = bodies.split_at_mut(1);
+            let mut b1 = &mut left[0];
+            let mut b2 = &mut right[0];
+            ch.handle_circle_rect_collision(&mut b1, &mut b2);
+
             let output_circ = &bodies[0];
             let output_rect = &bodies[1];
 
             let expected_output_0_pos: [f32; 3] = expected_output_circ.position.into();
             let output_0_pos: [f32; 3] = output_circ.position.into();
             assert_eq!(
-                expected_output_0_pos,
-                output_0_pos, //$epsilon,
+                expected_output_0_pos, output_0_pos,
                 "Expected circle position {expected_output_0_pos:?} but found {output_0_pos:?}"
             );
 
             let expected_output_1_pos: [f32; 3] = expected_output_rect.position.into();
             let output_1_pos: [f32; 3] = output_rect.position.into();
             assert_eq!(
-                expected_output_1_pos,
-                output_1_pos, //$epsilon,
+                expected_output_1_pos, output_1_pos,
                 "Expected rectangle position {expected_output_1_pos:?} but found {output_1_pos:?}"
             );
 
             let expected_output_0_vel: [f32; 3] = expected_output_circ.velocity.into();
             let output_0_vel: [f32; 3] = output_circ.velocity.into();
             assert_eq!(
-                expected_output_0_vel,
-                output_0_vel, //$epsilon,
+                expected_output_0_vel, output_0_vel,
                 "Expected circle velocity {expected_output_0_vel:?} but found {output_0_vel:?}"
             );
 

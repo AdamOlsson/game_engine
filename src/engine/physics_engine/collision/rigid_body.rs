@@ -6,14 +6,14 @@ use crate::engine::util::color::blue;
 use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 use crate::engine::util::zero;
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum RigidBodyType {
     Circle { radius: f32 },
     Rectangle { width: f32, height: f32 },
     Unkown,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RigidBody {
     pub id: usize,
     pub velocity: Vector3<f32>,

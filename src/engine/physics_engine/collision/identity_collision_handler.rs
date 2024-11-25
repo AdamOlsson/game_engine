@@ -13,25 +13,22 @@ impl IdentityCollisionSolver {
 impl CollisionHandler for IdentityCollisionSolver {
     fn handle_circle_circle_collision(
         &self,
-        _bodies: &mut Vec<RigidBody>,
-        _idx_i: usize,
-        _idx_j: usize,
+        _body_i: &mut RigidBody,
+        _body_j: &mut RigidBody,
     ) -> Option<CollisionInformation> {
         None
     }
     fn handle_circle_rect_collision(
         &self,
-        _bodies: &mut Vec<RigidBody>,
-        _idx_i: usize,
-        _idx_j: usize,
+        _body_i: &mut RigidBody,
+        _body_j: &mut RigidBody,
     ) -> Option<CollisionInformation> {
         None
     }
     fn handle_rect_rect_collision(
         &self,
-        _bodies: &mut Vec<RigidBody>,
-        _idx_i: usize,
-        _idx_j: usize,
+        _body_i: &mut RigidBody,
+        _body_j: &mut RigidBody,
     ) -> Option<CollisionInformation> {
         None
     }

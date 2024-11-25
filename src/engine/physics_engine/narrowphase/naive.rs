@@ -43,28 +43,34 @@ where
             for j in (i + 1)..num_candidates as usize {
                 let idx_i = candidates.indices[i];
                 let idx_j = candidates.indices[j];
-                let body_i = &bodies[idx_i];
-                let body_j = &bodies[idx_j];
 
-                let (type_i, type_j) = (&body_i.body_type, &body_j.body_type);
-                let collision_info = match (type_i, type_j) {
+                let (min_idx, max_idx) = if idx_i < idx_j {
+                    (idx_i, idx_j)
+                } else {
+                    (idx_j, idx_i)
+                };
+                let (left, right) = bodies.split_at_mut(max_idx);
+
+                let mut body_i = &mut left[min_idx];
+                let mut body_j = &mut right[0];
+
+                let collision_info = match (&body_i.body_type, &body_j.body_type) {
                     (RigidBodyType::Circle { .. }, RigidBodyType::Circle { .. }) => self
                         .solver
-                        .handle_circle_circle_collision(bodies, idx_i, idx_j),
-
-                    (RigidBodyType::Rectangle { .. }, RigidBodyType::Rectangle { .. }) => {
-                        self.solver.handle_rect_rect_collision(bodies, idx_i, idx_j)
-                    }
+                        .handle_circle_circle_collision(&mut body_i, &mut body_j),
+                    (RigidBodyType::Rectangle { .. }, RigidBodyType::Rectangle { .. }) => self
+                        .solver
+                        .handle_rect_rect_collision(&mut body_i, &mut body_j),
 
                     (RigidBodyType::Rectangle { .. }, RigidBodyType::Circle { .. }) => self
                         .solver
-                        .handle_circle_rect_collision(bodies, idx_j, idx_i),
+                        .handle_circle_rect_collision(&mut body_j, &mut body_i),
 
                     (RigidBodyType::Circle { .. }, RigidBodyType::Rectangle { .. }) => self
                         .solver
-                        .handle_circle_rect_collision(bodies, idx_i, idx_j),
+                        .handle_circle_rect_collision(&mut body_i, &mut body_j),
 
-                    (_, _) => panic!("Unkown body type collision {type_i} and {type_j}"),
+                    (_, _) => panic!("Unkown body type collision {body_i} and {body_j}"),
                 };
 
                 if let Some(info) = collision_info {

@@ -1,7 +1,8 @@
 extern crate game_engine;
 
 use cgmath::Vector3;
-use game_engine::engine::entity_component_storage::{Entity, EntityComponentStorage};
+
+use game_engine::engine::entity::entity_component_storage::{Entity, EntityComponentStorage};
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::blockmap::BlockMap;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;

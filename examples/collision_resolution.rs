@@ -1,5 +1,6 @@
 use cgmath::Vector3;
-use game_engine::engine::entity_component_storage::{Entity, EntityComponentStorage};
+
+use game_engine::engine::entity::entity_component_storage::{Entity, EntityComponentStorage};
 use game_engine::engine::event::mouse_input_event::{MouseButton, MouseInputEvent};
 use game_engine::engine::event::user_event::UserEvent;
 use game_engine::engine::event::ElementState;

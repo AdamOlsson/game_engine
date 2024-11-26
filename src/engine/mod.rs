@@ -1,4 +1,4 @@
-pub mod entity_component_storage;
+pub mod entity;
 pub mod event;
 pub mod game_engine;
 pub mod init_utils;

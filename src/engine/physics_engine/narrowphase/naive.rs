@@ -33,12 +33,11 @@ where
         candidates: &CollisionCandidates,
     ) -> Option<CollisionGraph> {
         let num_candidates = candidates.len();
-
-        let mut collisions: Vec<CollisionGraphNode> = vec![];
         if num_candidates <= 1 {
             return None;
         }
 
+        let mut collisions: Vec<CollisionGraphNode> = vec![];
         for i in 0..num_candidates as usize {
             for j in (i + 1)..num_candidates as usize {
                 let idx_i = candidates.indices[i];

@@ -1,7 +1,7 @@
 use core::f32;
 
 use cgmath::Vector3;
-use game_engine::engine::entity::{Entity, EntityComponentStorage};
+use game_engine::engine::entity::{EntityBuilder, EntityComponentStorage, EntityHandle};
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::broadphase::SpatialSubdivision;
@@ -16,7 +16,7 @@ use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
-use game_engine::engine::util;
+use game_engine::engine::renderer_engine::RenderBodyBuilder;
 use game_engine::engine::util::color::blue;
 use game_engine::engine::util::color::red;
 use game_engine::engine::PhysicsEngine;
@@ -52,36 +52,41 @@ where
         // - Box constraint should handle rotation as well
         // - Move restitution to the rigid body and determine effective restitution
         //      using weighted average during collision
-        let bodies = vec![
-            RigidBodyBuilder::default()
-                .id(0)
-                .velocity([0., 0., 0.])
-                .position([0., 5., 0.])
-                .color(blue())
-                .body_type(RigidBodyType::Rectangle {
-                    width: 1000.,
-                    height: 100.0,
-                })
-                .rotational_velocity(std::f32::consts::PI / 120.0)
-                //.rotation(std::f32::consts::PI/2.0)
-                .mass(1.)
-                .build(),
-            RigidBodyBuilder::default()
-                .id(1)
-                .velocity([0., 3., 0.])
-                .position([-400., -400., 0.])
-                .mass(1.)
-                .color(red())
-                .body_type(RigidBodyType::Circle { radius: 50.0 })
-                .build(),
-        ];
-
         let mut ecs = EntityComponentStorage::new();
-        bodies.iter().for_each(|b| {
-            ecs.add(Entity {
-                rigid_body: Some(b.clone()),
-            })
-        });
+        ecs.add(
+            EntityBuilder::new()
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(0)
+                        .velocity([0., 0., 0.])
+                        .position([0., 5., 0.])
+                        .body_type(RigidBodyType::Rectangle {
+                            width: 500.,
+                            height: 100.0,
+                        })
+                        .rotational_velocity(std::f32::consts::PI / 120.0)
+                        //.rotation(std::f32::consts::PI/2.0)
+                        .mass(1.)
+                        .build(),
+                )
+                .render_body(RenderBodyBuilder::new().color(blue()).build())
+                .build(),
+        );
+
+        ecs.add(
+            EntityBuilder::new()
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(1)
+                        .velocity([0., 3., 0.])
+                        .position([-200., -200., 0.])
+                        .mass(1.)
+                        .body_type(RigidBodyType::Circle { radius: 50.0 })
+                        .build(),
+                )
+                .render_body(RenderBodyBuilder::new().color(red()).build())
+                .build(),
+        );
 
         let integrator = VerletIntegrator::new(f32::MAX);
 
@@ -155,9 +160,9 @@ where
     N: NarrowPhase + Sync,
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
-        let bodies = self.get_bodies();
-        let circle_instances = util::get_circle_instances(&bodies[..]);
-        let rect_instances = util::get_rectangle_instances(&bodies[..]);
+        let entities: Vec<EntityHandle> = self.ecs.entities_iter().collect();
+        let rect_instances = game_engine::engine::util::get_rectangle_instances(&entities[..]);
+        let circle_instances = game_engine::engine::util::get_circle_instances(&entities[..]);
 
         let texture_handle = engine_ctl.request_texture_handle();
         engine_ctl
@@ -177,13 +182,13 @@ fn main() {
 
     let mut constraint = BoxConstraint::new(InelasticConstraintResolver::new());
     constraint.set_top_left(Vector3::new(
-        -(window_size.0 as f32),
-        window_size.1 as f32,
+        -(window_size.0 as f32 / 2.0),
+        window_size.1 as f32 / 2.0,
         0.0,
     ));
     constraint.set_bottom_right(Vector3::new(
-        window_size.0 as f32,
-        -(window_size.1 as f32),
+        window_size.0 as f32 / 2.0,
+        -(window_size.1 as f32 / 2.0),
         0.0,
     ));
     let broadphase = SpatialSubdivision::new();

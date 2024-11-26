@@ -2,7 +2,7 @@ extern crate game_engine;
 
 use cgmath::Vector3;
 
-use game_engine::engine::entity::{Entity, EntityComponentStorage};
+use game_engine::engine::entity::{EntityBuilder, EntityComponentStorage, EntityHandle};
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::BlockMap;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
@@ -21,6 +21,7 @@ use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
 use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
+use game_engine::engine::renderer_engine::{RenderBody, RenderBodyBuilder};
 use game_engine::engine::util::color::{blue, green};
 use game_engine::engine::util::zero;
 use game_engine::engine::{PhysicsEngine, RenderEngine};
@@ -43,46 +44,73 @@ where
 {
     pub fn new(window_size: &(u32, u32), broadphase: B) -> Self {
         let dt = 0.001;
-        let bodies = vec![
-            RigidBodyBuilder::default()
-                .id(0)
-                .velocity([2., 0., 0.])
-                .position([-400., 0., 0.])
-                .sprite_coord(SpriteCoordinate::new([2., 0.], [3., 1.]))
-                .body_type(RigidBodyType::Circle { radius: 50. })
-                .build(),
-            RigidBodyBuilder::default()
-                .id(1)
-                .velocity([1., 2., 0.])
-                .position([400., 400., 0.])
-                .color(blue())
-                .body_type(RigidBodyType::Circle { radius: 50. })
-                .build(),
-            RigidBodyBuilder::default()
-                .id(2)
-                .velocity([2., 1.5, 0.])
-                .position([350., 0., 0.])
-                .color(green())
-                .body_type(RigidBodyType::Circle { radius: 60. })
-                .build(),
-            RigidBodyBuilder::default()
-                .id(3)
-                .velocity(zero())
-                .position(zero())
-                .sprite_coord(SpriteCoordinate::new([1., 0.], [2., 1.]))
-                .body_type(RigidBodyType::Rectangle {
-                    width: 100.,
-                    height: 100.,
-                })
-                .build(),
-        ];
-
         let mut ecs = EntityComponentStorage::new();
-        bodies.iter().for_each(|b| {
-            ecs.add(Entity {
-                rigid_body: Some(b.clone()),
-            })
-        });
+        ecs.add(
+            EntityBuilder::new()
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(0)
+                        .velocity([2., 0., 0.])
+                        .position([-400., 0., 0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                )
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .sprite_coord(SpriteCoordinate::new([2., 0.], [3., 1.]))
+                        .build(),
+                )
+                .build(),
+        );
+
+        ecs.add(
+            EntityBuilder::new()
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(1)
+                        .velocity([1., 2., 0.])
+                        .position([400., 400., 0.])
+                        .body_type(RigidBodyType::Circle { radius: 50. })
+                        .build(),
+                )
+                .render_body(RenderBodyBuilder::new().color(blue()).build())
+                .build(),
+        );
+
+        ecs.add(
+            EntityBuilder::new()
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(2)
+                        .velocity([2., 1.5, 0.])
+                        .position([350., 0., 0.])
+                        .body_type(RigidBodyType::Circle { radius: 60. })
+                        .build(),
+                )
+                .render_body(RenderBodyBuilder::new().color(green()).build())
+                .build(),
+        );
+
+        ecs.add(
+            EntityBuilder::new()
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(3)
+                        .velocity(zero())
+                        .position(zero())
+                        .body_type(RigidBodyType::Rectangle {
+                            width: 100.,
+                            height: 100.,
+                        })
+                        .build(),
+                )
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .sprite_coord(SpriteCoordinate::new([1., 0.], [2., 1.]))
+                        .build(),
+                )
+                .build(),
+        );
 
         let integrator = VerletIntegrator::new(f32::MAX);
 
@@ -115,11 +143,11 @@ where
     B: BroadPhase<Vec<CollisionCandidates>>,
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
-        let bodies = self.get_bodies();
         let target_texture_handle = engine_ctl.request_texture_handle();
 
-        let rect_instances = game_engine::engine::util::get_rectangle_instances(&bodies[..]);
-        let circle_instances = game_engine::engine::util::get_circle_instances(&bodies[..]);
+        let entities: Vec<EntityHandle> = self.ecs.entities_iter().collect();
+        let rect_instances = game_engine::engine::util::get_rectangle_instances(&entities[..]);
+        let circle_instances = game_engine::engine::util::get_circle_instances(&entities[..]);
         engine_ctl
             .render_background(&target_texture_handle)
             .unwrap();
@@ -168,18 +196,19 @@ where
             .broadphase
             .collision_detection(self.ecs.rigid_body_iter());
 
-        let mut bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
+        let mut rigid_bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
         let graphs: Vec<CollisionGraph> = candidates
             .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(&mut bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(&mut rigid_bodies, c))
             .collect();
 
         let rect_id = 3;
-        bodies[rect_id].color = Vector3::new(0.0, 255.0, 255.0);
+        let mut render_bodies: Vec<&mut RenderBody> = self.ecs.render_body_iter_mut().collect();
+        render_bodies[rect_id].color = Vector3::new(0.0, 255.0, 255.0);
         for g in graphs {
             for node in g.collisions {
                 if node.body_i_idx == rect_id || node.body_j_idx == rect_id {
-                    bodies[rect_id].color = Vector3::new(255.0, 255.0, 0.0);
+                    render_bodies[rect_id].color = Vector3::new(255.0, 255.0, 0.0);
                 }
             }
         }

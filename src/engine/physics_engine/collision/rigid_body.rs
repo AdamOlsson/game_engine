@@ -1,8 +1,6 @@
 use cgmath::Vector3;
 
 use crate::engine::physics_engine::util::{circle_equations, equations, rectangle_equations};
-use crate::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
-use crate::engine::util::color::blue;
 use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 use crate::engine::util::zero;
 
@@ -26,10 +24,6 @@ pub struct RigidBody {
     pub rotation: f32,
     pub prev_rotation: f32,
     pub rotational_velocity: f32,
-
-    // Render data
-    pub color: Vector3<f32>,
-    pub sprite_coord: SpriteCoordinate,
 }
 
 impl RigidBody {
@@ -140,9 +134,6 @@ pub struct RigidBodyBuilder {
     pub rotation: f32,
     pub prev_rotation: Option<f32>,
     pub rotational_velocity: f32,
-    // Render data
-    pub color: Vector3<f32>,
-    pub sprite_coord: SpriteCoordinate,
 }
 
 impl std::default::Default for RigidBodyBuilder {
@@ -157,8 +148,6 @@ impl std::default::Default for RigidBodyBuilder {
         let rotational_velocity = 0.0;
         let body_type = RigidBodyType::Unkown;
         let mass = 1.0;
-        let color = blue();
-        let sprite_coord = SpriteCoordinate::none();
         Self {
             velocity: velocity.into(),
             rotational_velocity,
@@ -169,8 +158,6 @@ impl std::default::Default for RigidBodyBuilder {
             body_type,
             mass,
             rotation, //inertia,
-            color: color.into(),
-            sprite_coord,
             prev_rotation,
         }
     }
@@ -227,16 +214,6 @@ impl RigidBodyBuilder {
         self
     }
 
-    pub fn color(mut self, color: [f32; 3]) -> Self {
-        self.color = color.into();
-        self
-    }
-
-    pub fn sprite_coord(mut self, sprite_coord: SpriteCoordinate) -> Self {
-        self.sprite_coord = sprite_coord;
-        self
-    }
-
     pub fn build(self) -> RigidBody {
         let id = match self.id {
             Some(id) => id,
@@ -262,8 +239,6 @@ impl RigidBodyBuilder {
             body_type: self.body_type,
             mass: self.mass,
             rotation: self.rotation,
-            color: self.color,
-            sprite_coord: self.sprite_coord, //inertia: self.inertia,
             rotational_velocity: self.rotational_velocity,
             prev_rotation,
         }

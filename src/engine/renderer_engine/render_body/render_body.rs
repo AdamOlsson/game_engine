@@ -11,8 +11,8 @@ pub struct RenderBodyBuilder {
     pub sprite_coord: Option<SpriteCoordinate>,
 }
 
-impl std::default::Default for RenderBodyBuilder {
-    fn default() -> Self {
+impl RenderBodyBuilder {
+    pub fn new() -> Self {
         let color = None;
         let sprite_coord = None;
         Self {
@@ -20,9 +20,7 @@ impl std::default::Default for RenderBodyBuilder {
             sprite_coord,
         }
     }
-}
 
-impl RenderBodyBuilder {
     pub fn color(mut self, color: [f32; 3]) -> Self {
         self.color = Some(color.into());
         self

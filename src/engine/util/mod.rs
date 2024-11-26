@@ -1,5 +1,6 @@
 use super::{
-    physics_engine::collision::{RigidBody, RigidBodyType},
+    entity::EntityHandle,
+    physics_engine::collision::RigidBodyType,
     renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance},
 };
 
@@ -11,33 +12,33 @@ pub fn zero() -> [f32; 3] {
     [0., 0., 0.]
 }
 
-pub fn get_circle_instances(bodies: &[&RigidBody]) -> Vec<CircleInstance> {
-    bodies
+pub fn get_circle_instances(entities: &[EntityHandle]) -> Vec<CircleInstance> {
+    entities
         .iter()
-        .filter_map(|body| match body.body_type {
+        .filter_map(|entity| match entity.rigid_body.unwrap().body_type {
             RigidBodyType::Circle { radius } => Some(CircleInstance {
-                position: body.position.into(),
-                color: body.color.into(),
-                rotation: body.rotation,
+                position: entity.rigid_body.unwrap().position.into(),
+                color: entity.render_body.unwrap().color.into(),
+                rotation: entity.rigid_body.unwrap().rotation,
                 radius,
-                sprite_coord: body.sprite_coord.coordinate,
+                sprite_coord: entity.render_body.unwrap().sprite_coord.coordinate,
             }),
             _ => None,
         })
         .collect::<Vec<_>>()
 }
 
-pub fn get_rectangle_instances(bodies: &[&RigidBody]) -> Vec<RectangleInstance> {
-    bodies
+pub fn get_rectangle_instances(entities: &[EntityHandle]) -> Vec<RectangleInstance> {
+    entities
         .iter()
-        .filter_map(|body| match body.body_type {
+        .filter_map(|entity| match entity.rigid_body.unwrap().body_type {
             RigidBodyType::Rectangle { width, height } => Some(RectangleInstance {
-                color: body.color.into(),
-                rotation: body.rotation.into(),
-                position: body.position.into(),
+                color: entity.render_body.unwrap().color.into(),
+                rotation: entity.rigid_body.unwrap().rotation.into(),
+                position: entity.rigid_body.unwrap().position.into(),
                 width,
                 height,
-                sprite_coord: body.sprite_coord.coordinate,
+                sprite_coord: entity.render_body.unwrap().sprite_coord.coordinate,
             }),
             _ => None,
         })

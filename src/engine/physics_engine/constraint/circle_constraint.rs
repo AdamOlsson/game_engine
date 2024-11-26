@@ -1,20 +1,17 @@
+use cgmath::InnerSpace;
 use core::panic;
 
-
-use cgmath::InnerSpace;
-
-use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
+use crate::engine::physics_engine::collision::{RigidBody, RigidBodyType};
 
 use super::Constraint;
-
 
 pub struct CircleConstraint {
     radius: f32,
 }
 
-impl CircleConstraint{
+impl CircleConstraint {
     pub fn new(radius: f32) -> Self {
-        Self {radius}
+        Self { radius }
     }
 }
 
@@ -25,8 +22,8 @@ impl Constraint for CircleConstraint {
             _ => panic!("Cirlce constraint only supports circle shaped bodies for now"),
         };
 
-        let constraint_radius = self.radius;  
-        let dist_to_center = body.position.magnitude(); 
+        let constraint_radius = self.radius;
+        let dist_to_center = body.position.magnitude();
         if dist_to_center + object_radius > constraint_radius {
             let excess_dist = dist_to_center + object_radius - constraint_radius;
             let correction_direction = body.position.normalize();

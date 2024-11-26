@@ -1,6 +1,6 @@
 use super::equations;
 use crate::engine::{
-    physics_engine::collision::rigid_body::{RigidBody, RigidBodyType},
+    physics_engine::collision::{RigidBody, RigidBodyType},
     util::fixed_float::fixed_float_vector::FixedFloatVector,
 };
 
@@ -200,9 +200,7 @@ mod rectangle_equations_test {
 
     mod get_corners {
         use super::super::corners;
-        use crate::engine::physics_engine::collision::rigid_body::{
-            RigidBodyBuilder, RigidBodyType,
-        };
+        use crate::engine::physics_engine::collision::{RigidBodyBuilder, RigidBodyType};
         use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 
         macro_rules! get_corners_tests {

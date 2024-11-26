@@ -1,6 +1,6 @@
 use crate::engine::physics_engine::collision::{
     collision_candidates::CollisionCandidates,
-    rigid_body::{RigidBody, RigidBodyType},
+    {RigidBody, RigidBodyType},
 };
 
 use super::BroadPhase;
@@ -109,7 +109,7 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
 mod tests {
 
     use crate::engine::physics_engine::broadphase::BroadPhase;
-    use crate::engine::physics_engine::collision::rigid_body::{RigidBodyBuilder, RigidBodyType};
+    use crate::engine::physics_engine::collision::{RigidBodyBuilder, RigidBodyType};
     use crate::engine::util::zero;
 
     use super::BlockMap;

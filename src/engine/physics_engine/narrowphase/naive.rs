@@ -1,8 +1,7 @@
 use crate::engine::physics_engine::collision::{
     collision_candidates::CollisionCandidates,
     collision_handler::CollisionHandler,
-    rigid_body::{RigidBody, RigidBodyType},
-    CollisionGraph, CollisionGraphNode,
+    CollisionGraph, CollisionGraphNode, {RigidBody, RigidBodyType},
 };
 
 use super::NarrowPhase;

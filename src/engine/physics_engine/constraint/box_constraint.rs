@@ -1,27 +1,30 @@
-use cgmath::Vector3;
-use crate::engine::physics_engine::collision::rigid_body::RigidBody;
 use super::{resolver::ConstraintResolver, Constraint};
-
+use crate::engine::physics_engine::collision::RigidBody;
+use cgmath::Vector3;
 
 pub struct BoxConstraint {
     resolver: Box<dyn ConstraintResolver>,
     top_left: Vector3<f32>,
-    bottom_right: Vector3<f32>
+    bottom_right: Vector3<f32>,
 }
 
 impl BoxConstraint {
     pub fn new<T: ConstraintResolver + 'static>(resolver: T) -> Self {
         let top_left = Vector3::new(-1.0, 1.0, 0.0);
         let bottom_right = Vector3::new(1.0, -1.0, 0.0);
-        Self {resolver: Box::new(resolver), top_left, bottom_right }
+        Self {
+            resolver: Box::new(resolver),
+            top_left,
+            bottom_right,
+        }
     }
 
-    #[allow(dead_code)] 
+    #[allow(dead_code)]
     pub fn set_top_left(&mut self, top_left: Vector3<f32>) {
         self.top_left = top_left;
     }
-    
-    #[allow(dead_code)] 
+
+    #[allow(dead_code)]
     pub fn set_bottom_right(&mut self, bottom_right: Vector3<f32>) {
         self.bottom_right = bottom_right;
     }
@@ -43,7 +46,7 @@ impl Constraint for BoxConstraint {
         }
         // Right side
         if right_most[0] > self.bottom_right.x {
-            let diff = right_most[0] - self.bottom_right.x; 
+            let diff = right_most[0] - self.bottom_right.x;
             self.resolver.resolve_horizontal(diff, body);
         }
         // Bottom side

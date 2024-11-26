@@ -1,7 +1,10 @@
-use super::collision::rigid_body::RigidBody;
+use super::collision::RigidBody;
 
-pub mod blockmap;
-pub mod spatial_subdivision;
+mod blockmap;
+mod spatial_subdivision;
+
+pub use blockmap::BlockMap;
+pub use spatial_subdivision::spatial_subdivision::SpatialSubdivision;
 
 pub trait BroadPhase<T> {
     fn collision_detection<'a, I>(&self, bodies: I) -> T

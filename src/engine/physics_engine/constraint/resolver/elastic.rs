@@ -1,7 +1,6 @@
-use crate::engine::physics_engine::collision::rigid_body::RigidBody;
+use crate::engine::physics_engine::collision::RigidBody;
 
 use super::ConstraintResolver;
-
 
 pub struct ElasticConstraintResolver {}
 impl ElasticConstraintResolver {
@@ -20,6 +19,6 @@ impl ConstraintResolver for ElasticConstraintResolver {
     fn resolve_horizontal(&self, diff: f32, body: &mut RigidBody) {
         body.position.x -= diff;
         body.velocity.x *= -1.0;
-        body.prev_position = body.position - body.velocity; 
+        body.prev_position = body.position - body.velocity;
     }
 }

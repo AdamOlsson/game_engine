@@ -1,7 +1,7 @@
-use super::collision::rigid_body::RigidBody;
+use super::collision::RigidBody;
 
-pub mod circle_constraint;
 pub mod box_constraint;
+pub mod circle_constraint;
 pub mod resolver;
 
 pub trait Constraint {

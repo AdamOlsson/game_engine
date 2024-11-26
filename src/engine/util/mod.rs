@@ -1,5 +1,5 @@
 use super::{
-    physics_engine::collision::rigid_body::{RigidBody, RigidBodyType},
+    physics_engine::collision::{RigidBody, RigidBodyType},
     renderer_engine::shapes::{circle::CircleInstance, rectangle::RectangleInstance},
 };
 

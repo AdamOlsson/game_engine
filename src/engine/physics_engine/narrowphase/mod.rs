@@ -1,7 +1,5 @@
 pub mod naive;
-use super::collision::{
-    collision_candidates::CollisionCandidates, rigid_body::RigidBody, CollisionGraph,
-};
+use super::collision::{collision_candidates::CollisionCandidates, CollisionGraph, RigidBody};
 
 pub trait NarrowPhase {
     fn collision_detection(

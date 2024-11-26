@@ -1,4 +1,4 @@
-use crate::engine::physics_engine::collision::rigid_body::RigidBody;
+use crate::engine::physics_engine::collision::RigidBody;
 use cgmath::InnerSpace;
 
 pub struct VerletIntegrator {

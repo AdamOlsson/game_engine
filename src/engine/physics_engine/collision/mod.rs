@@ -1,8 +1,10 @@
 pub mod collision_candidates;
 pub mod collision_handler;
 pub mod identity_collision_handler;
-pub mod rigid_body;
+mod rigid_body;
 pub mod sat;
+
+pub use rigid_body::{RigidBody, RigidBodyBuilder, RigidBodyType};
 
 #[derive(Debug)]
 pub struct CollisionGraph {

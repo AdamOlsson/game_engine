@@ -2,16 +2,14 @@ extern crate game_engine;
 
 use cgmath::Vector3;
 
-use game_engine::engine::entity::entity_component_storage::{Entity, EntityComponentStorage};
+use game_engine::engine::entity::{Entity, EntityComponentStorage};
 use game_engine::engine::game_engine::GameEngineBuilder;
-use game_engine::engine::physics_engine::broadphase::blockmap::BlockMap;
+use game_engine::engine::physics_engine::broadphase::BlockMap;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
-use game_engine::engine::physics_engine::collision::rigid_body::{
-    RigidBody, RigidBodyBuilder, RigidBodyType,
-};
 use game_engine::engine::physics_engine::collision::CollisionGraph;
+use game_engine::engine::physics_engine::collision::{RigidBody, RigidBodyBuilder, RigidBodyType};
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::elastic::ElasticConstraintResolver;
 use game_engine::engine::physics_engine::constraint::Constraint;

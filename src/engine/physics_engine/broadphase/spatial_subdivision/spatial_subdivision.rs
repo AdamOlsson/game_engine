@@ -6,7 +6,7 @@ use rayon::iter::{
 };
 
 use crate::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
-use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyType};
+use crate::engine::physics_engine::collision::{RigidBody, RigidBodyType};
 
 use super::super::BroadPhase;
 use super::cell_id::{CellId, CellIdType};

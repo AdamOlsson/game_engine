@@ -1,18 +1,15 @@
 use cgmath::Vector3;
 
-use game_engine::engine::entity::entity_component_storage::{Entity, EntityComponentStorage};
+use game_engine::engine::entity::{Entity, EntityComponentStorage};
 use game_engine::engine::event::mouse_input_event::{MouseButton, MouseInputEvent};
 use game_engine::engine::event::user_event::UserEvent;
 use game_engine::engine::event::ElementState;
 use game_engine::engine::game_engine::GameEngineBuilder;
-use game_engine::engine::physics_engine::broadphase::spatial_subdivision::spatial_subdivision::SpatialSubdivision;
-use game_engine::engine::physics_engine::broadphase::BroadPhase;
+use game_engine::engine::physics_engine::broadphase::{BroadPhase, SpatialSubdivision};
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
-use game_engine::engine::physics_engine::collision::rigid_body::RigidBody;
-use game_engine::engine::physics_engine::collision::rigid_body::RigidBodyBuilder;
-use game_engine::engine::physics_engine::collision::rigid_body::RigidBodyType;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
+use game_engine::engine::physics_engine::collision::{RigidBody, RigidBodyBuilder, RigidBodyType};
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::inelastic::InelasticConstraintResolver;
 use game_engine::engine::physics_engine::constraint::Constraint;

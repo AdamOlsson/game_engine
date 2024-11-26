@@ -1,6 +1,7 @@
 use core::f32;
 
 use cgmath::Vector3;
+use game_engine::engine::entity_component_storage::{Entity, EntityComponentStorage};
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::spatial_subdivision::spatial_subdivision::SpatialSubdivision;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
@@ -20,55 +21,8 @@ use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use game_engine::engine::util;
 use game_engine::engine::util::color::blue;
 use game_engine::engine::util::color::red;
-use game_engine::engine::util::zero;
 use game_engine::engine::PhysicsEngine;
 use game_engine::engine::RenderEngine;
-use rand::Rng;
-
-const NUM_ROWS: usize = 1;
-const NUM_COLS: usize = 1;
-const RADIUS: f32 = 80.0;
-
-//fn spawn_bodies(
-//    radius: f32,
-//    acceleration: Vector3<f32>,
-//    columns: usize,
-//    rows: usize,
-//) -> Vec<RigidBody> {
-//    let spacing_dist = radius / 2.0;
-//    let color = Vector3::new(255.0, 0.0, 0.0);
-//    let velocity = Vector3::zero();
-//
-//    let mut bodies = Vec::new();
-//    let mut rng = rand::thread_rng();
-//    let spacing = (radius * 2.0) + spacing_dist;
-//
-//    for row in 0..rows {
-//        for col in 0..columns {
-//            let base_x = (col as f32) * spacing - (columns as f32 * spacing) / 2.0;
-//            let base_y = (row as f32) * spacing - (rows as f32 * spacing) / 2.0;
-//
-//            let variance_x: f32 = rng.gen_range(-1.0..1.0);
-//            let variance_y: f32 = rng.gen_range(-1.0..1.0);
-//
-//            let position = Vector3::new(base_x + variance_x, base_y + variance_y, 0.0);
-//
-//            let body = RigidBody::circle(
-//                row * columns + col,
-//                velocity,
-//                acceleration,
-//                position.clone(),
-//                position,
-//                radius,
-//                color,
-//            );
-//
-//            bodies.push(body);
-//        }
-//    }
-//
-//    bodies
-//}
 
 struct Collision<C, B, N>
 where
@@ -81,7 +35,7 @@ where
     constraint: C,
     broadphase: B,
     narrowphase: N,
-    bodies: Vec<RigidBody>,
+    ecs: EntityComponentStorage,
 }
 
 impl<C, B, N> Collision<C, B, N>
@@ -122,10 +76,14 @@ where
                 .color(red())
                 .body_type(RigidBodyType::Circle { radius: 50.0 })
                 .build(),
-            //RigidBodyBuilder::default().id(2).velocity([0., 0.,0.]).position([400.,-400.,0.])
-            //    .mass(1000.)
-            //    .color(red()).body_type(RigidBodyType::Circle { radius: 50.0 }).build(),
         ];
+
+        let mut ecs = EntityComponentStorage::new();
+        bodies.iter().for_each(|b| {
+            ecs.add(Entity {
+                rigid_body: Some(b.clone()),
+            })
+        });
 
         let integrator = VerletIntegrator::new(f32::MAX);
 
@@ -135,7 +93,7 @@ where
             constraint,
             broadphase,
             narrowphase,
-            bodies,
+            ecs,
         };
     }
 }
@@ -147,50 +105,39 @@ where
     N: NarrowPhase + Sync,
 {
     fn update(&mut self) {
-        let mut bodies = &mut self.bodies;
-        self.integrator.update(&mut bodies, self.dt);
+        self.integrator
+            .update(self.ecs.rigid_body_iter_mut(), self.dt);
 
-        bodies
-            .iter_mut()
+        self.ecs
+            .rigid_body_iter_mut()
             .for_each(|b| self.constraint.apply_constraint(b));
 
-        let candidates = self.broadphase.collision_detection(&bodies);
+        let candidates = self
+            .broadphase
+            .collision_detection(self.ecs.rigid_body_iter());
 
         let pass1 = &candidates[0];
         let pass2 = &candidates[1];
         let pass3 = &candidates[2];
         let pass4 = &candidates[3];
 
-        //println!("pass1: {pass1:?}");
-        //println!("pass2: {pass2:?}");
-        //println!("pass3: {pass3:?}");
-        //println!("pass4: {pass4:?}");
-        //println!("");
-
+        let mut bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
         let _graphs_1: Vec<CollisionGraph> = pass1
             .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(&mut bodies, c))
             .collect();
         let _graphs_2: Vec<CollisionGraph> = pass2
             .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(&mut bodies, c))
             .collect();
         let _graphs_3: Vec<CollisionGraph> = pass3
             .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(&mut bodies, c))
             .collect();
         let _graphs_4: Vec<CollisionGraph> = pass4
             .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(&mut bodies, c))
             .collect();
-
-        //println!("graph1: {_graphs_1:?}");
-        //println!("graph2: {_graphs_2:?}");
-        //println!("graph3: {_graphs_3:?}");
-        //println!("graph4: {_graphs_4:?}");
-
-        //println!("{}", &bodies[0]);
-        //println!("");
 
         //panic!();
         //if _graphs_1.len() != 0 || _graphs_2.len() != 0 || _graphs_3.len() != 0 || _graphs_3.len() != 0 {
@@ -198,8 +145,8 @@ where
         //}
     }
 
-    fn get_bodies(&self) -> &Vec<RigidBody> {
-        &self.bodies
+    fn get_bodies(&self) -> Vec<&RigidBody> {
+        self.ecs.rigid_body_iter().collect()
     }
 }
 
@@ -211,8 +158,8 @@ where
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let bodies = self.get_bodies();
-        let circle_instances = util::get_circle_instances(bodies);
-        let rect_instances = util::get_rectangle_instances(bodies);
+        let circle_instances = util::get_circle_instances(&bodies[..]);
+        let rect_instances = util::get_rectangle_instances(&bodies[..]);
 
         let texture_handle = engine_ctl.request_texture_handle();
         engine_ctl

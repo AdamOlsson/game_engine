@@ -1,16 +1,11 @@
 extern crate game_engine;
 
 use cgmath::Vector3;
+use game_engine::engine::entity_component_storage::{Entity, EntityComponentStorage};
 use game_engine::engine::game_engine::GameEngineBuilder;
-use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
-use game_engine::engine::renderer_engine::asset::asset::Asset;
-use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
-use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
-use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
-use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
-
 use game_engine::engine::physics_engine::broadphase::blockmap::BlockMap;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
+use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
 use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::rigid_body::{
     RigidBody, RigidBodyBuilder, RigidBodyType,
@@ -22,22 +17,32 @@ use game_engine::engine::physics_engine::constraint::Constraint;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
+use game_engine::engine::renderer_engine::asset::asset::Asset;
+use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
+use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
+use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
+use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
 use game_engine::engine::util::color::{blue, green};
 use game_engine::engine::util::zero;
 use game_engine::engine::{PhysicsEngine, RenderEngine};
 
-pub struct DebugPhysicsEngine {
+pub struct DebugPhysicsEngine<B>
+where
+    B: BroadPhase<Vec<CollisionCandidates>>,
+{
     dt: f32,
     integrator: VerletIntegrator,
     constraint: Box<dyn Constraint>,
-    broadphase: Box<dyn BroadPhase<Vec<CollisionCandidates>>>,
+    broadphase: B,
     narrowphase: Box<dyn NarrowPhase>,
-
-    bodies: Vec<RigidBody>,
+    ecs: EntityComponentStorage,
 }
 
-impl DebugPhysicsEngine {
-    pub fn new(window_size: &(u32, u32)) -> Self {
+impl<B> DebugPhysicsEngine<B>
+where
+    B: BroadPhase<Vec<CollisionCandidates>>,
+{
+    pub fn new(window_size: &(u32, u32), broadphase: B) -> Self {
         let dt = 0.001;
         let bodies = vec![
             RigidBodyBuilder::default()
@@ -73,6 +78,13 @@ impl DebugPhysicsEngine {
                 .build(),
         ];
 
+        let mut ecs = EntityComponentStorage::new();
+        bodies.iter().for_each(|b| {
+            ecs.add(Entity {
+                rigid_body: Some(b.clone()),
+            })
+        });
+
         let integrator = VerletIntegrator::new(f32::MAX);
 
         let mut constraint = Box::new(BoxConstraint::new(ElasticConstraintResolver::new()));
@@ -86,7 +98,6 @@ impl DebugPhysicsEngine {
             -(window_size.1 as f32) / 2.0,
             0.0,
         ));
-        let broadphase = Box::new(BlockMap::new(window_size.0 as f32));
         let narrowphase = Box::new(Naive::new(SimpleCollisionSolver::new()));
 
         Self {
@@ -95,18 +106,21 @@ impl DebugPhysicsEngine {
             constraint,
             broadphase,
             narrowphase,
-            bodies,
+            ecs,
         }
     }
 }
 
-impl RenderEngine for DebugPhysicsEngine {
+impl<B> RenderEngine for DebugPhysicsEngine<B>
+where
+    B: BroadPhase<Vec<CollisionCandidates>>,
+{
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
-        let bodies = &self.bodies;
+        let bodies = self.get_bodies();
         let target_texture_handle = engine_ctl.request_texture_handle();
 
-        let rect_instances = game_engine::engine::util::get_rectangle_instances(bodies);
-        let circle_instances = game_engine::engine::util::get_circle_instances(bodies);
+        let rect_instances = game_engine::engine::util::get_rectangle_instances(&bodies[..]);
+        let circle_instances = game_engine::engine::util::get_circle_instances(&bodies[..]);
         engine_ctl
             .render_background(&target_texture_handle)
             .unwrap();
@@ -139,21 +153,26 @@ impl RenderEngine for DebugPhysicsEngine {
             .expect("Failed to present texture");
     }
 }
-
-impl PhysicsEngine for DebugPhysicsEngine {
+impl<B> PhysicsEngine for DebugPhysicsEngine<B>
+where
+    B: BroadPhase<Vec<CollisionCandidates>>,
+{
     fn update(&mut self) {
-        let mut bodies = &mut self.bodies;
-        self.integrator.update(&mut bodies, self.dt);
+        self.integrator
+            .update(self.ecs.rigid_body_iter_mut(), self.dt);
 
-        for b in bodies.iter_mut() {
-            self.constraint.apply_constraint(b);
-        }
+        self.ecs
+            .rigid_body_iter_mut()
+            .for_each(|b| self.constraint.apply_constraint(b));
 
-        let candidates = self.broadphase.collision_detection(bodies);
+        let candidates = self
+            .broadphase
+            .collision_detection(self.ecs.rigid_body_iter());
 
+        let mut bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
         let graphs: Vec<CollisionGraph> = candidates
             .iter()
-            .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
+            .filter_map(|c| self.narrowphase.collision_detection(&mut bodies, c))
             .collect();
 
         let rect_id = 3;
@@ -167,8 +186,8 @@ impl PhysicsEngine for DebugPhysicsEngine {
         }
     }
 
-    fn get_bodies(&self) -> &Vec<RigidBody> {
-        &self.bodies
+    fn get_bodies(&self) -> Vec<&RigidBody> {
+        self.ecs.rigid_body_iter().collect()
     }
 }
 
@@ -186,7 +205,8 @@ fn main() {
     );
 
     let window_size = (800, 800);
-    let debug_engine = DebugPhysicsEngine::new(&window_size);
+    let broadphase = BlockMap::new(window_size.0 as f32);
+    let debug_engine = DebugPhysicsEngine::new(&window_size, broadphase);
 
     let engine = GameEngineBuilder::new()
         .window_title("Debug Physics Engine")

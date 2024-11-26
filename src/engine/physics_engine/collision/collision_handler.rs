@@ -85,13 +85,11 @@ impl CollisionHandler for SimpleCollisionSolver {
         circle: &mut RigidBody,
         rect: &mut RigidBody,
     ) -> Option<CollisionInformation> {
-        //let circle = &bodies[circ_idx];
         let radius = match circle.body_type {
             RigidBodyType::Circle { radius } => radius,
             _ => unreachable!(""),
         };
 
-        //let rect = &bodies[rect_idx];
         let closest_point_on_rect = rect.closest_point_on_rectangle(circle.position);
         let distance2: f32 = closest_point_on_rect.distance2(circle.position);
 

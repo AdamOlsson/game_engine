@@ -29,7 +29,7 @@ where
 {
     fn collision_detection(
         &self,
-        bodies: &mut Vec<RigidBody>,
+        bodies: &mut Vec<&mut RigidBody>,
         candidates: &CollisionCandidates,
     ) -> Option<CollisionGraph> {
         let num_candidates = candidates.len();

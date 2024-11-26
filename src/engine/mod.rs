@@ -1,3 +1,4 @@
+pub mod entity_component_storage;
 pub mod event;
 pub mod game_engine;
 pub mod init_utils;
@@ -11,7 +12,7 @@ use renderer_engine::render_engine::RenderEngineControl;
 #[allow(unused_variables)]
 pub trait PhysicsEngine {
     fn update(&mut self);
-    fn get_bodies(&self) -> &Vec<RigidBody>;
+    fn get_bodies(&self) -> Vec<&RigidBody>;
 
     fn user_event(&mut self, event: UserEvent) {}
 }

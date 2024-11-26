@@ -1,4 +1,5 @@
 use cgmath::Vector3;
+use game_engine::engine::entity_component_storage::{Entity, EntityComponentStorage};
 use game_engine::engine::event::mouse_input_event::{MouseButton, MouseInputEvent};
 use game_engine::engine::event::user_event::UserEvent;
 use game_engine::engine::event::ElementState;
@@ -34,7 +35,7 @@ where
     constraint: C,
     broadphase: B,
     narrowphase: N,
-    bodies: Vec<RigidBody>,
+    ecs: EntityComponentStorage,
     cursor_state: ElementState,
     cursor_pos: (f32, f32),
     selected_body: usize,
@@ -70,6 +71,13 @@ where
                 .build(),
         ];
 
+        let mut ecs = EntityComponentStorage::new();
+        bodies.iter().for_each(|b| {
+            ecs.add(Entity {
+                rigid_body: Some(b.clone()),
+            })
+        });
+
         let integrator = VerletIntegrator::new(f32::MAX);
         let cursor_state = ElementState::Released;
         let cursor_pos = (0.0, 0.0);
@@ -81,7 +89,7 @@ where
             constraint,
             broadphase,
             narrowphase,
-            bodies,
+            ecs,
             cursor_state,
             cursor_pos,
             click_position_body_center_offset,
@@ -97,15 +105,17 @@ where
     N: NarrowPhase + Sync,
 {
     fn update(&mut self) {
-        let mut bodies = &mut self.bodies;
-        self.integrator.update(&mut bodies, self.dt);
+        self.integrator
+            .update(self.ecs.rigid_body_iter_mut(), self.dt);
 
-        bodies
-            .iter_mut()
+        self.ecs
+            .rigid_body_iter_mut()
             .for_each(|b| self.constraint.apply_constraint(b));
 
         // TODO: Display the collision information
-        let candidates = self.broadphase.collision_detection(&bodies);
+        let candidates = self
+            .broadphase
+            .collision_detection(self.ecs.rigid_body_iter());
 
         let pass1 = &candidates[0];
         let pass2 = &candidates[1];
@@ -124,7 +134,8 @@ where
             None
         };
 
-        if let Some(info) = collision_info {
+        let mut _bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
+        if let Some(_info) = collision_info {
             // TODO: Display a renderbody circle
         }
 
@@ -147,8 +158,8 @@ where
         //    .collect();
     }
 
-    fn get_bodies(&self) -> &Vec<RigidBody> {
-        &self.bodies
+    fn get_bodies(&self) -> Vec<&RigidBody> {
+        self.ecs.rigid_body_iter().collect()
     }
 
     fn user_event(&mut self, event: UserEvent) {
@@ -159,9 +170,10 @@ where
                     state: ElementState::Pressed,
                 } => {
                     self.cursor_state = ElementState::Pressed;
-                    self.selected_body = if self.bodies[0].click_inside(self.cursor_pos) {
+                    let bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
+                    self.selected_body = if bodies[0].click_inside(self.cursor_pos) {
                         0
-                    } else if self.bodies[1].click_inside(self.cursor_pos) {
+                    } else if bodies[1].click_inside(self.cursor_pos) {
                         1
                     } else {
                         usize::MAX
@@ -169,8 +181,8 @@ where
 
                     if self.selected_body != usize::MAX {
                         self.click_position_body_center_offset = (
-                            self.bodies[self.selected_body].position.x - self.cursor_pos.0,
-                            self.bodies[self.selected_body].position.y - self.cursor_pos.1,
+                            bodies[self.selected_body].position.x - self.cursor_pos.0,
+                            bodies[self.selected_body].position.y - self.cursor_pos.1,
                         );
                     }
                 }
@@ -197,8 +209,9 @@ where
                         if self.selected_body == usize::MAX {
                             return;
                         }
-
-                        let body = &mut self.bodies[self.selected_body];
+                        let mut bodies: Vec<&mut RigidBody> =
+                            self.ecs.rigid_body_iter_mut().collect();
+                        let body = &mut bodies[self.selected_body];
                         let new_pos = Vector3::new(
                             self.cursor_pos.0 + self.click_position_body_center_offset.0,
                             self.cursor_pos.1 + self.click_position_body_center_offset.1,
@@ -225,8 +238,8 @@ where
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let bodies = self.get_bodies();
-        let circle_instances = util::get_circle_instances(bodies);
-        let rect_instances = util::get_rectangle_instances(bodies);
+        let circle_instances = util::get_circle_instances(&bodies[..]);
+        let rect_instances = util::get_rectangle_instances(&bodies[..]);
 
         let texture_handle = engine_ctl.request_texture_handle();
         engine_ctl

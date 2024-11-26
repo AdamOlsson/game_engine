@@ -13,7 +13,7 @@ impl From<winit::keyboard::PhysicalKey> for Key {
             winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyA) => Key::A,
             winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyS) => Key::S,
             winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyD) => Key::D,
-            _ => Key::Unkown,
+            _ => Key::Unknown,
         }
     }
 }
@@ -33,5 +33,5 @@ pub enum Key {
     A,
     S,
     D,
-    Unkown,
+    Unknown,
 }

@@ -71,7 +71,7 @@ impl BroadPhase<Vec<CollisionCandidates>> for BlockMap {
             RigidBodyType::Rectangle { width, height } => {
                 f32::max(acc, f32::max(width, height)) / 2.0
             }
-            _ => panic!("Unkown body type {}", b.body_type),
+            _ => panic!("Unknown body type {}", b.body_type),
         }) * 2.0;
 
         let grid_width = (self.width / cell_size).ceil() as u32;

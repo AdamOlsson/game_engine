@@ -109,17 +109,24 @@ where
     N: NarrowPhase + Sync,
 {
     fn update(&mut self) {
-        self.integrator
-            .update(self.ecs.rigid_body_iter_mut(), self.dt);
+        self.integrator.update(
+            self.ecs
+                .rigid_body_iter_mut()
+                .filter(|rb| rb.body_type != RigidBodyType::Unknown),
+            self.dt,
+        );
 
         self.ecs
             .rigid_body_iter_mut()
+            .filter(|rb| rb.body_type != RigidBodyType::Unknown)
             .for_each(|b| self.constraint.apply_constraint(b));
 
         // TODO: Display the collision information
-        let candidates = self
-            .broadphase
-            .collision_detection(self.ecs.rigid_body_iter());
+        let candidates = self.broadphase.collision_detection(
+            self.ecs
+                .rigid_body_iter()
+                .filter(|rb| rb.body_type != RigidBodyType::Unknown),
+        );
 
         let pass1 = &candidates[0];
         let pass2 = &candidates[1];
@@ -174,7 +181,11 @@ where
                     state: ElementState::Pressed,
                 } => {
                     self.cursor_state = ElementState::Pressed;
-                    let bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
+                    let bodies: Vec<&mut RigidBody> = self
+                        .ecs
+                        .rigid_body_iter_mut()
+                        .filter(|rb| rb.body_type != RigidBodyType::Unknown)
+                        .collect();
                     self.selected_body = if bodies[0].click_inside(self.cursor_pos) {
                         0
                     } else if bodies[1].click_inside(self.cursor_pos) {
@@ -213,8 +224,11 @@ where
                         if self.selected_body == usize::MAX {
                             return;
                         }
-                        let mut bodies: Vec<&mut RigidBody> =
-                            self.ecs.rigid_body_iter_mut().collect();
+                        let mut bodies: Vec<&mut RigidBody> = self
+                            .ecs
+                            .rigid_body_iter_mut()
+                            .filter(|rb| rb.body_type != RigidBodyType::Unknown)
+                            .collect();
                         let body = &mut bodies[self.selected_body];
                         let new_pos = Vector3::new(
                             self.cursor_pos.0 + self.click_position_body_center_offset.0,
@@ -242,6 +256,8 @@ where
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let entities: Vec<EntityHandle> = self.ecs.entities_iter().collect();
+        // TODO: Merge RigidBodyType and whatever render shape there are
+        // TODO: RenderBody needs to have a shape if RigidBody shape is unkown
         let rect_instances = game_engine::engine::util::get_rectangle_instances(&entities[..]);
         let circle_instances = game_engine::engine::util::get_circle_instances(&entities[..]);
 

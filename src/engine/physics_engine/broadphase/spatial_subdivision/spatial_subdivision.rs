@@ -340,7 +340,7 @@ impl BroadPhase<[Vec<CollisionCandidates>; 4]> for SpatialSubdivision {
                         b.position.y,
                     ))
                 }
-                _ => panic!("Unkown body type {}", b.body_type),
+                _ => panic!("Unknown body type {}", b.body_type),
             })
             .fold(
                 || (Vec::new(), 0.0_f32, f32::MAX, f32::MAX),

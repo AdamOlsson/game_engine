@@ -68,7 +68,7 @@ where
                         .solver
                         .handle_circle_rect_collision(&mut body_i, &mut body_j),
 
-                    (_, _) => panic!("Unkown body type collision {body_i} and {body_j}"),
+                    (_, _) => panic!("Unknown body type collision {body_i} and {body_j}"),
                 };
 
                 if let Some(info) = collision_info {

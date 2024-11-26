@@ -4,16 +4,16 @@ use crate::engine::physics_engine::util::{circle_equations, equations, rectangle
 use crate::engine::util::fixed_float::fixed_float_vector::FixedFloatVector;
 use crate::engine::util::zero;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum RigidBodyType {
     Circle { radius: f32 },
     Rectangle { width: f32, height: f32 },
-    Unkown,
+    Unknown,
 }
 
 #[derive(Clone, Debug)]
 pub struct RigidBody {
-    pub id: usize,
+    pub id: usize, // TODO: Remove this member
     pub velocity: Vector3<f32>,
     pub acceleration: Vector3<f32>,
     pub prev_position: Vector3<f32>,
@@ -65,7 +65,7 @@ impl RigidBody {
                 rectangle_equations::inertia(height, width, self.mass)
             }
             RigidBodyType::Circle { radius } => circle_equations::inertia(radius, self.mass),
-            _ => panic!("Unkown body type"),
+            _ => panic!("Unknown body type"),
         }
     }
 
@@ -106,7 +106,7 @@ impl std::fmt::Display for RigidBodyType {
             RigidBodyType::Rectangle { width, height } => {
                 write!(f, "Rectangle({},{})", width, height)
             }
-            RigidBodyType::Unkown => write!(f, "Uknown"),
+            RigidBodyType::Unknown => write!(f, "Uknown"),
         }
     }
 }
@@ -146,7 +146,7 @@ impl std::default::Default for RigidBodyBuilder {
         let rotation = 0.0;
         let prev_rotation = None;
         let rotational_velocity = 0.0;
-        let body_type = RigidBodyType::Unkown;
+        let body_type = RigidBodyType::Unknown;
         let mass = 1.0;
         Self {
             velocity: velocity.into(),

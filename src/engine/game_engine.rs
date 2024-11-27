@@ -4,9 +4,7 @@ use crate::engine::renderer_engine::asset::font::Font;
 use crate::engine::renderer_engine::asset::sprite_sheet::SpriteSheet;
 use crate::engine::renderer_engine::graphics_context::GraphicsContext;
 use crate::engine::renderer_engine::post_process::PostProcessFilterId;
-use crate::engine::renderer_engine::render_engine::{
-    RenderEngineControl, RenderEngineControlBuilder,
-};
+use crate::engine::renderer_engine::{RenderEngineControl, RenderEngineControlBuilder};
 use crate::engine::{PhysicsEngine, RenderEngine};
 use std::sync::Arc;
 use std::time::{Duration, Instant};

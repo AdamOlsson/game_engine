@@ -15,8 +15,9 @@ use game_engine::engine::physics_engine::constraint::Constraint;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
-use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
-use game_engine::engine::renderer_engine::RenderBodyBuilder;
+use game_engine::engine::renderer_engine::{
+    RenderBodyBuilder, RenderBodyShape, RenderEngineControl,
+};
 use game_engine::engine::util::color::blue;
 use game_engine::engine::util::color::red;
 use game_engine::engine::PhysicsEngine;
@@ -69,7 +70,15 @@ where
                         .mass(1.)
                         .build(),
                 )
-                .render_body(RenderBodyBuilder::new().color(blue()).build())
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .color(blue())
+                        .shape(RenderBodyShape::Rectangle {
+                            width: 500.,
+                            height: 100.,
+                        })
+                        .build(),
+                )
                 .build(),
         );
 
@@ -84,7 +93,12 @@ where
                         .body_type(RigidBodyType::Circle { radius: 50.0 })
                         .build(),
                 )
-                .render_body(RenderBodyBuilder::new().color(red()).build())
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .color(red())
+                        .shape(RenderBodyShape::Circle { radius: 50.0 })
+                        .build(),
+                )
                 .build(),
         );
 

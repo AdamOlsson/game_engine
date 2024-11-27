@@ -20,8 +20,9 @@ use game_engine::engine::renderer_engine::asset::asset::Asset;
 use game_engine::engine::renderer_engine::asset::font::{Font, Writer};
 use game_engine::engine::renderer_engine::asset::sprite_sheet::SpriteCoordinate;
 use game_engine::engine::renderer_engine::post_process::PostProcessFilterId;
-use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
-use game_engine::engine::renderer_engine::{RenderBody, RenderBodyBuilder};
+use game_engine::engine::renderer_engine::{
+    RenderBody, RenderBodyBuilder, RenderBodyShape, RenderEngineControl,
+};
 use game_engine::engine::util::color::{blue, green};
 use game_engine::engine::util::zero;
 use game_engine::engine::{PhysicsEngine, RenderEngine};
@@ -57,6 +58,7 @@ where
                 )
                 .render_body(
                     RenderBodyBuilder::new()
+                        .shape(RenderBodyShape::Circle { radius: 50. })
                         .sprite_coord(SpriteCoordinate::new([2., 0.], [3., 1.]))
                         .build(),
                 )
@@ -73,7 +75,12 @@ where
                         .body_type(RigidBodyType::Circle { radius: 50. })
                         .build(),
                 )
-                .render_body(RenderBodyBuilder::new().color(blue()).build())
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .color(blue())
+                        .shape(RenderBodyShape::Circle { radius: 50. })
+                        .build(),
+                )
                 .build(),
         );
 
@@ -87,7 +94,12 @@ where
                         .body_type(RigidBodyType::Circle { radius: 60. })
                         .build(),
                 )
-                .render_body(RenderBodyBuilder::new().color(green()).build())
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .color(green())
+                        .shape(RenderBodyShape::Circle { radius: 60. })
+                        .build(),
+                )
                 .build(),
         );
 
@@ -106,6 +118,10 @@ where
                 )
                 .render_body(
                     RenderBodyBuilder::new()
+                        .shape(RenderBodyShape::Rectangle {
+                            width: 100.,
+                            height: 100.,
+                        })
                         .sprite_coord(SpriteCoordinate::new([1., 0.], [2., 1.]))
                         .build(),
                 )

@@ -8,7 +8,7 @@ pub mod util;
 
 use event::user_event::UserEvent;
 use physics_engine::collision::RigidBody;
-use renderer_engine::render_engine::RenderEngineControl;
+use renderer_engine::RenderEngineControl;
 
 #[allow(unused_variables)]
 pub trait PhysicsEngine {

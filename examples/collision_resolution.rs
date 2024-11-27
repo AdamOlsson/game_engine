@@ -16,8 +16,9 @@ use game_engine::engine::physics_engine::constraint::Constraint;
 use game_engine::engine::physics_engine::integrator::verlet::VerletIntegrator;
 use game_engine::engine::physics_engine::narrowphase::naive::Naive;
 use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
-use game_engine::engine::renderer_engine::render_engine::RenderEngineControl;
-use game_engine::engine::renderer_engine::RenderBodyBuilder;
+use game_engine::engine::renderer_engine::{
+    RenderBodyBuilder, RenderBodyShape, RenderEngineControl,
+};
 use game_engine::engine::util::color::{blue, green};
 use game_engine::engine::PhysicsEngine;
 use game_engine::engine::RenderEngine;
@@ -62,7 +63,15 @@ where
                         })
                         .build(),
                 )
-                .render_body(RenderBodyBuilder::new().color(blue()).build())
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .color(blue())
+                        .shape(RenderBodyShape::Rectangle {
+                            width: 100.0,
+                            height: 200.0,
+                        })
+                        .build(),
+                )
                 .build(),
         );
 
@@ -78,7 +87,15 @@ where
                         })
                         .build(),
                 )
-                .render_body(RenderBodyBuilder::new().color(green()).build())
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .color(green())
+                        .shape(RenderBodyShape::Rectangle {
+                            width: 100.0,
+                            height: 200.0,
+                        })
+                        .build(),
+                )
                 .build(),
         );
 
@@ -256,8 +273,9 @@ where
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let entities: Vec<EntityHandle> = self.ecs.entities_iter().collect();
-        // TODO: Merge RigidBodyType and whatever render shape there are
-        // TODO: RenderBody needs to have a shape if RigidBody shape is unkown
+        // TODO: RenderBody needs to have a shape if RigidBody shape is unknown
+        // TODO: Refactor the get_rectangle_instances and get_circle_instances to take
+        // iterators as args
         let rect_instances = game_engine::engine::util::get_rectangle_instances(&entities[..]);
         let circle_instances = game_engine::engine::util::get_circle_instances(&entities[..]);
 

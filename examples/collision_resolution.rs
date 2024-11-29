@@ -7,8 +7,7 @@ use game_engine::engine::event::ElementState;
 use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::{BroadPhase, SpatialSubdivision};
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
-use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
-use game_engine::engine::physics_engine::collision::CollisionGraph;
+use game_engine::engine::physics_engine::collision::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::{RigidBody, RigidBodyBuilder, RigidBodyType};
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::inelastic::InelasticConstraintResolver;
@@ -19,7 +18,7 @@ use game_engine::engine::physics_engine::narrowphase::NarrowPhase;
 use game_engine::engine::renderer_engine::{
     RenderBodyBuilder, RenderBodyShape, RenderEngineControl,
 };
-use game_engine::engine::util::color::{blue, green};
+use game_engine::engine::util::color::{blue, green, yellow};
 use game_engine::engine::PhysicsEngine;
 use game_engine::engine::RenderEngine;
 
@@ -126,6 +125,10 @@ where
     N: NarrowPhase + Sync,
 {
     fn update(&mut self) {
+        if self.ecs.len() > 2 {
+            let _ = self.ecs.remove_by_index(2);
+        }
+
         self.integrator.update(
             self.ecs
                 .rigid_body_iter_mut()
@@ -138,7 +141,6 @@ where
             .filter(|rb| rb.body_type != RigidBodyType::Unknown)
             .for_each(|b| self.constraint.apply_constraint(b));
 
-        // TODO: Display the collision information
         let candidates = self.broadphase.collision_detection(
             self.ecs
                 .rigid_body_iter()
@@ -150,7 +152,7 @@ where
         let pass3 = &candidates[2];
         let pass4 = &candidates[3];
 
-        let collision_info = if pass1.len() > 0 {
+        let collision_candidates = if pass1.len() > 0 {
             Some(&pass1[0])
         } else if pass2.len() > 0 {
             Some(&pass2[0])
@@ -162,32 +164,44 @@ where
             None
         };
 
-        let mut _bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
-        if let Some(_info) = collision_info {
-            // TODO: Display a renderbody circle
-        }
+        let candidates = match collision_candidates {
+            Some(c) => c,
+            None => return,
+        };
 
-        // TODO: Collide the objects but with 0.0 as crf
-        //let _graphs_1: Vec<CollisionGraph> = pass1
-        //    .iter()
-        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-        //    .collect();
-        //let _graphs_2: Vec<CollisionGraph> = pass2
-        //    .iter()
-        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-        //    .collect();
-        //let _graphs_3: Vec<CollisionGraph> = pass3
-        //    .iter()
-        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-        //    .collect();
-        //let _graphs_4: Vec<CollisionGraph> = pass4
-        //    .iter()
-        //    .filter_map(|c| self.narrowphase.collision_detection(bodies, c))
-        //    .collect();
-    }
+        let mut bodies: Vec<&mut RigidBody> = self.ecs.rigid_body_iter_mut().collect();
+        // TODO: Now the collision wont have any resolution as for rect rect only
+        // detection is implemented
+        // TODO: Make the object collide but they do not shoot away (crf = 0.0)
+        let collision_graph = match self
+            .narrowphase
+            .collision_detection(&mut bodies, &candidates)
+        {
+            Some(graph) => graph,
+            None => return,
+        };
 
-    fn get_bodies(&self) -> Vec<&RigidBody> {
-        self.ecs.rigid_body_iter().collect()
+        let collision_info = &collision_graph.collisions[0].info;
+
+        // TODO: wgpu instance buffers are only set to 2. How should the user specify the size of
+        // the buffer?
+        self.ecs.add(
+            EntityBuilder::new()
+                .render_body(
+                    RenderBodyBuilder::new()
+                        .shape(RenderBodyShape::Circle { radius: 10. })
+                        .color(yellow())
+                        .build(),
+                )
+                .rigid_body(
+                    RigidBodyBuilder::default()
+                        .id(2) // TODO: Remove
+                        .body_type(RigidBodyType::Unknown)
+                        .position(collision_info.collision_point)
+                        .build(),
+                )
+                .build(),
+        );
     }
 
     fn user_event(&mut self, event: UserEvent) {
@@ -273,18 +287,15 @@ where
 {
     fn render(&mut self, engine_ctl: &mut RenderEngineControl) {
         let entities: Vec<EntityHandle> = self.ecs.entities_iter().collect();
-        // TODO: RenderBody needs to have a shape if RigidBody shape is unknown
-        // TODO: Refactor the get_rectangle_instances and get_circle_instances to take
-        // iterators as args
         let rect_instances = game_engine::engine::util::get_rectangle_instances(&entities[..]);
         let circle_instances = game_engine::engine::util::get_circle_instances(&entities[..]);
 
         let texture_handle = engine_ctl.request_texture_handle();
         engine_ctl
-            .render_circles(&texture_handle, &circle_instances, true)
+            .render_rectangles(&texture_handle, &rect_instances, true)
             .expect("Failed to render circles");
         engine_ctl
-            .render_rectangles(&texture_handle, &rect_instances, false)
+            .render_circles(&texture_handle, &circle_instances, false)
             .expect("Failed to render circles");
         engine_ctl
             .present(&texture_handle)
@@ -316,6 +327,8 @@ fn main() {
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)
+        .max_num_rectangle_instances(5)
+        .max_num_circle_instances(5)
         .build();
 
     engine.run();

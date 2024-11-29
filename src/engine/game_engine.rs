@@ -31,6 +31,8 @@ pub struct GameEngine<'a, T: PhysicsEngine + RenderEngine> {
     background: Option<Background>,
     font: Option<Font>,
     pp_filter: Vec<PostProcessFilterId>,
+    max_num_circle_instances: u32,
+    max_num_rectangle_instances: u32,
 }
 
 impl<'a, T: PhysicsEngine + RenderEngine> GameEngine<'a, T> {
@@ -77,7 +79,6 @@ impl<'a, T: PhysicsEngine + RenderEngine> ApplicationHandler for GameEngine<'a, 
         self.window = Some(window);
 
         // Build the render engine with data from the physics engine
-        let bodies = self.engine.get_bodies();
         let mut render_engine_ctl_builder = RenderEngineControlBuilder::new();
         render_engine_ctl_builder = if let Some(sprite_sheet) = &self.sprite_sheet {
             render_engine_ctl_builder.sprite_sheet(sprite_sheet.clone())
@@ -98,7 +99,8 @@ impl<'a, T: PhysicsEngine + RenderEngine> ApplicationHandler for GameEngine<'a, 
         };
 
         let render_engine_ctl = render_engine_ctl_builder
-            .bodies(bodies)
+            .max_num_rectangle_instances(self.max_num_rectangle_instances)
+            .max_num_circle_instances(self.max_num_circle_instances)
             .add_post_process_filters(&mut self.pp_filter)
             .build(g_ctx, self.window_size);
 
@@ -160,6 +162,8 @@ pub struct GameEngineBuilder<T: PhysicsEngine + RenderEngine> {
     window_title: String,
     font: Option<Font>,
     pp_filter: Vec<PostProcessFilterId>,
+    max_num_circle_instances: u32,
+    max_num_rectangle_instances: u32,
 }
 
 impl<'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
@@ -167,6 +171,8 @@ impl<'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         let window_size = (800, 600);
         let target_fps = 60;
         let target_tpf = 1;
+        let max_num_circle_instances = 0;
+        let max_num_rectangle_instances = 0;
         Self {
             window_size,
             engine: None,
@@ -177,6 +183,8 @@ impl<'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
             window_title: "".to_string(),
             font: None,
             pp_filter: vec![],
+            max_num_circle_instances,
+            max_num_rectangle_instances,
         }
     }
 
@@ -225,33 +233,47 @@ impl<'a, T: PhysicsEngine + RenderEngine> GameEngineBuilder<T> {
         self
     }
 
+    pub fn max_num_circle_instances(mut self, len: usize) -> Self {
+        self.max_num_circle_instances = len as u32;
+        self
+    }
+
+    pub fn max_num_rectangle_instances(mut self, len: usize) -> Self {
+        self.max_num_rectangle_instances = len as u32;
+        self
+    }
+
     pub fn build(self) -> GameEngine<'a, T> {
+        debug_assert_ne!(
+            0, self.max_num_circle_instances,
+            "Expected maximum number of circle instances to be more than 0"
+        );
+
+        debug_assert_ne!(
+            0, self.max_num_rectangle_instances,
+            "Expected maximum number of rectangle instances to be more than 0"
+        );
+
         let (window_width, window_height) = self.window_size;
         let window_size = PhysicalSize::new(window_width, window_height);
-        let window_title = self.window_title;
-        let window = None; // Initiated by event loop resume fn, by doc recommendation
         let last_tick = Instant::now();
         let tick_delta = Duration::from_millis(1000_u64 / self.target_fps as u64);
         let next_tick = last_tick.elapsed() + tick_delta;
-        let engine = self.engine.expect("Physics engine not set");
-        let render_engine_ctl = None;
-        let sprite_sheet = self.sprite_sheet;
-        let background = self.background;
-        let font = self.font;
-        let pp_filter = self.pp_filter;
         GameEngine {
             window_size,
-            window_title,
-            window,
+            window_title: self.window_title,
+            window: None, // Initiated by event loop resume fn, by doc recommendation
             last_tick,
             tick_delta,
             next_tick,
-            engine,
-            render_engine_ctl,
-            sprite_sheet,
-            background,
-            font,
-            pp_filter,
+            engine: self.engine.expect("Physics engine not set"),
+            render_engine_ctl: None,
+            sprite_sheet: self.sprite_sheet,
+            background: self.background,
+            font: self.font,
+            pp_filter: self.pp_filter,
+            max_num_circle_instances: self.max_num_circle_instances,
+            max_num_rectangle_instances: self.max_num_rectangle_instances,
         }
     }
 }

@@ -7,8 +7,8 @@ use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::BlockMap;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
-use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
+use game_engine::engine::physics_engine::collision::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::{RigidBody, RigidBodyBuilder, RigidBodyType};
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::elastic::ElasticConstraintResolver;
@@ -229,10 +229,6 @@ where
             }
         }
     }
-
-    fn get_bodies(&self) -> Vec<&RigidBody> {
-        self.ecs.rigid_body_iter().collect()
-    }
 }
 
 fn main() {
@@ -265,6 +261,8 @@ fn main() {
         .target_ticks_per_frame(1)
         .sprite_sheet(sprite_sheet_asset)
         .background(background_asset)
+        .max_num_circle_instances(10)
+        .max_num_rectangle_instances(10)
         .build();
 
     engine.run();

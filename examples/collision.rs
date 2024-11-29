@@ -6,8 +6,8 @@ use game_engine::engine::game_engine::GameEngineBuilder;
 use game_engine::engine::physics_engine::broadphase::BroadPhase;
 use game_engine::engine::physics_engine::broadphase::SpatialSubdivision;
 use game_engine::engine::physics_engine::collision::collision_candidates::CollisionCandidates;
-use game_engine::engine::physics_engine::collision::collision_handler::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::CollisionGraph;
+use game_engine::engine::physics_engine::collision::SimpleCollisionSolver;
 use game_engine::engine::physics_engine::collision::{RigidBody, RigidBodyBuilder, RigidBodyType};
 use game_engine::engine::physics_engine::constraint::box_constraint::BoxConstraint;
 use game_engine::engine::physics_engine::constraint::resolver::inelastic::InelasticConstraintResolver;
@@ -161,10 +161,6 @@ where
         //panic!();
         //}
     }
-
-    fn get_bodies(&self) -> Vec<&RigidBody> {
-        self.ecs.rigid_body_iter().collect()
-    }
 }
 
 impl<C, B, N> RenderEngine for Collision<C, B, N>
@@ -215,6 +211,8 @@ fn main() {
         .window_size(window_size)
         .target_frames_per_sec(60)
         .target_ticks_per_frame(1)
+        .max_num_circle_instances(10)
+        .max_num_rectangle_instances(10)
         .build();
 
     engine.run();

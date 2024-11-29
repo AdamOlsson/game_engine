@@ -13,8 +13,6 @@ use renderer_engine::RenderEngineControl;
 #[allow(unused_variables)]
 pub trait PhysicsEngine {
     fn update(&mut self);
-    fn get_bodies(&self) -> Vec<&RigidBody>;
-
     fn user_event(&mut self, event: UserEvent) {}
 }
 

@@ -3,8 +3,11 @@ pub mod collision_handler;
 pub mod identity_collision_handler;
 mod rigid_body;
 pub mod sat;
+mod simple_collision_handler;
 
+pub use collision_handler::CollisionHandler;
 pub use rigid_body::{RigidBody, RigidBodyBuilder, RigidBodyType};
+pub use simple_collision_handler::SimpleCollisionSolver;
 
 #[derive(Debug)]
 pub struct CollisionGraph {

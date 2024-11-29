@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::engine::physics_engine::collision::{RigidBody, RigidBodyType};
 use winit::dpi::PhysicalSize;
 
 use crate::engine::renderer_engine::asset::background::Background;
@@ -205,8 +204,8 @@ impl<'a> RenderEngineControl<'a> {
 }
 
 pub struct RenderEngineControlBuilder {
-    circ_instance_buf_len: u32,
-    rect_instance_buf_len: u32,
+    max_num_circle_instances: u32,
+    max_num_rectangle_instances: u32,
     sprite_sheet: Option<SpriteSheet>,
     background: Option<Background>,
     font: Option<Font>,
@@ -216,8 +215,8 @@ pub struct RenderEngineControlBuilder {
 impl<'a> RenderEngineControlBuilder {
     pub fn new() -> Self {
         Self {
-            circ_instance_buf_len: 0,
-            rect_instance_buf_len: 0,
+            max_num_circle_instances: 0,
+            max_num_rectangle_instances: 0,
             sprite_sheet: None,
             background: None,
             font: None,
@@ -225,25 +224,13 @@ impl<'a> RenderEngineControlBuilder {
         }
     }
 
-    pub fn bodies(mut self, bodies: Vec<&RigidBody>) -> Self {
-        let circle_count: u32 = bodies.iter().fold(0, |acc, b| match b.body_type {
-            RigidBodyType::Circle { .. } => acc + 1,
-            _ => acc,
-        });
-        let default_circle = CircleInstance::default();
-        let raw_circle_instance = bytemuck::bytes_of(&default_circle);
-        let circle_instance_buffer_len = (raw_circle_instance.len() as u32) * circle_count;
+    pub fn max_num_circle_instances(mut self, len: u32) -> Self {
+        self.max_num_circle_instances = len;
+        self
+    }
 
-        let rect_count: u32 = bodies.iter().fold(0, |acc, b| match b.body_type {
-            RigidBodyType::Rectangle { .. } => acc + 1,
-            _ => acc,
-        });
-        let default_rect = RectangleInstance::default();
-        let raw_rect_instance = bytemuck::bytes_of(&default_rect);
-        let rect_instance_buffer_len = (raw_rect_instance.len() as u32) * rect_count;
-
-        self.circ_instance_buf_len = circle_instance_buffer_len;
-        self.rect_instance_buf_len = rect_instance_buffer_len;
+    pub fn max_num_rectangle_instances(mut self, len: u32) -> Self {
+        self.max_num_rectangle_instances = len;
         self
     }
 
@@ -306,22 +293,30 @@ impl<'a> RenderEngineControlBuilder {
             None
         };
 
+        let default_circle = CircleInstance::default();
+        let raw_circle_instance = bytemuck::bytes_of(&default_circle);
+        let circle_instance_buffer_len =
+            (raw_circle_instance.len() as u32) * self.max_num_circle_instances;
         let circle_render_pass = render_pass::render_pass::RenderPassBuilder::circle()
             .texture_data(Box::new(sprite_sheet.clone()))
             .build(&g_ctx, &window_size);
         let circle_instance_buffer = g_ctx.create_buffer(
             "Circle instance buffer",
-            self.circ_instance_buf_len,
+            circle_instance_buffer_len,
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             false,
         );
 
+        let default_rect = RectangleInstance::default();
+        let raw_rect_instance = bytemuck::bytes_of(&default_rect);
+        let rect_instance_buffer_len =
+            (raw_rect_instance.len() as u32) * self.max_num_rectangle_instances;
         let rectangle_render_pass = render_pass::render_pass::RenderPassBuilder::rectangle()
             .texture_data(Box::new(sprite_sheet.clone()))
             .build(&g_ctx, &window_size);
         let rectangle_instance_buffer = g_ctx.create_buffer(
             "Rectangle instance buffer",
-            self.rect_instance_buf_len,
+            rect_instance_buffer_len,
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             false,
         );

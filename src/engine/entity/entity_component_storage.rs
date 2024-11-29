@@ -46,4 +46,15 @@ impl EntityComponentStorage {
         self.rigid_bodies.push(entity.rigid_body);
         self.render_bodies.push(entity.render_body);
     }
+
+    pub fn remove_by_index(&mut self, idx: usize) -> Entity {
+        let mut entity = Entity::new();
+        entity.rigid_body = self.rigid_bodies.remove(idx);
+        entity.render_body = self.render_bodies.remove(idx);
+        entity
+    }
+
+    pub fn len(&self) -> usize {
+        self.rigid_bodies.len()
+    }
 }

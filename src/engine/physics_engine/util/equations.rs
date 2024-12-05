@@ -56,6 +56,26 @@ pub fn dot(v1: &[f32; 3], v2: &[f32; 3]) -> f32 {
     v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]
 }
 
+pub fn negate(v: &[f32; 3]) -> [f32; 3] {
+    [-v[0], -v[1], -v[2]]
+}
+
+pub fn subtract(v1: &[f32; 3], v2: &[f32; 3]) -> [f32; 3] {
+    [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
+}
+
+pub fn multiply_in_place(v: &mut [f32; 3], scalar: f32) {
+    v[0] *= scalar;
+    v[1] *= scalar;
+    v[2] *= scalar;
+}
+
+pub fn add_in_place(v1: &mut [f32; 3], v2: &[f32; 3]) {
+    v1[0] += v2[0];
+    v1[1] += v2[1];
+    v1[2] += v2[2];
+}
+
 pub fn post_collision_velocity(coll_normal: &[f32; 3], impulse: f32, body: &RigidBody) -> [f32; 3] {
     [
         body.velocity.x + (impulse / body.mass) * coll_normal[0],
@@ -90,6 +110,9 @@ pub fn post_collision_angular_velocity(
 pub fn cross_2d(a: &[f32; 3], b: &[f32; 3]) -> f32 {
     a[0] * b[1] - a[1] * b[0]
 }
+//pub fn cross_2d_scalar(v: &[f32; 3], z: f32) -> [f32; 3] {
+//    [-1.0 * v[1] * z, v[0] * z, v[2]]
+//}
 
 pub fn rotate_z(v: &[f32; 3], theta: f32) -> [f32; 3] {
     let sin_theta = theta.sin();

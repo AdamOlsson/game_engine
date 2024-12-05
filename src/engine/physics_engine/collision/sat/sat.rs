@@ -3,7 +3,7 @@ use crate::engine::physics_engine::collision::rigid_body::{RigidBody, RigidBodyT
 use crate::engine::physics_engine::util::equations;
 
 #[derive(Debug)]
-pub struct Projection {
+struct Projection {
     pub min: f32,
     pub min_corner: [f32; 3],
     pub max: f32,
@@ -22,10 +22,24 @@ impl Projection {
 }
 
 #[derive(Debug)]
-pub struct Overlap {
+struct Overlap {
     pub distance: f32,
     pub min: [f32; 3],
     pub max: [f32; 3],
+}
+
+#[derive(Debug)]
+struct CollisionEdge {
+    pub start: [f32; 3],
+    pub end: [f32; 3],
+    pub max: [f32; 3],
+    pub edge: [f32; 3],
+}
+
+#[derive(Debug)]
+struct ClippedPoint {
+    pub vertex: [f32; 3],
+    pub depth: f32,
 }
 
 /// Computes the primary axes to test for a Separating Axis Theorem (SAT) collision
@@ -147,7 +161,7 @@ pub fn sat_get_axii(body: &RigidBody) -> Vec<[f32; 3]> {
 ///
 /// # Panics
 /// - Panics if the `RigidBody` is not of type `Rectangle`.
-pub fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> Projection {
+fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> Projection {
     let corners = body.corners();
 
     // Fold with initial values that include both min/max values and indices of the corners
@@ -209,7 +223,7 @@ pub fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> Projection {
 /// This function is used within SAT collision detection algorithms to determine
 /// if two shapes are overlapping along a particular axis. It is called for each
 /// axis that could potentially separate the shapes.
-pub fn sat_projection_overlap(proj_a: &Projection, proj_b: &Projection) -> bool {
+fn sat_projection_overlap(proj_a: &Projection, proj_b: &Projection) -> bool {
     proj_a.min < proj_b.max && proj_b.min < proj_a.max
 }
 
@@ -248,7 +262,7 @@ pub fn sat_projection_overlap(proj_a: &Projection, proj_b: &Projection) -> bool 
 /// This function assumes that the overlap check (`sat_projection_overlap`) has
 /// already confirmed an intersection along the axis. If not, the result could be
 /// zero or negative, indicating no overlap.
-pub fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> Overlap {
+fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> Overlap {
     let max = std::cmp::min_by(proj_a, proj_b, |a, b| a.max.total_cmp(&b.max));
     let min = std::cmp::max_by(proj_a, proj_b, |a, b| a.min.total_cmp(&b.min));
     let distance = max.max - min.min;
@@ -257,6 +271,140 @@ pub fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> Overlap
         min: min.min_corner,
         max: max.max_corner,
     }
+}
+
+fn sat_find_collision_edge(body: &RigidBody, collision_axis: &[f32; 3]) -> CollisionEdge {
+    let corners = body.corners();
+
+    // Note that if two corners have the same value, the latter index is returned
+    let (index, _) = corners
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (i, equations::dot(collision_axis, c)))
+        .max_by(|(_, v0), (_, v1)| v0.partial_cmp(&v1).unwrap())
+        .unwrap();
+
+    let left_corner = &corners[(index as i32 - 1) as usize % corners.len()];
+    let mid_corner = &corners[index];
+    let right_corner = &corners[(index + 1) as usize % corners.len()];
+
+    let mut mid_left = [
+        mid_corner[0] - left_corner[0],
+        mid_corner[1] - left_corner[1],
+        mid_corner[2] - left_corner[2],
+    ];
+
+    let mut mid_right = [
+        mid_corner[0] - right_corner[0],
+        mid_corner[1] - right_corner[1],
+        mid_corner[2] - right_corner[2],
+    ];
+
+    equations::normalize(&mut mid_left);
+    equations::normalize(&mut mid_right);
+
+    if equations::dot(&mid_right, collision_axis) <= equations::dot(&mid_left, collision_axis) {
+        CollisionEdge {
+            max: mid_corner.clone(),
+            start: *right_corner,
+            end: *mid_corner,
+            edge: equations::subtract(&mid_corner, &right_corner),
+        }
+    } else {
+        CollisionEdge {
+            max: mid_corner.clone(),
+            start: *mid_corner,
+            end: *left_corner,
+            edge: equations::subtract(&left_corner, &mid_corner),
+        }
+    }
+}
+
+fn sat_find_clipping_points(
+    body_a: &RigidBody,
+    body_b: &RigidBody,
+    collision_normal: &[f32; 3],
+) -> Vec<ClippedPoint> {
+    let edge_a = sat_find_collision_edge(&body_a, &collision_normal);
+    let edge_b = sat_find_collision_edge(&body_b, &equations::negate(&collision_normal));
+
+    let (mut reference_edge, incident_edge, flip) =
+        if equations::dot(&edge_a.edge, &collision_normal).abs()
+            <= equations::dot(&edge_b.edge, &collision_normal).abs()
+        {
+            (edge_a, edge_b, false)
+        } else {
+            (edge_b, edge_a, true)
+        };
+    equations::normalize(&mut reference_edge.edge);
+
+    let offset_1 = equations::dot(&reference_edge.edge, &reference_edge.start);
+    let clipped_points = sat_clip(
+        &incident_edge.start,
+        &incident_edge.end,
+        &reference_edge.edge,
+        offset_1,
+    );
+
+    if clipped_points.len() < 2 {
+        return vec![];
+    }
+
+    let offset_2 = equations::dot(&reference_edge.edge, &reference_edge.end);
+
+    let clipped_points = sat_clip(
+        &clipped_points[0],
+        &clipped_points[1],
+        &equations::negate(&reference_edge.edge),
+        -offset_2,
+    );
+
+    if clipped_points.len() < 2 {
+        return vec![];
+    }
+
+    // NOTE: Negating of the reference edges normal caused unwanted behavior. However
+    // not negating and always rotating the edge counterclockwise to get the normal
+    // seem to work. This could be a point of bugs in the future.
+    // If flip, negate the normal.
+    // https://dyn4j.org/2011/11/contact-points-using-clipping/
+    let reference_edge_norm = equations::perpendicular_2d(&reference_edge.edge);
+
+    let max = equations::dot(&reference_edge_norm, &reference_edge.max);
+
+    return clipped_points
+        .into_iter()
+        .filter(|point| equations::dot(&reference_edge_norm, point) - max >= 0.0)
+        .map(|point| ClippedPoint {
+            depth: equations::dot(&reference_edge_norm, &point) - max,
+            vertex: point,
+        })
+        .collect();
+}
+
+fn sat_clip(v1: &[f32; 3], v2: &[f32; 3], normal: &[f32; 3], offset: f32) -> Vec<[f32; 3]> {
+    let mut cp = vec![];
+
+    let d1 = equations::dot(&normal, &v1) - offset;
+    let d2 = equations::dot(&normal, &v2) - offset;
+
+    if d1 >= 0.0 {
+        cp.push(v1.clone());
+    }
+
+    if d2 >= 0.0 {
+        cp.push(v2.clone());
+    }
+
+    if d1 * d2 < 0.0 {
+        let mut e = equations::subtract(&v2, &v1);
+        let u = d1 / (d1 - d2);
+        equations::multiply_in_place(&mut e, u);
+        equations::add_in_place(&mut e, &v1);
+        cp.push(e);
+    }
+
+    cp
 }
 
 /// Performs collision detection between two rectangular `RigidBody` objects using
@@ -303,6 +451,12 @@ pub fn sat_collision_detection(
     let axii_a = sat_get_axii(&body_a);
     let axii_b = sat_get_axii(&body_b);
 
+    // TODO: Whenever we project a body onto an axis and its body is axis aligned to
+    // the axis, we select which points cause the projection based on its definition order.
+    // This is wrong as we then can select the opposite corner from the collision. Instead,
+    // if two points of an object cause the same projection point, we want to select the
+    // point closest to the body for which the projection axis originates from.
+
     // iterators are 0 cost, create them all
     let projections_body_a_on_axii_a = axii_a.iter().map(|ax| sat_project_on_axis(&body_a, ax));
     let projections_body_b_on_axii_a = axii_a.iter().map(|ax| sat_project_on_axis(&body_b, ax));
@@ -347,6 +501,17 @@ pub fn sat_collision_detection(
     );
 
     let axis = axii[index];
+
+    // Correct the direction of the collision normal such it always points from body A
+    // to body B
+    let direction = body_b.position - body_a.position;
+    let collision_normal = if equations::dot(&axis, &direction.into()) >= 0.0 {
+        axis
+    } else {
+        [-axis[0], -axis[1], -axis[2]]
+    };
+
+    // TODO: I should be able to do something different here
     let collision_point = [
         overlap.min[0] + axis[0] * overlap.distance,
         overlap.min[1] + axis[1] * overlap.distance,
@@ -355,7 +520,7 @@ pub fn sat_collision_detection(
 
     let collision_info = CollisionInformation {
         penetration_depth: overlap.distance,
-        normal: axis,
+        normal: collision_normal,
         collision_point,
     };
 
@@ -389,26 +554,56 @@ mod sat_test {
         }
 
         sat_get_axii_tests! {
-            given_rect_with_no_rotation_expect_axis_aligned_axii:
+            given_rect_with_no_rotation_expect_axis_aligned_axii_origo:
                 RigidBodyBuilder::default().id(0)
                     .position([0.0,0.0,0.0])
                     .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
                     .build(),
               [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
-            given_rect_is_offset_with_no_rotation_expect_axis_aligned_axii:
+
+            given_rect_with_no_rotation_expect_axis_aligned_axii_top_right_quarter:
+                RigidBodyBuilder::default().id(0)
+                    .position([10.0,7.0,0.0])
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
+
+            given_rect_with_no_rotation_expect_axis_aligned_axii_bot_right_quarter:
+                RigidBodyBuilder::default().id(0)
+                    .position([10.0,-7.0,0.0])
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
+
+            given_rect_with_no_rotation_expect_axis_aligned_axii_bot_left_quarter:
+                RigidBodyBuilder::default().id(0)
+                    .position([-10.0,-7.0,0.0])
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
+
+            given_rect_with_no_rotation_expect_axis_aligned_axii_top_left_quarter:
+                RigidBodyBuilder::default().id(0)
+                    .position([-10.0,7.0,0.0])
+                    .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
+                    .build(),
+              [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
+
+            given_rect_is_offset_from_origo_with_no_rotation_expect_axis_aligned_axii:
                 RigidBodyBuilder::default().id(0)
                     .position([7.0,-6.0,0.0])
                     .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
                     .build(),
               [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
-            given_rect_is_offset_with_45_degree_rotation_expect_axis_aligned_axii:
+
+            given_rect_is_offset_from_origo_with_45_degree_rotation_expect_axis_aligned_axii:
                 RigidBodyBuilder::default().id(0)
                     .position([7.0,-6.0,0.0])
                     .rotation(std::f32::consts::PI/4.0)
                     .body_type(RigidBodyType::Rectangle { width: 10., height: 10.})
                     .build(),
               [0.707, 0.707, 0.0], [-0.707, 0.707, 0.0]
-            given_rect_is_offset_with_45_degree_rotation_and_uneven_height_and_width_expect_axis_aligned_axii:
+            given_rect_is_offset_from_origo_with_45_degree_rotation_and_uneven_height_and_width_expect_axis_aligned_axii:
                 RigidBodyBuilder::default().id(0)
                     .position([7.0,-6.0,0.0])
                     .rotation(std::f32::consts::PI/4.0)
@@ -420,40 +615,38 @@ mod sat_test {
     }
 
     mod sat_project_on_axis {
-        use super::super::sat_project_on_axis;
+        use super::super::{sat_project_on_axis, Projection};
         use crate::engine::physics_engine::collision::rigid_body::{
             RigidBodyBuilder, RigidBodyType,
         };
         use crate::engine::util::fixed_float::fixed_float::FixedFloat;
 
         macro_rules! sat_project_on_axis_test {
-            ($($name:ident: $body: expr, $axis: expr, $expected_min: expr, $expected_max: expr)*) => {
+            ($($name:ident: $body: expr, $axis: expr, $expected_proj: expr )*) => {
                 $(
                     #[test]
                     fn $name() {
                         let body = $body;
                         let axis = $axis;
-                        let expected_min = $expected_min;
-                        let expected_max = $expected_max;
+                        let expected_proj= $expected_proj;
                         let projection  = sat_project_on_axis(&body, &axis);
                         let min_proj_ff: f32 = FixedFloat::from(projection.min).into();
                         let max_proj_ff: f32 = FixedFloat::from(projection.max).into();
                         assert_eq!(
-                            expected_min, min_proj_ff,
-                            "Expected projection minimum to be {expected_min} but found {min_proj_ff}"
+                            expected_proj.min, min_proj_ff,
+                            "Expected projection to be {expected_proj:?} but found {projection:?}"
                         );
                         assert_eq!(
-                            expected_max, max_proj_ff,
-                            "Expected projection maximum to be {expected_max} but found {max_proj_ff}"
+                            expected_proj.max, max_proj_ff,
+                            "Expected projection to be {expected_proj:?} but found {projection:?}"
                         );
-
                     }
                 )*
             }
         }
 
         sat_project_on_axis_test! {
-            given_rect_is_axis_aligned_and_not_offset_when_projected_onto_x:
+            given_rect_is_axis_aligned_and_not_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([0.0, 0.0, 0.0])
@@ -461,9 +654,10 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[1.0, 0.0, 0.0], -5.0, 5.0
+                .build(),[1.0, 0.0, 0.0],
+                Projection {min: -5.0, max: 5.0, min_corner: [-5.0,-5.0,0.0], max_corner: [5.0,5.0,0.0]}
 
-            given_rect_is_axis_aligned_and_not_offset_when_projected_onto_y:
+            given_rect_is_axis_aligned_and_not_offset_from_origo_when_projected_onto_y:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([0.0, 0.0, 0.0])
@@ -471,9 +665,10 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[0.0, 1.0, 0.0], -5.0, 5.0
+                .build(),[0.0, 1.0, 0.0],
+                Projection {min: -5.0, max: 5.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
 
-            given_rect_is_axis_aligned_and_offset_when_projected_onto_x:
+            given_rect_is_axis_aligned_and_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([5.0, -5.0, 0.0])
@@ -481,9 +676,10 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[1.0, 0.0, 0.0], 0.0, 10.0
+                .build(),[1.0, 0.0, 0.0],
+                Projection {min: 0.0, max: 10.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
 
-            given_rect_is_axis_aligned_and_offset_when_projected_onto_y:
+            given_rect_is_axis_aligned_and_offset_from_origo_when_projected_onto_y:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([5.0, -5.0, 0.0])
@@ -491,9 +687,10 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[0.0, 1.0, 0.0], -10.0, 0.0
+                .build(),[0.0, 1.0, 0.0],
+                Projection {min: -10.0, max: 0.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
 
-            given_rect_is_rotated_45_degrees_and_not_offset_when_projected_onto_x:
+            given_rect_is_rotated_45_degrees_and_not_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([0.0, 0.0, 0.0])
@@ -502,9 +699,10 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[1.0, 0.0, 0.0], -7.071, 7.071
+                .build(),[1.0, 0.0, 0.0],
+                Projection {min: -7.071, max: 7.071, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
 
-            given_rect_is_rotated_90_degrees_and_not_offset_when_projected_onto_x:
+            given_rect_is_rotated_90_degrees_and_not_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([0.0, 0.0, 0.0])
@@ -513,9 +711,10 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[1.0, 0.0, 0.0], -5.0, 5.0
+                .build(),[1.0, 0.0, 0.0],
+                Projection {min: -5.0, max: 5.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
 
-            given_rect_is_rotated_45_degrees_and_offset_when_projected_onto_x:
+            given_rect_is_rotated_45_degrees_and_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
                 .id(0)
                 .position([5.0, 5.0, 0.0])
@@ -524,7 +723,8 @@ mod sat_test {
                     width: 10.,
                     height: 10.,
                 })
-                .build(),[1.0, 0.0, 0.0], -2.071, 12.071
+                .build(),[1.0, 0.0, 0.0],
+                Projection {min: -2.071, max: 12.071, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
         }
     }
 
@@ -565,7 +765,7 @@ mod sat_test {
 
     mod sat_overlap_distance {
         use super::super::sat_overlap_distance;
-        use super::super::Projection;
+        use super::super::{Overlap, Projection};
         macro_rules! sat_overlap_distance_tests {
             ($($name:ident: $proj_a: expr, $proj_b: expr, $expected: expr)*) => {
                 $(
@@ -576,8 +776,16 @@ mod sat_test {
                         let expected = $expected;
                         let overlap = sat_overlap_distance(&proj_a, &proj_b);
                         assert_eq!(
-                            expected, overlap.distance,
-                            "Expected projection overlap to be {expected} but found {overlap:?}"
+                            expected.distance, overlap.distance,
+                            "Expected projection overlap to be {expected:?} but found {overlap:?}"
+                        );
+                        assert_eq!(
+                            expected.min, overlap.min,
+                            "Expected projection overlap to be {expected:?} but found {overlap:?}"
+                        );
+                        assert_eq!(
+                            expected.max, overlap.max,
+                            "Expected projection overlap to be {expected:?} but found {overlap:?}"
                         );
                     }
                 )*
@@ -586,15 +794,258 @@ mod sat_test {
 
         sat_overlap_distance_tests! {
             given_projections_does_not_overlap_1:
-                Projection::no_axis(-10.0, 10.0), Projection::no_axis(10.0, 20.0), 0.0
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(10.0, 20.0),
+                Overlap { distance: 0.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+
             given_projections_does_not_overlap_2:
-                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 10.0), 0.0
+                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 10.0),
+                Overlap { distance: 0.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+
             given_projections_do_overlap_1:
-                Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 11.0), 1.0
+                Projection { min:10.0, max:20.0, min_corner: [1.0,10.0,0.0], max_corner: [1.0,20.0,0.0]},
+                Projection { min:-9.0, max:11.0, min_corner: [-1.0,-9.0,0.0], max_corner: [-1.0,11.0,0.0]},
+                Overlap { distance: 1.0, min: [1.0,10.0,0.0], max: [-1.0,11.0,0.0]}
+
+            given_projections_do_overlap_2:
+                Projection { min:-9.0, max:11.0, min_corner: [-1.0,-9.0,0.0], max_corner: [-1.0,11.0,0.0]},
+                Projection { min:10.0, max:20.0, min_corner: [1.0,10.0,0.0], max_corner: [1.0,20.0,0.0]},
+                Overlap { distance: 1.0, min: [1.0,10.0,0.0], max: [-1.0,11.0,0.0]}
+
+            given_projections_do_overlap_3:
+                Projection { min:-9.0, max:11.0, min_corner: [1.0,-9.0,0.0], max_corner: [1.0,11.0,0.0]},
+                Projection { min:10.0, max:20.0, min_corner: [-1.0,10.0,0.0], max_corner: [-1.0,20.0,0.0]},
+                Overlap { distance: 1.0, min: [-1.0,10.0,0.0], max: [1.0,11.0,0.0]}
+
             given_projections_are_contained_1:
-                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-10.0, 10.0), 20.0
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-10.0, 10.0),
+                Overlap { distance: 20.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+
             given_projections_are_contained_2:
-                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-9.0, 9.0), 18.0
+                Projection::no_axis(-10.0, 10.0), Projection::no_axis(-9.0, 9.0),
+                Overlap { distance: 18.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+        }
+    }
+
+    mod sat_find_collision_edge {
+        use super::super::{sat_find_collision_edge, CollisionEdge};
+        use crate::engine::physics_engine::collision::rigid_body::{
+            RigidBodyBuilder, RigidBodyType,
+        };
+        use crate::engine::physics_engine::util::equations;
+
+        macro_rules! sat_find_collision_edge_tests {
+            ($($name:ident: $body: expr, $axis: expr, $expected: expr)*) => {
+                $(
+                    #[test]
+                    fn $name() {
+                        let expected_edge = $expected;
+                        let body = $body;
+                        let collision_axis = $axis;
+                        let collision_edge = sat_find_collision_edge(&body, &collision_axis);
+                        assert_eq!(
+                            expected_edge.start, collision_edge.start,
+                            "Expected collision edge {expected_edge:?} but found {collision_edge:?}");
+                        assert_eq!(
+                            expected_edge.end, collision_edge.end,
+                            "Expected collision edge {expected_edge:?} but found {collision_edge:?}");
+                        assert_eq!(
+                            expected_edge.edge, collision_edge.edge,
+                            "Expected collision edge {expected_edge:?} but found {collision_edge:?}");
+                        assert_eq!(
+                            expected_edge.max, collision_edge.max,
+                            "Expected collision edge {expected_edge:?} but found {collision_edge:?}");
+
+                    }
+                )*
+            }
+        }
+
+        sat_find_collision_edge_tests! {
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_1_body_a_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([11.0,6.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 6.0, height: 5.0})
+                    .build(),
+                [0.0,-1.0,0.0],
+                CollisionEdge {
+                    max: [8.0, 4.0, 0.0],
+                    start: [8.0, 4.0, 0.0],
+                    end: [14.0, 4.0, 0.0],
+                    edge: [6.0, 0.0,0.0],
+                }
+
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_1_body_b_at_dyn4j:
+                RigidBodyBuilder::default().id(1)
+                    .position([8.0,3.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 3.0})
+                    .build(),
+                equations::negate(&[0.0,-1.0,0.0]),
+                CollisionEdge {
+                    max: [12.0, 5.0, 0.0],
+                    start: [12.0, 5.0, 0.0],
+                    end: [4.0, 5.0, 0.0],
+                    edge: [-8.0, 0.0, 0.0],
+                }
+
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_2_body_a_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([5.5,7.5,0.0])
+                    .rotation(-std::f32::consts::PI/4.0)
+                    .body_type(RigidBodyType::Rectangle{ width: 5.6568, height: 4.2426})
+                    .build(),
+                [0.0,-1.0,0.0],
+                CollisionEdge {
+                    max: [6.0, 4.0, 0.0],
+                    start: [2.0, 8.0, 0.0],
+                    end: [6.0, 4.0, 0.0],
+                    edge: [4.0, -4.0, 0.0],
+                }
+
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_2_body_b_at_dyn4j:
+                RigidBodyBuilder::default().id(1)
+                    .position([8.0,3.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 3.0})
+                    .build(),
+                equations::negate(&[0.0,-1.0,0.0]),
+                CollisionEdge {
+                    max: [12.0, 5.0, 0.0],
+                    start: [12.0, 5.0, 0.0],
+                    end: [4.0, 5.0, 0.0],
+                    edge: [-8.0, 0.0, 0.0],
+                }
+
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_3_body_a_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([11.5,5.5,0.0])
+                    .rotation(-0.2449)
+                    .body_type(RigidBodyType::Rectangle{ width: 4.1231, height: 4.1231})
+                    .build(),
+                [-0.19,-0.98,0.0],
+                // Note that examples max is start, not end because of the ambiguity
+                // when two corners have equal project length. Then the order of definition
+                // for the points matter.
+                CollisionEdge {
+                    max: [13.0, 3.0, 0.0],
+                    start: [9.0, 4.0, 0.0],
+                    end: [13.0, 3.0, 0.0],
+                    edge: [4.0, -1.0, 0.0],
+                }
+
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_3_body_b_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([8.0,3.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 3.0})
+                    .build(),
+                equations::negate(&[-0.19,-0.98,0.0]),
+                CollisionEdge {
+                    max: [12.0, 5.0, 0.0],
+                    start: [12.0, 5.0, 0.0],
+                    end: [4.0, 5.0, 0.0],
+                    edge: [-8.0, 0.0, 0.0],
+                }
+
+        }
+    }
+
+    mod sat_find_clipping_points {
+        use super::super::{sat_find_clipping_points, ClippedPoint};
+        use crate::engine::physics_engine::collision::rigid_body::{
+            RigidBodyBuilder, RigidBodyType,
+        };
+        use crate::engine::util::fixed_float::fixed_float::FixedFloat;
+
+        macro_rules! sat_find_clipping_points_tests{
+            ($($name:ident: $body_a: expr, $body_b: expr, $normal: expr, $expected: expr)*) => {
+                $(
+                    #[test]
+                    fn $name() {
+                        let expected = $expected;
+                        let clipped_points = sat_find_clipping_points(&$body_a, &$body_b, &$normal);
+                        assert_eq!(expected.len(), clipped_points.len(),
+                            "Expected {} clipped points but found {}", expected.len(), clipped_points.len());
+                        std::iter::zip(expected, clipped_points)
+                            .enumerate()
+                            .for_each(|(i,(e_cp, cp))| {
+                                let ff_depth: f32 = FixedFloat::from(cp.depth).into();
+                                assert_eq!(e_cp.vertex, cp.vertex,
+                                    "At index {i}, expected vertex {:?} but found {:?}", e_cp.vertex, cp.vertex);
+                                assert_eq!(e_cp.depth, ff_depth,
+                                    "At index {i}, expected depth {:?} but found {:?}", e_cp.depth, ff_depth);
+                            });
+                    }
+                )*
+            }
+        }
+
+        // Note: clipping points will point from deepest point out
+        sat_find_clipping_points_tests! {
+            //https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_1_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([11.0,6.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 6.0, height: 5.0})
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .position([8.0,3.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 3.0})
+                    .build(),
+                [0.0,-1.0,0.0],
+                vec![
+                    ClippedPoint { vertex: [12.0,5.0,0.0], depth: 1.0},
+                    ClippedPoint { vertex: [8.0,5.0,0.0], depth: 1.0}]
+
+            given_bodies_overlap_when_collision_axis_is_down:
+                RigidBodyBuilder::default().id(0)
+                    .position([10.0,10.0,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 6.0, height: 6.0})
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .position([13.0,6.0,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 4.0})
+                    .build(),
+                [0.0,-1.0,0.0],
+                vec![
+                    ClippedPoint { vertex: [9.0,8.0,0.0], depth: 1.0},
+                    ClippedPoint { vertex: [13.0,8.0,0.0], depth: 1.0}]
+
+            ////https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_2_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([5.5,7.5,0.0])
+                    .rotation(-std::f32::consts::PI/4.0)
+                    .body_type(RigidBodyType::Rectangle{ width: 5.6568, height: 4.2426})
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .position([8.0,3.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 3.0})
+                    .build(),
+                [0.0,-1.0,0.0],
+                vec![
+                    ClippedPoint { vertex: [6.0,4.0,0.0], depth: 1.0}]
+
+            ////https://dyn4j.org/2011/11/contact-points-using-clipping/
+            given_example_3_at_dyn4j:
+                RigidBodyBuilder::default().id(0)
+                    .position([11.5,5.5,0.0])
+                    .rotation(-0.2449)
+                    .body_type(RigidBodyType::Rectangle{ width: 4.1231, height: 4.1231})
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .position([8.0,3.5,0.0])
+                    .body_type(RigidBodyType::Rectangle{ width: 8.0, height: 3.0})
+                    .build(),
+                [-0.19,-0.98,0.0],
+                // The expected value differ slightly due to what I believe is premature
+                // rounding in the example
+                vec![
+                    ClippedPoint { vertex: [12.0,5.0,0.0], depth: 1.698},
+                    ClippedPoint { vertex: [9.25,5.0,0.0], depth: 1.031}]
         }
     }
 
@@ -688,11 +1139,11 @@ mod sat_test {
                     .build(),
                 Some(CollisionInformation {
                     penetration_depth: 1.0,
-                    normal: [1.0,0.0,0.0],
+                    normal: [-1.0,0.0,0.0],
                     collision_point: [0.0,5.0,0.0]
                 })
 
-            given_rectangles_are_axis_aligned_and_offset_when_overlapping_on_x_axis_expect_collision:
+            given_rectangles_are_axis_aligned_and_offset_from_origo_when_overlapping_on_x_axis_expect_collision:
                 RigidBodyBuilder::default().id(0)
                     .body_type(RigidBodyType::Rectangle{ width: 20.0, height: 10.0 })
                     .position([-10.0,20.0,0.0])
@@ -703,7 +1154,7 @@ mod sat_test {
                     .build(),
                 Some(CollisionInformation {
                     penetration_depth: 5.0,
-                    normal: [0.0,1.0,0.0],
+                    normal: [0.0,-1.0,0.0],
                     collision_point: [0.0,20.0,0.0]
                 })
 
@@ -753,7 +1204,7 @@ mod sat_test {
                     .build(),
                 Some(CollisionInformation {
                     penetration_depth: 2.929,
-                    normal: [-0.707,0.707,0.0],
+                    normal: [0.707,-0.707,0.0],
                     collision_point: [5.0,2.071,0.0]
                 })
 
@@ -773,6 +1224,37 @@ mod sat_test {
                     normal: [0.707, 0.707,0.0],
                     collision_point: [0.0,2.071,0.0]
                 })
+
+            given_rectangles_are_offset_from_each_other_with_no_rotation_with_half_overlap_expect_collision:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .position([-4.0, 2.5, 0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .position([4.0, -2.5, 0.0])
+                    .build(),
+                Some(CollisionInformation {
+                    penetration_depth: 2.0,
+                    normal: [1.0,0.0,0.0],
+                    collision_point: [1.0,2.5,0.0]
+                })
+
+            given_rectangles_are_offset_from_each_other_with_no_rotation_with_half_overlap_expect_collision_2:
+                RigidBodyBuilder::default().id(0)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .position([4.0, 2.5, 0.0])
+                    .build(),
+                RigidBodyBuilder::default().id(1)
+                    .body_type(RigidBodyType::Rectangle{ width: 10.0, height: 10.0 })
+                    .position([-4.0, -2.5, 0.0])
+                    .build(),
+                Some(CollisionInformation {
+                    penetration_depth: 2.0,
+                    normal: [-1.0,0.0,0.0],
+                    collision_point: [1.0,2.5,0.0]
+                })
+
         }
     }
 }

@@ -91,6 +91,8 @@ impl RigidBody {
     pub fn click_inside(&self, point: (f32, f32)) -> bool {
         match self.body_type {
             RigidBodyType::Rectangle { .. } => rectangle_equations::click_inside(point, &self),
+            RigidBodyType::Circle { .. } => circle_equations::click_inside(point, &self),
+
             _ => panic!(
                 "Rigid body of type {} has no click_inside() function",
                 self.body_type

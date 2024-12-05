@@ -41,7 +41,7 @@ impl CollisionHandler for SimpleCollisionSolver {
         let dist = collision_axis.magnitude();
         let correction_direction = collision_axis / dist;
         let collision_depth = radius_i + radius_j - dist;
-        let collision_point = body_i.position + collision_normal * (*radius_i);
+        let collision_point = body_j.position + collision_normal * (*radius_j);
 
         body_i.position += 0.5 * collision_depth * correction_direction;
         body_j.position -= 0.5 * collision_depth * correction_direction;

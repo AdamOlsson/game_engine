@@ -5,27 +5,19 @@ use crate::engine::physics_engine::util::equations;
 #[derive(Debug)]
 struct Projection {
     pub min: f32,
-    pub min_corner: [f32; 3],
     pub max: f32,
-    pub max_corner: [f32; 3],
 }
 
+#[allow(dead_code)]
 impl Projection {
     pub fn no_axis(min: f32, max: f32) -> Self {
-        Self {
-            min,
-            min_corner: [0., 0., 0.],
-            max,
-            max_corner: [0., 0., 0.],
-        }
+        Self { min, max }
     }
 }
 
 #[derive(Debug)]
 struct Overlap {
     pub distance: f32,
-    pub min: [f32; 3],
-    pub max: [f32; 3],
 }
 
 #[derive(Debug)]
@@ -162,32 +154,15 @@ pub fn sat_get_axii(body: &RigidBody) -> Vec<[f32; 3]> {
 /// # Panics
 /// - Panics if the `RigidBody` is not of type `Rectangle`.
 fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> Projection {
-    let corners = body.corners();
-
-    // Fold with initial values that include both min/max values and indices of the corners
-    let (min, min_corner_idx, max, max_corner_idx) = corners
+    let (min, max) = body
+        .corners()
         .iter()
-        .enumerate()
-        .map(|(i, c)| (equations::dot(axis, c), i))
-        .fold(
-            (f32::MAX, 0, f32::MIN, 0), // Initial values: min, min_index, max, max_index
-            |(min, min_idx, max, max_idx), (value, idx)| {
-                (
-                    if value < min { value } else { min },
-                    if value < min { idx } else { min_idx },
-                    if value > max { value } else { max },
-                    if value > max { idx } else { max_idx },
-                )
-            },
-        );
-    let min_corner = corners[min_corner_idx];
-    let max_corner = corners[max_corner_idx];
-    Projection {
-        min,
-        min_corner,
-        max,
-        max_corner,
-    }
+        .map(|c| equations::dot(axis, c))
+        .fold((f32::MAX, f32::MIN), |(min, max), value| {
+            (value.min(min), value.max(max))
+        });
+
+    Projection { min, max }
 }
 
 /// Determines whether there is an overlap between the projection intervals of
@@ -223,6 +198,7 @@ fn sat_project_on_axis(body: &RigidBody, axis: &[f32; 3]) -> Projection {
 /// This function is used within SAT collision detection algorithms to determine
 /// if two shapes are overlapping along a particular axis. It is called for each
 /// axis that could potentially separate the shapes.
+#[allow(dead_code)]
 fn sat_projection_overlap(proj_a: &Projection, proj_b: &Projection) -> bool {
     proj_a.min < proj_b.max && proj_b.min < proj_a.max
 }
@@ -266,11 +242,7 @@ fn sat_overlap_distance(proj_a: &Projection, proj_b: &Projection) -> Overlap {
     let max = std::cmp::min_by(proj_a, proj_b, |a, b| a.max.total_cmp(&b.max));
     let min = std::cmp::max_by(proj_a, proj_b, |a, b| a.min.total_cmp(&b.min));
     let distance = max.max - min.min;
-    Overlap {
-        distance,
-        min: min.min_corner,
-        max: max.max_corner,
-    }
+    Overlap { distance }
 }
 
 fn sat_find_collision_edge(body: &RigidBody, collision_axis: &[f32; 3]) -> CollisionEdge {
@@ -320,6 +292,56 @@ fn sat_find_collision_edge(body: &RigidBody, collision_axis: &[f32; 3]) -> Colli
     }
 }
 
+/// Computes the clipping points between two rectangles during a collision,
+/// given the collision normal, using the Separating Axis Theorem (SAT).
+///
+/// # Parameters
+/// - `body_a`: A reference to the first `RigidBody` involved in the collision.
+/// - `body_b`: A reference to the second `RigidBody` involved in the collision.
+/// - `collision_normal`: A 3D vector representing the collision axis or normal.
+///
+/// # Returns
+/// - A `Vec<ClippedPoint>` containing the clipped points of contact between the two
+///   rectangles. Each `ClippedPoint` contains:
+///   - `depth`: The penetration depth of the point relative to the collision normal.
+///   - `vertex`: The position of the point in world space.
+/// - An empty vector if no valid clipped points are found.
+///
+/// # Details
+/// This function determines the points of contact during a collision by using
+/// edge clipping based on SAT principles. It selects reference and incident edges
+/// from the two rectangles and clips them to find the intersection region.
+///
+/// ## Steps
+/// 1. **Find Collision Edges:**
+///    - For each body, the edge most aligned with the collision normal is identified
+///      using `sat_find_collision_edge`.
+/// 2. **Determine Reference and Incident Edges:**
+///    - The reference edge is the edge most perpendicular to the collision normal.
+///    - The incident edge belongs to the other rectangle and is clipped against the
+///      reference edge.
+/// 3. **Clipping:**
+///    - The incident edge is clipped using the reference edge's line equations,
+///      yielding a pair of clipped points that lie within the bounds of the reference edge.
+///    - Additional clipping ensures the points are within the bounds of the reference edge.
+/// 4. **Filter and Map Clipped Points:**
+///    - The final clipped points are filtered to remove those outside the bounds
+///      of the collision region. Their penetration depth relative to the collision
+///      normal is calculated and returned.
+///
+/// ## Notes
+/// - The function assumes the collision normal is correctly oriented and provides
+///   no guarantees about the direction of the edges relative to specific rectangles.
+/// - A counterclockwise rotation convention is used for edge normals.
+/// - Clipping points are influenced by edge ordering, so care is required in ensuring
+///   consistent edge orientation during the collision detection process.
+/// - This function follows the approach outlined in *Dyn4j's Contact Points Using Clipping*
+///   [https://dyn4j.org/2011/11/contact-points-using-clipping/].
+///
+/// # Usage
+/// This function is typically called as part of a broader SAT-based collision response
+/// system to compute accurate contact points and penetration depths, which are essential
+/// for resolving collisions and applying corrective impulses.
 fn sat_find_clipping_points(
     body_a: &RigidBody,
     body_b: &RigidBody,
@@ -328,7 +350,7 @@ fn sat_find_clipping_points(
     let edge_a = sat_find_collision_edge(&body_a, &collision_normal);
     let edge_b = sat_find_collision_edge(&body_b, &equations::negate(&collision_normal));
 
-    let (mut reference_edge, incident_edge, flip) =
+    let (mut reference_edge, incident_edge, _flip) =
         if equations::dot(&edge_a.edge, &collision_normal).abs()
             <= equations::dot(&edge_b.edge, &collision_normal).abs()
         {
@@ -382,6 +404,52 @@ fn sat_find_clipping_points(
         .collect();
 }
 
+/// Clips a line segment against a plane defined by a normal vector and an offset,
+/// using the Separating Axis Theorem (SAT) for collision detection.
+///
+/// # Parameters
+/// - `v1`: A 3D vector representing the starting vertex of the line segment.
+/// - `v2`: A 3D vector representing the ending vertex of the line segment.
+/// - `normal`: A 3D vector representing the normal of the clipping plane.
+/// - `offset`: A scalar value representing the plane's offset from the origin
+///   along its normal.
+///
+/// # Returns
+/// - A `Vec<[f32; 3]>` containing up to two points:
+///   - The vertices of the segment that lie inside or on the plane.
+///   - The intersection point of the segment with the plane, if it intersects.
+///
+/// # Details
+/// The function determines which points of a line segment defined by `v1` and `v2`
+/// lie within or on the positive side of a plane defined by `normal` and `offset`.
+/// If the segment crosses the plane, the intersection point is also included.
+///
+/// ## Steps
+/// 1. Compute the signed distances (`d1` and `d2`) of the segment's endpoints
+///    (`v1` and `v2`) from the plane, using the formula:
+///    `d = dot(normal, vertex) - offset`.
+/// 2. Depending on the signs of `d1` and `d2`:
+///    - If a point lies on or outside the plane (`d >= 0`), it is added to the result.
+///    - If the segment crosses the plane (`d1 * d2 < 0`), the intersection point is
+///      calculated using linear interpolation:
+///      - Compute the interpolation factor `u = d1 / (d1 - d2)`.
+///      - Find the intersection point using `v1 + u * (v2 - v1)`.
+/// 3. Return the resulting points in a vector.
+///
+/// ## Usage
+/// This function is typically used in SAT-based collision detection to clip edges
+/// of one shape against the edges or boundaries of another. The clipped points
+/// define the region of overlap or contact.
+///
+/// ## Notes
+/// - The function works in 3D but is generally used for 2D physics simulations
+///   where the Z-coordinate is ignored.
+/// - The returned points are ordered based on their position along the input segment.
+/// - A maximum of two points is returned: the retained vertices and/or the intersection.
+///
+/// ## Edge Cases
+/// - If both points lie outside the plane, the result is an empty vector.
+/// - If both points lie inside the plane, both are included in the result.
 fn sat_clip(v1: &[f32; 3], v2: &[f32; 3], normal: &[f32; 3], offset: f32) -> Vec<[f32; 3]> {
     let mut cp = vec![];
 
@@ -494,7 +562,7 @@ pub fn sat_collision_detection(
         return None;
     }
 
-    let (axii, index, overlap) = std::cmp::min_by(
+    let (axii, index, _overlap) = std::cmp::min_by(
         (axii_a, index_axii_a, min_overlap_on_a),
         (axii_b, index_axii_b, min_overlap_on_b),
         |a, b| a.2.distance.total_cmp(&b.2.distance),
@@ -511,20 +579,22 @@ pub fn sat_collision_detection(
         [-axis[0], -axis[1], -axis[2]]
     };
 
-    // TODO: I should be able to do something different here
-    let collision_point = [
-        overlap.min[0] + axis[0] * overlap.distance,
-        overlap.min[1] + axis[1] * overlap.distance,
-        overlap.min[2] + axis[2] * overlap.distance,
-    ];
+    let clipping_points = sat_find_clipping_points(&body_a, &body_b, &collision_normal);
 
-    let collision_info = CollisionInformation {
-        penetration_depth: overlap.distance,
-        normal: collision_normal,
-        collision_point,
-    };
+    // Note: For now I only return one averaged collision point as there is no need to
+    // return and edge.
+    let clipping_point = clipping_points
+        .iter()
+        .max_by(|a, b| a.depth.total_cmp(&b.depth));
 
-    return Some(collision_info);
+    match clipping_point {
+        None => None,
+        Some(cp) => Some(CollisionInformation {
+            penetration_depth: cp.depth,
+            normal: collision_normal,
+            collision_point: cp.vertex,
+        }),
+    }
 }
 
 #[cfg(test)]
@@ -655,7 +725,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[1.0, 0.0, 0.0],
-                Projection {min: -5.0, max: 5.0, min_corner: [-5.0,-5.0,0.0], max_corner: [5.0,5.0,0.0]}
+                Projection {min: -5.0, max: 5.0 }
 
             given_rect_is_axis_aligned_and_not_offset_from_origo_when_projected_onto_y:
                 RigidBodyBuilder::default()
@@ -666,7 +736,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[0.0, 1.0, 0.0],
-                Projection {min: -5.0, max: 5.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
+                Projection {min: -5.0, max: 5.0 }
 
             given_rect_is_axis_aligned_and_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
@@ -677,7 +747,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[1.0, 0.0, 0.0],
-                Projection {min: 0.0, max: 10.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
+                Projection {min: 0.0, max: 10.0 }
 
             given_rect_is_axis_aligned_and_offset_from_origo_when_projected_onto_y:
                 RigidBodyBuilder::default()
@@ -688,7 +758,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[0.0, 1.0, 0.0],
-                Projection {min: -10.0, max: 0.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
+                Projection {min: -10.0, max: 0.0 }
 
             given_rect_is_rotated_45_degrees_and_not_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
@@ -700,7 +770,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[1.0, 0.0, 0.0],
-                Projection {min: -7.071, max: 7.071, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
+                Projection {min: -7.071, max: 7.071 }
 
             given_rect_is_rotated_90_degrees_and_not_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
@@ -712,7 +782,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[1.0, 0.0, 0.0],
-                Projection {min: -5.0, max: 5.0, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
+                Projection {min: -5.0, max: 5.0 }
 
             given_rect_is_rotated_45_degrees_and_offset_from_origo_when_projected_onto_x:
                 RigidBodyBuilder::default()
@@ -724,7 +794,7 @@ mod sat_test {
                     height: 10.,
                 })
                 .build(),[1.0, 0.0, 0.0],
-                Projection {min: -2.071, max: 12.071, min_corner: [0.0,0.0,0.0], max_corner: [0.0,0.0,0.0]}
+                Projection {min: -2.071, max: 12.071 }
         }
     }
 
@@ -779,14 +849,6 @@ mod sat_test {
                             expected.distance, overlap.distance,
                             "Expected projection overlap to be {expected:?} but found {overlap:?}"
                         );
-                        assert_eq!(
-                            expected.min, overlap.min,
-                            "Expected projection overlap to be {expected:?} but found {overlap:?}"
-                        );
-                        assert_eq!(
-                            expected.max, overlap.max,
-                            "Expected projection overlap to be {expected:?} but found {overlap:?}"
-                        );
                     }
                 )*
             }
@@ -795,34 +857,34 @@ mod sat_test {
         sat_overlap_distance_tests! {
             given_projections_does_not_overlap_1:
                 Projection::no_axis(-10.0, 10.0), Projection::no_axis(10.0, 20.0),
-                Overlap { distance: 0.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+                Overlap { distance: 0.0 }
 
             given_projections_does_not_overlap_2:
                 Projection::no_axis(10.0, 20.0), Projection::no_axis(-10.0, 10.0),
-                Overlap { distance: 0.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+                Overlap { distance: 0.0 }
 
             given_projections_do_overlap_1:
-                Projection { min:10.0, max:20.0, min_corner: [1.0,10.0,0.0], max_corner: [1.0,20.0,0.0]},
-                Projection { min:-9.0, max:11.0, min_corner: [-1.0,-9.0,0.0], max_corner: [-1.0,11.0,0.0]},
-                Overlap { distance: 1.0, min: [1.0,10.0,0.0], max: [-1.0,11.0,0.0]}
+                Projection { min:10.0, max:20.0 },
+                Projection { min:-9.0, max:11.0 },
+                Overlap { distance: 1.0 }
 
             given_projections_do_overlap_2:
-                Projection { min:-9.0, max:11.0, min_corner: [-1.0,-9.0,0.0], max_corner: [-1.0,11.0,0.0]},
-                Projection { min:10.0, max:20.0, min_corner: [1.0,10.0,0.0], max_corner: [1.0,20.0,0.0]},
-                Overlap { distance: 1.0, min: [1.0,10.0,0.0], max: [-1.0,11.0,0.0]}
+                Projection { min:-9.0, max:11.0 },
+                Projection { min:10.0, max:20.0 },
+                Overlap { distance: 1.0 }
 
             given_projections_do_overlap_3:
-                Projection { min:-9.0, max:11.0, min_corner: [1.0,-9.0,0.0], max_corner: [1.0,11.0,0.0]},
-                Projection { min:10.0, max:20.0, min_corner: [-1.0,10.0,0.0], max_corner: [-1.0,20.0,0.0]},
-                Overlap { distance: 1.0, min: [-1.0,10.0,0.0], max: [1.0,11.0,0.0]}
+                Projection { min:-9.0, max:11.0 },
+                Projection { min:10.0, max:20.0},
+                Overlap { distance: 1.0 }
 
             given_projections_are_contained_1:
                 Projection::no_axis(-10.0, 10.0), Projection::no_axis(-10.0, 10.0),
-                Overlap { distance: 20.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+                Overlap { distance: 20.0}
 
             given_projections_are_contained_2:
                 Projection::no_axis(-10.0, 10.0), Projection::no_axis(-9.0, 9.0),
-                Overlap { distance: 18.0, min: [0.0,0.0,0.0], max: [0.0,0.0,0.0]}
+                Overlap { distance: 18.0 }
         }
     }
 
@@ -1125,7 +1187,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 1.0,
                     normal: [1.0,0.0,0.0],
-                    collision_point: [0.0,5.0,0.0]
+                    collision_point: [-1.0,-5.0,0.0]
                 })
 
             given_rectangles_are_axis_aligned_when_overlap_on_y_axis_but_bodies_have_swapped_order_expect_collision:
@@ -1155,7 +1217,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 5.0,
                     normal: [0.0,-1.0,0.0],
-                    collision_point: [0.0,20.0,0.0]
+                    collision_point: [-20.0,20.0,0.0]
                 })
 
             given_one_rectangle_is_axis_aligned_and_one_rotated_90_degrees_when_overlap_on_y_axis_expect_collision:
@@ -1171,7 +1233,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 5.0,
                     normal: [-1.0,0.0,0.0],
-                    collision_point: [5.0,5.0,0.0]
+                    collision_point: [10.0,5.0,0.0]
                 })
 
             given_rectangles_are_rotated_45_degrees_when_their_sides_overlap_expect_collision:
@@ -1188,7 +1250,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 1.414,
                     normal: [0.707,0.707,0.0],
-                    collision_point: [0.0,7.071,0.0]
+                    collision_point: [6.071,-1.0,0.0]
                 })
 
             given_rectangles_are_rotated_neg_45_degrees_when_their_sides_overlap_expect_collision:
@@ -1222,7 +1284,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 2.929,
                     normal: [0.707, 0.707,0.0],
-                    collision_point: [0.0,2.071,0.0]
+                    collision_point: [0.0,-2.071,0.0]
                 })
 
             given_rectangles_are_offset_from_each_other_with_no_rotation_with_half_overlap_expect_collision:
@@ -1237,7 +1299,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 2.0,
                     normal: [1.0,0.0,0.0],
-                    collision_point: [1.0,2.5,0.0]
+                    collision_point: [-1.0,-2.5,0.0]
                 })
 
             given_rectangles_are_offset_from_each_other_with_no_rotation_with_half_overlap_expect_collision_2:
@@ -1252,7 +1314,7 @@ mod sat_test {
                 Some(CollisionInformation {
                     penetration_depth: 2.0,
                     normal: [-1.0,0.0,0.0],
-                    collision_point: [1.0,2.5,0.0]
+                    collision_point: [1.0,-2.5,0.0]
                 })
 
         }
